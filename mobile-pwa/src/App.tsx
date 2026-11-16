@@ -2,17 +2,23 @@ import { useState, useEffect } from 'react';
 import { generateHero } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
 import { TownEngine } from './engine/townEngine';
+import { CrisisEngine } from './engine/crisisEngine';
+import { generateDungeonFromContract } from './engine/dungeonEngine';
 import { TownView } from './components/TownView';
-import type { Hero } from './types/hero';
+import { DungeonView } from './components/DungeonView';
+import { CrisisAlert } from './components/CrisisAlert';
+import type { Hero, Equipment } from './types/hero';
 import type { GuildContract } from './types/world';
+import type { DungeonInstance, DungeonRoom } from './types/dungeon';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'combat' | 'town'>('town');
+  const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town'>('town');
   const [, setTickCounter] = useState(0);
   const triggerUpdate = () => setTickCounter(c => c + 1);
 
-  // 初始化城镇与后勤引擎
+  // 初始化城镇、后勤与天灾引擎
   const [townEngine] = useState<TownEngine>(() => new TownEngine());
+  const [crisisEngine] = useState<CrisisEngine>(() => new CrisisEngine());
 
   // 佣兵团名册 (主角 + 3名初始战友)
   const [roster, setRoster] = useState<Hero[]>(() => [
@@ -22,8 +28,10 @@ export function App() {
     generateHero('ranger', false)      // 射手
   ]);
 
-  // 当前进行中的任务契约
+  // 当前进行中的任务契约与地牢探索实例
   const [currentContract, setCurrentContract] = useState<GuildContract | null>(null);
+  const [currentDungeon, setCurrentDungeon] = useState<DungeonInstance | null>(null);
+  const [activeDungeonRoom, setActiveDungeonRoom] = useState<DungeonRoom | null>(null);
 
   // 战斗状态机
   const [engine, setEngine] = useState<CombatEngine | null>(null);
@@ -32,27 +40,46 @@ export function App() {
   const [logs, setLogs] = useState<any[]>([]);
   const [isAutoUlt, setIsAutoUlt] = useState<boolean>(true);
   const [battleRewardClaimed, setBattleRewardClaimed] = useState<boolean>(false);
-  const [systemNotice, setSystemNotice] = useState<string>('欢迎来到破晓佣兵团！请在城镇公会接取契约或在酒馆招募同袍。');
+  const [systemNotice, setSystemNotice] = useState<string>('欢迎来到破晓佣兵团！请在城镇公会接取契约或深入地牢探险。');
 
-  // 初始化战斗（来自契约或野外遭遇）
-  const startContractBattle = (contract: GuildContract) => {
+  // 接取契约并生成程序化地牢
+  const handleSelectContract = (contract: GuildContract) => {
     setCurrentContract(contract);
+    const dungeon = generateDungeonFromContract(contract);
+    setCurrentDungeon(dungeon);
+    setActiveTab('dungeon');
+    setSystemNotice(`🗝️ 破晓前锋已抵达【${contract.title}】地宫入口！`);
+  };
+
+  // 接取天灾战役
+  const handleAcceptCrisisBattle = () => {
+    const crisisContract = crisisEngine.generateCrisisContract();
+    handleSelectContract(crisisContract);
+  };
+
+  // 启动地牢房间战斗
+  const startRoomBattle = (room: DungeonRoom) => {
+    setActiveDungeonRoom(room);
     setBattleRewardClaimed(false);
 
-    // 挑选出活着的佣兵出战（最多 4 人前锋）
+    // 挑选活着的佣兵出战
     const deploySquad = roster.filter(h => h.currentHp > 0).slice(0, 4);
     if (deploySquad.length === 0) {
       setSystemNotice('⚠️ 佣兵团全员重伤倒下！请先前往医馆治疗或圣所召魂。');
       return;
     }
 
-    // 根据契约敌对编制生成敌人
-    const enemies = contract.enemyClasses.map(cId => {
+    const enemyClasses = room.enemyClasses || ['guardian', 'blademaster'];
+    const enemyLevel = room.enemyLevel || 1;
+
+    const enemies = enemyClasses.map(cId => {
       const e = generateHero(cId, false);
       return {
         ...e,
-        name: `敌·${e.name.split(' ')[0]}`,
-        currentAbility: Math.round(e.currentAbility * (0.8 + contract.enemyLevel * 0.2))
+        name: room.isBoss ? `👑首领·${e.name.split(' ')[0]}` : `敌·${e.name.split(' ')[0]}`,
+        currentAbility: Math.round(e.currentAbility * (0.8 + enemyLevel * 0.2)),
+        maxHp: room.isBoss ? Math.round(e.maxHp * 1.5) : e.maxHp,
+        currentHp: room.isBoss ? Math.round(e.maxHp * 1.5) : e.maxHp,
       };
     });
 
@@ -66,7 +93,95 @@ export function App() {
     setLogs([...eng.logs]);
     setIsRunning(true);
     setActiveTab('combat');
-    setSystemNotice(`⚔️ 已进入【${contract.title}】讨伐战场！`);
+    setSystemNotice(`⚔️ 突入【${room.title}】！`);
+  };
+
+  // 拆除陷阱
+  const handleDisarmTrap = (room: DungeonRoom) => {
+    // 根据先锋敏捷判定
+    const vanguard = roster.find(h => h.currentHp > 0) || roster[0];
+    const trapDmg = room.trapDamage || 20;
+    const isSuccess = (vanguard?.attributes.agility || 10) >= 12;
+
+    if (isSuccess) {
+      setSystemNotice(`🛠️ ${vanguard.name} 身手矫健，成功解除古代陷阱机关！`);
+    } else {
+      vanguard.currentHp = Math.max(1, vanguard.currentHp - trapDmg);
+      vanguard.stress = Math.min(100, vanguard.stress + 15);
+      setSystemNotice(`💥 拆除机关失败！机关触发造成 ${trapDmg} 点穿刺伤，队伍压力上升！`);
+    }
+
+    room.cleared = true;
+    advanceDungeonRoom();
+    triggerUpdate();
+  };
+
+  // 启封宝箱
+  const handleOpenChest = (room: DungeonRoom) => {
+    if (room.chestGold) {
+      townEngine.logistics.gold += room.chestGold;
+    }
+    if (room.chestItem && currentDungeon) {
+      currentDungeon.lootItems.push(room.chestItem);
+    }
+    room.cleared = true;
+    setSystemNotice(`✨ 宝箱启封！缴获金币 ${room.chestGold} G，获得稀有战利品！`);
+    advanceDungeonRoom();
+    triggerUpdate();
+  };
+
+  // 推进地牢房间
+  const advanceDungeonRoom = () => {
+    if (!currentDungeon) return;
+    const nextIdx = currentDungeon.currentRoomIndex + 1;
+    if (nextIdx < currentDungeon.totalRooms) {
+      currentDungeon.currentRoomIndex = nextIdx;
+      currentDungeon.rooms[nextIdx].status = 'current';
+    } else {
+      currentDungeon.isCompleted = true;
+      handleFinishDungeon(true);
+    }
+  };
+
+  // 结算完成地牢
+  const handleFinishDungeon = (victory: boolean) => {
+    if (victory && currentContract) {
+      const res = townEngine.completeContract(currentContract, roster);
+      // 推进天灾时间
+      const crisisRes = crisisEngine.advanceDay();
+      if (currentContract.id.startsWith('crisis_')) {
+        const victoryMsg = crisisEngine.resolveCrisisVictory();
+        setSystemNotice(`${res.message} | ${victoryMsg}`);
+      } else {
+        setSystemNotice(res.message + (crisisRes.message ? ` | ${crisisRes.message}` : ''));
+      }
+    }
+    setCurrentDungeon(null);
+    setCurrentContract(null);
+    setActiveTab('town');
+    triggerUpdate();
+  };
+
+  // 装备穿戴
+  const handleEquipItem = (heroId: string, item: Equipment) => {
+    const hero = roster.find(h => h.id === heroId);
+    if (!hero) return;
+
+    if (item.slot === 'weapon') hero.equipment.weapon = item;
+    else if (item.slot === 'armor') hero.equipment.armor = item;
+    else hero.equipment.trinket = item;
+
+    // 属性加成
+    if (item.bonusHp) hero.maxHp += item.bonusHp;
+    if (item.bonusArmor) hero.attributes.armorUse += item.bonusArmor;
+    if (item.bonusDamage) hero.attributes.weaponSkill += Math.round(item.bonusDamage / 2);
+
+    // 从战利品列表移出
+    if (currentDungeon) {
+      currentDungeon.lootItems = currentDungeon.lootItems.filter(i => i.id !== item.id);
+    }
+    setSystemNotice(`🛡️ ${hero.name} 穿戴了【${item.name}】！`);
+    triggerUpdate();
   };
 
   // 战斗心跳 Tick
@@ -94,9 +209,15 @@ export function App() {
         });
         setRoster(updatedRoster);
 
-        if (engine.winner === 'player' && currentContract) {
-          const res = townEngine.completeContract(currentContract, updatedRoster);
-          setSystemNotice(res.message);
+        if (engine.winner === 'player') {
+          if (activeDungeonRoom) {
+            activeDungeonRoom.cleared = true;
+          }
+          if (activeDungeonRoom?.isBoss) {
+            setSystemNotice('👑 最终首领已被斩杀！地牢全线扫清！');
+          } else {
+            setSystemNotice('🎉 房间守卫已被全歼，道路畅通！');
+          }
         } else if (engine.winner === 'enemy') {
           setSystemNotice('💀 战役失败，先遣队败退！队员重创，请回圣所与医馆救治！');
         }
@@ -106,7 +227,7 @@ export function App() {
     }, 200);
 
     return () => clearInterval(timer);
-  }, [isRunning, engine, battleRewardClaimed, currentContract, roster, townEngine]);
+  }, [isRunning, engine, battleRewardClaimed, roster, townEngine, activeDungeonRoom]);
 
   // 切换自动/手动大招
   const toggleAutoUlt = () => {
@@ -180,50 +301,105 @@ export function App() {
       {/* 核心展示区 */}
       <main style={{ flex: 1, padding: '12px', overflowY: 'auto' }}>
         
-        {/* 顶部三 Tab 切换 */}
+        {/* 天灾大事件告警栏 (Milestone 3) */}
+        <CrisisAlert
+          crisis={crisisEngine.crisis}
+          onAcceptCrisisBattle={handleAcceptCrisisBattle}
+        />
+
+        {/* 顶部四 Tab 切换 */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-          {(['town', 'combat', 'roster'] as const).map(tab => (
+          {(['town', 'dungeon', 'combat', 'roster'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               style={{
                 flex: 1,
-                padding: '8px',
+                padding: '8px 4px',
                 borderRadius: '8px',
                 border: 'none',
                 cursor: 'pointer',
                 background: activeTab === tab ? '#38bdf8' : '#1e293b',
                 color: activeTab === tab ? '#0f172a' : '#94a3b8',
                 fontWeight: 'bold',
-                fontSize: '12px'
+                fontSize: '11px'
               }}
             >
-              {tab === 'town' && '🏰 城邦据点'}
-              {tab === 'combat' && '🗡️ 战役讨伐'}
-              {tab === 'roster' && `👥 佣兵名册 (${roster.length})`}
+              {tab === 'town' && '🏰 据点'}
+              {tab === 'dungeon' && `🗝️ 地牢${currentDungeon ? '●' : ''}`}
+              {tab === 'combat' && '🗡️ 战役'}
+              {tab === 'roster' && `👥 名册(${roster.length})`}
             </button>
           ))}
         </div>
 
-        {/* Tab 1: 城邦运营与公会据点 (Milestone 2 核心) */}
+        {/* Tab 1: 城邦运营与公会据点 */}
         {activeTab === 'town' && (
           <TownView 
             townEngine={townEngine}
             roster={roster}
             onRosterChange={setRoster}
-            onSelectContract={startContractBattle}
+            onSelectContract={handleSelectContract}
             onLogMessage={msg => setSystemNotice(msg)}
             triggerUpdate={triggerUpdate}
           />
         )}
 
-        {/* Tab 2: 地牢交战 / 讨伐 */}
+        {/* Tab 2: 深度地牢探索系统 (Milestone 3 核心) */}
+        {activeTab === 'dungeon' && (
+          <div>
+            {currentDungeon ? (
+              <DungeonView
+                dungeon={currentDungeon}
+                squad={roster.filter(h => h.currentHp > 0).slice(0, 4)}
+                rations={townEngine.logistics.rations}
+                onEnterBattle={startRoomBattle}
+                onDisarmTrap={handleDisarmTrap}
+                onOpenChest={handleOpenChest}
+                onCampRest={(consumedRations, msg) => {
+                  townEngine.logistics.rations = Math.max(0, townEngine.logistics.rations - consumedRations);
+                  setSystemNotice(msg);
+                  advanceDungeonRoom();
+                  triggerUpdate();
+                }}
+                onEquipItem={handleEquipItem}
+                onExitDungeon={() => handleFinishDungeon(false)}
+              />
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 10px', color: '#94a3b8' }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🗝️</div>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8fafc' }}>当前未在任何地牢深渊中</div>
+                <div style={{ fontSize: '11px', marginTop: '6px' }}>
+                  请前往【🏰据点】的【冒险者公会】接取契约任务，即可踏入程序化地牢序列！
+                </div>
+                <button
+                  onClick={() => setActiveTab('town')}
+                  style={{
+                    marginTop: '16px',
+                    padding: '8px 16px',
+                    background: '#38bdf8',
+                    color: '#0f172a',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  前往公会接取契约
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: 地牢交战 / 讨伐战场 */}
         {activeTab === 'combat' && (
           <div>
             {currentContract && (
               <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px', border: '1px solid #334155', marginBottom: '10px', fontSize: '12px' }}>
-                <span style={{ color: '#eab308', fontWeight: 'bold' }}>当前契约：</span> {currentContract.title}
-                <span style={{ color: '#38bdf8', marginLeft: '8px' }}>({currentContract.stars} 星)</span>
+                <span style={{ color: '#eab308', fontWeight: 'bold' }}>战场：</span> {activeDungeonRoom?.title || currentContract.title}
+                <span style={{ color: '#38bdf8', marginLeft: '8px' }}>({currentContract.stars} 星深渊)</span>
               </div>
             )}
 
@@ -303,14 +479,28 @@ export function App() {
                 textAlign: 'center'
               }}>
                 <div style={{ fontWeight: 'bold', fontSize: '14px', color: engine.winner === 'player' ? '#34d399' : '#f87171' }}>
-                  {engine.winner === 'player' ? '🎉 战役告捷！公会悬赏金已核算入库！' : '💀 战役惨败，兄弟受创！请返回城镇避难！'}
+                  {engine.winner === 'player' ? '🎉 房间肃清！斩杀所有强敌！' : '💀 战役惨败，先遣队溃退！'}
                 </div>
-                <button
-                  onClick={() => setActiveTab('town')}
-                  style={{ marginTop: '8px', padding: '6px 16px', background: '#38bdf8', color: '#0f172a', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
-                >
-                  返回城邦公会 🏰
-                </button>
+                {engine.winner === 'player' ? (
+                  <button
+                    onClick={() => {
+                      advanceDungeonRoom();
+                      setActiveTab('dungeon');
+                    }}
+                    style={{ marginTop: '8px', padding: '6px 16px', background: '#38bdf8', color: '#0f172a', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    继续深入地牢下层 🗝️
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      handleFinishDungeon(false);
+                    }}
+                    style={{ marginTop: '8px', padding: '6px 16px', background: '#ef4444', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    撤回城邦医馆 🏥
+                  </button>
+                )}
               </div>
             )}
 
@@ -325,7 +515,7 @@ export function App() {
             </div>
 
             {/* 战况日志 */}
-            <div style={{ background: '#0b1329', padding: '10px', borderRadius: '8px', height: '160px', overflowY: 'auto', border: '1px solid #1e293b' }}>
+            <div style={{ background: '#0b1329', padding: '10px', borderRadius: '8px', height: '140px', overflowY: 'auto', border: '1px solid #1e293b' }}>
               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px', borderBottom: '1px solid #1e293b', paddingBottom: '4px' }}>
                 📜 实时战术推演日志 (Gambit 驱动)
               </div>
@@ -338,7 +528,7 @@ export function App() {
           </div>
         )}
 
-        {/* Tab 3: 佣兵名册 */}
+        {/* Tab 4: 佣兵名册 */}
         {activeTab === 'roster' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
@@ -357,6 +547,19 @@ export function App() {
                   <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 'bold' }}>CA {hero.currentAbility} / PA {hero.potentialAbility}</span>
                 </div>
                 
+                {/* 装备栏 */}
+                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', fontSize: '10px' }}>
+                  <span style={{ background: '#0b1329', padding: '2px 6px', borderRadius: '4px', color: '#cbd5e1' }}>
+                    🗡️ {hero.equipment.weapon?.name || '无武器'}
+                  </span>
+                  <span style={{ background: '#0b1329', padding: '2px 6px', borderRadius: '4px', color: '#cbd5e1' }}>
+                    🛡️ {hero.equipment.armor?.name || '无防具'}
+                  </span>
+                  <span style={{ background: '#0b1329', padding: '2px 6px', borderRadius: '4px', color: '#cbd5e1' }}>
+                    💍 {hero.equipment.trinket?.name || '无饰品'}
+                  </span>
+                </div>
+
                 {/* 状态与伤残 */}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
                   <span>生命: {hero.currentHp}/{hero.maxHp}</span>
