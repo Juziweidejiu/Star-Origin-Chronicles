@@ -253,10 +253,30 @@ export function App() {
   const currentTown = townEngine.towns[townEngine.logistics.currentTownId];
 
   return (
-    <div style={{ maxWidth: '480px', margin: '0 auto', minHeight: '100vh', background: '#0f172a', color: '#f8fafc', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif' }}>
+    <div style={{ 
+      maxWidth: '480px', 
+      margin: '0 auto', 
+      minHeight: '100vh', 
+      width: '100%',
+      background: '#0f172a', 
+      color: '#f8fafc', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      fontFamily: 'sans-serif' 
+    }}>
       
-      {/* 顶部 iOS 状态栏 */}
-      <header style={{ padding: '10px 14px', background: '#1e293b', borderBottom: '1px solid #334155' }}>
+      {/* 顶部 iOS 状态栏（包含安全区域适配 Safe Area Inset Top） */}
+      <header style={{ 
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+        paddingBottom: '10px',
+        paddingLeft: '14px',
+        paddingRight: '14px',
+        background: '#1e293b', 
+        borderBottom: '1px solid #334155',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#38bdf8' }}>⚔️ 破晓佣兵团</span>
@@ -591,8 +611,16 @@ export function App() {
 
       </main>
 
-      {/* 底部 PWA 离线提示 */}
-      <footer style={{ padding: '8px', textAlign: 'center', fontSize: '10px', color: '#64748b', background: '#0b1329', borderTop: '1px solid #1e293b' }}>
+      {/* 底部 PWA 离线提示（包含底部小黑条安全区域 Safe Area Inset Bottom） */}
+      <footer style={{ 
+        paddingTop: '8px', 
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+        textAlign: 'center', 
+        fontSize: '10px', 
+        color: '#64748b', 
+        background: '#0b1329', 
+        borderTop: '1px solid #1e293b' 
+      }}>
         破晓佣兵团 · 移动端 PWA 运营引擎 · 离线自动运算
       </footer>
 
