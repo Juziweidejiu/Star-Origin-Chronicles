@@ -1,0 +1,143 @@
+ui.TutorialCoach.15c37b08: Weiter ▸
+ui.TutorialCoach.ce560e9b: Verstanden ▸
+ui.HowToPlayScreen.0ba5d69b: Die Schleife
+ui.HowToPlayScreen.fcf0195a: Das Jahr
+ui.HowToPlayScreen.a2a74c73: Die Kriege
+ui.HowToPlayScreen.616e1102: Die Tiefe
+ui.TutorialCoach.577335ed: Tour überspringen
+ui.TutorialCoach.f025f84a: Los geht's ▸
+ui.HowToPlayScreen.e567512e: In einer Minute
+ui.HowToPlayScreen.680ca080: Deine erste Prüfung
+ui.HowToPlayScreen.45225222: Was dich umbringen wird
+ui.RealmIntroCinematic.588504eb: Das Recht zu herrschen.
+ui.HowToPlayScreen.4700b77b: Rivalisierende Gilden · Die Kriege
+ui.HowToPlayScreen.b8afc395: Wo man Dinge nachschlägt
+ui.RealmIntroCinematic.2a83cb71: Einst gab es einen König.
+ui.RealmIntroCinematic.40a5f1fc: Nur die Gilden bestanden.
+ui.HowToPlayScreen.4cfa25ec: Ruhe & Erholung · Verborgene Attribute
+ui.HowToPlayScreen.eafe9c98: Das Reich, und wo du darin stehst
+ui.RealmIntroCinematic.39b997b7: Doch nun ist der Thron leer.
+ui.HowToPlayScreen.41fcc144: Kein Tank oder kein Heiler.
+ui.HowToPlayScreen.4cf89664: Neu hier?
+ui.HowToPlayScreen.6e91f64e: Blind zu kaufen.
+ui.HowToPlayScreen.a39f945b: Die Kassen rot werden zu lassen.
+ui.HowToPlayScreen.b2f547c9: Die kühne Möglichkeit zu nehmen, wenn eine Lage dich warnt.
+ui.HowToPlayScreen.b3397c2c: Am falschen Tag in eine Todesfalle zu laufen.
+ui.HowToPlayScreen.d0ef5435: Deine besten vier zugrunde zu reiten.
+ui.HowToPlayScreen.f49eac20: Sie kommen an und wollen etwas, und sie dienen zu Bedingungen.
+ui.HowToPlayScreen.f9836203: Erfahrenheit ist nicht Macht.
+ui.RealmIntroCinematic.1395b88e: Jede Sprosse, die du erklimmst.
+ui.RealmIntroCinematic.15614a5c: Jeder Name, den das Dunkel fordert.
+ui.RealmIntroCinematic.477db762: Vorspann überspringen
+ui.RealmIntroCinematic.c4258d2d: Alles beginnt hier.
+ui.HowToPlayScreen.03abef0b: {Icon} Spielanleitung
+ui.HowToPlayScreen.c604c973: {Icon} Mehr im Kompendium: {strong}
+ui.TutorialCoach.87a4786f: Schließen
+ui.TutorialCoach.3e52dfff: Schritt {val1} von {total}
+ui.RealmIntroCinematic.b6400be4: 熔炉可以去等别人。
+ui.RealmIntroCinematic.7eac1edc: 你有亲人要顾，有道路要守，还有与他们同度的岁月。
+ui.RealmIntroCinematic.f7e47248: 其中每一段都值得记住，那本来就是这份活计。
+ui.RealmIntroCinematic.c2d6b374: 继续开场
+ui.HowToPlayScreen.0821363c: 你正在玩悠闲模式
+ui.HowToPlayScreen.d6c2138b: 你的第一次探险
+ui.HowToPlayScreen.c8bfcae2: {strong} 跟着向导把会馆走一遍 ▸
+ui.RealmIntroCinematic.a77c0053: 换一座会馆，换一个日子，换一个落在灰烬里的名字。
+ui.RealmIntroCinematic.03a49cbc: 进入会馆 {span}
+ui.HowToPlayScreen.0c35c7b1: 它一年开启四次。
+ui.HowToPlayScreen.e7f21533: 档案库的名册 · 游荡者
+ui.HowToPlayScreen.b6a3a0f2: 那些羁绊值得你亲手去打。
+ui.HowToPlayScreen.2036169c: 探险者是人，而且他们是暂时的
+ui.HowToPlayScreen.159eddcf: 培养探险者 · 特质
+ui.RealmIntroCinematic.bf545897: 你招进来的每一位探险者。
+ui.HowToPlayScreen.a8540323: 你这一局玩的是迷雾
+ui.HowToPlayScreen.71e6063f: 按你的喜好设置
+ui.HowToPlayScreen.342edb6d: 按「继续 ▸」让时间向前推进。没有试炼在等你，所以节奏由你决定：训练探险者、从告示板上接委托和探险、签下新人，并应对疆域发生的各种事情。
+ui.HowToPlayScreen.563cad31: 按「继续 ▸」把时间推进到你的下一场试炼。在两场试炼之间的日子里，你训练探险者、接探险赚金币、签下新人，并应对疆域发生的各种事情。
+ui.HowToPlayScreen.f83ab134: 「模拟整季」会替你把一整年打完。每一趟探险仍然按你设好的指令真正地打，但由游戏来决定谁出发、接哪份活。遇到深渊时它会停下。
+ui.HowToPlayScreen.9c211dcd: 「模拟整季」会替你把一整年打完。每一场试炼仍然按你设好的指令真正地打，但由游戏来决定谁出发、接哪份活。遇到熔炉和深渊时它会停下。
+ui.HowToPlayScreen.5b1737ac: 告示板上的每一份活都写明四项：有几间房、报酬多少、队伍要离开几天，以及这份活什么时候截止。队伍找到的任何东西都另算在报酬之外。
+ui.HowToPlayScreen.e5deda03: 然后，至少完整地看一次探险的过程。你不用去点击攻击。每位探险者都按自己的指令行动，指令是一串「如果这样，就那样做」的规则，从上往下读。你可以调整它们的顺序、替换它们，或者在指令菜单的最上方自己写一条。
+ui.HowToPlayScreen.60d2e925: 一个级别里混着强弱各异的公会，有些试炼远远超出你队伍的能力。这种试炼你就该输掉。查看「历书」，宁可「撤出」，也不要为了三分赔上一整支队伍。不过撤出从来不是免费的：每一个固定日程你若不去应战，公会就要失去一部分声望。在你做决定之前，「总览」上的计划表会把这项代价显示在每个日程旁边。
+ui.HowToPlayScreen.d3f4aba8: 大多数事件的代价是金币、士气或一道伤疤。少数事件可能要人命，而这些在你选择之前，选项上一定会写明。总有一条更安全的出路，而它通常要花钱。
+ui.HowToPlayScreen.cdaa246d: 不理会赞助人的指标。
+ui.HowToPlayScreen.11ce6a5c: 没有试炼，一年就由各种活计构成：疆域点名请你的公会承接的委托、展示你头号人物的集会，以及疆域集结兵力、向你要探险者的战争。一年仍然以「赛季回顾」收尾，编年史也仍然会把这一切都写下来。
+ui.HowToPlayScreen.1e912723: 每年一次，在深冬最深的时候，会开出一道不通往任何别处的阶梯。深渊从不重置：你通关的一层会一直保持通关，对这个王朝是这样，对同一疆域里此后的每一个王朝也是这样。公会会为任何人进行过的每一次下探都留下一份日志。
+ui.HowToPlayScreen.948279e0: 这里最多可以下去六个人，而不是四个，而且这是本游戏中最危险的事，远超其他一切。你不必回应它。阶梯只问一次，并等到那一天。你若拒绝，它要再过一年才会再问。
+ui.HowToPlayScreen.75518a5a: 没有国王。王冠在一场战争中陨落，各公会临时定下了一套继承办法，也就是一场决定谁来执掌疆域的角逐。你的公会不在其中。那是你在创会时做出的选择，疆域的归属继续由别人来决定，而你继续做你的活。
+ui.HowToPlayScreen.83eeaa2e: 没有国王。王冠在一场战争中陨落，公会是唯一还屹立不倒的机构。他们临时定下的继承办法是一场比试：谁赢下熔炉，谁就执掌疆域，直到下一届熔炉。
+ui.HowToPlayScreen.008e15d1: 打开「疆域」就能看到地图。你的公会设在一座真实的城镇里，你的对手也是，而同城公会之间的仇怨比联赛还要古老。你的探险者也来自这些地方，所以当战争落到他们的家乡时，他们会看着你怎么决定。
+ui.HowToPlayScreen.5188b939: 探险者会在公会之间流动，而「市场」就是办这件事的地方。你可以把自己的探险者挂出去，等别人来问；也可以签下别家公会挂出的人，这比把他们挖过来便宜；或者收下一名游荡者，也就是不属于任何公会的探险者。
+ui.HowToPlayScreen.82e8eb4a: 「图鉴」是完整的参考资料。其中每一个族裔、职业、特质、协同、状态和怪物，都取自游戏实际运行所用的数据，而其中的指南涵盖训练、轮换、装具、金钱和联赛。你可以搜索，也可以一页页翻看。「编年史」会在你游玩时写下你王朝的故事，而且你可以分享它。
+ui.HowToPlayScreen.e0107668: 排在某条标着「始终」的指令下面的那些指令。
+ui.HowToPlayScreen.bfa0f37a: 一条没有条件的指令，每次轮到它都一定会触发，所以排在它下面的指令永远不会被读到。压在它下面的撤退指令，一次也没有执行过。把带条件的指令放在它上面，并留意标着「从不」的那些行。
+ui.IntroChart.35947457: 欢迎来到{town}
+ui.HowToPlayScreen.6b7309e8: 市场，以及它何时开启
+ui.RealmIntroCinematic.e3f2f18d: 一脉古老血统的最后一人，坐在七个王国共奉的王座上。
+ui.RealmIntroCinematic.0b0dff41: 一场战争终结了王冠，也终结了每一个伸手去够它的人。
+ui.RealmIntroCinematic.f5b3bdf2: 无人继位。
+ui.RealmIntroCinematic.7e538a34: 会馆从来不是为统治而生的。它们是受雇的人手：守着道路，杀掉从黑暗里爬出来的东西，拿了钱，然后被遗忘。
+ui.RealmIntroCinematic.df113cd0: 再无旁人可托，疆域便把王座的重量交到了它们手里，而今又畏惧自己做下的事。
+ui.RealmIntroCinematic.4d4321a2: 每一年，会馆都被推到彼此的对面。
+ui.RealmIntroCinematic.b2f01a3e: 在熔炉中得到证明的那一座，执掌大权，直到另一座证明自己更强。
+ui.RealmIntroCinematic.793d4fe1: 一座新的会馆卸下了门闩。
+ui.RealmIntroCinematic.a2ca0a1d: 它账簿的第一页还空着。
+ui.HowToPlayScreen.4eceb301: 即使是你自己的探险者，你也永远看不到他们的真实面貌。每一项属性、评分和星级都显示为一个范围。负责判断的是议事会的两个席位：武备教头判断一名探险者现在的水平，博识者判断其将来能成长到什么程度。判断的人越高明，观察的时间越长，范围就越窄，但谁也不能完全确定，而眼力差的人可能会看得完全不对。探险前的胜算用文字而不是数字来表示。训练指令照常可以使用，由你的武备教头来判断。如果两个席位都没人，你就只能凭眼力去看，几乎等于什么都看不见。
+ui.HowToPlayScreen.cd70f8bb: 开始之前，先打开菜单最下方的「设置」，把游戏调成你喜欢的样子。游戏默认使用「深色书页」。在「显示」下，你可以换成「浅色羊皮纸」、换一种字体、把文字调大或缩放整个游戏（Ctrl + 和 Ctrl − 在任何地方都能用）。「无障碍」里有色盲友好配色、用数字代替星星的评分，以及由屏幕阅读器朗读的探险过程。
+ui.HowToPlayScreen.1fd4871d: 在每人自己的指令之上，是你作战方案的几行。方案只需在「指令」页为全队选一次，每一行都标着方案的名字。「常规」不添加任何内容。
+ui.HowToPlayScreen.331b09f0: 他们会变老、衰退、退役，也会死去。他们经历过的事会改变他们：与死亡擦肩而过会留下一道伤疤，一次英勇的通关会锻造出一份德性，而友谊和嫌隙都会在黑暗中形成。
+ui.HowToPlayScreen.3c4b23b5: 一支彼此合得来的队伍，打起来明显更强。挑选队伍时，每位探险者旁边都会标出他们对已经选上的人有什么感觉。
+ui.HowToPlayScreen.7f7341e6: 每位探险者都怀着一份誓愿，那是他们打算在生命结束前做成的一件事，从你第一次看到他们起就印在他们的卡片上。有些誓愿你可以帮他们实现：一头值得留名的野兽、深渊的某一层、回到他们家乡去做的一份活。当你面前的某件事正好能完成一份誓愿时，那位探险者会被标出来，而「荣誉」页面会列出公会还欠着的事。
+ui.HowToPlayScreen.66355266: 探险者还会立下固定年数的誓约。誓约到期时，他们会按自己的开价要求续约，心头好也就从这时起不再便宜了。
+ui.HowToPlayScreen.aefdbcdf: 卖掉一名探险者不会给你的公会留下污点。把人遣散、不交给任何人，才会留下污点：一年之内这样做好几次，疆域就会认为你的公会冷酷无情。把人让给一家与你交好的公会，算在相反的一边；留下一位老手来教人，也是。
+ui.HowToPlayScreen.b45de864: 三个数字说明他们是否准备好了。
+ui.HowToPlayScreen.1af6bdb0: 状态是身体：伤势与艰苦的探险会把它压低，休息则让它回升。压力是心神：它在每个房间里累积，若在黑暗中达到 {breakPoint}，他们就会崩溃，那场探险余下的打法都会变样。疲劳是近来被使唤得有多狠：过了 {tiredFrom}，疲惫的探险者挥击更软、医治更少。当状态低于 {unfitBelow}、压力超过 {unfitAbove} 或疲劳超过 {unfitPast} 时，挑选队伍时他们会被标为不宜出战。你仍然可以派出他们。把鼠标移到三者任何一个上即可看到详情。
+ui.HowToPlayScreen.66a91821: 伤势会标在名字旁边。
+ui.HowToPlayScreen.bdd28d1e: 日课簿和探险报告会写明谁带伤归来、要多久才好。轻伤仍可上阵，但可能让伤势加重。重伤则要等痊愈才能出战。
+ui.HowToPlayScreen.ce4e995f: 薪酬每六天发一次，不管有没有人出门，而每个赤字的发薪日都会降低整个公会的士气。没有人会因此离开。整整一季，甚至没有人请求离开，这就是你扭转局面的时间。之后，你最不开心的探险者会请求被挂上市场。答应的话，除非你接受报价，否则什么也不会卖掉。拒绝的话，其士气会一路下沉，直到再也不肯踏进黑暗。
+ui.HowToPlayScreen.c0386ddd: 如果你的赞助人以某一族裔为荣，酒馆和每年的青训只送来这一族裔；若你在创会时立誓了第二族裔，也会送来。除非你立誓不签别人，你仍可以在市场上签下别的族裔，代价是赞助人的信心。
+ui.HowToPlayScreen.7257f7a1: 你正在玩加冕模式
+ui.HowToPlayScreen.2b112676: 疆域向你提问时，日子会等你回答。问题右上角的「先放一边」能把它挪开，让你先去看看「名册」、「历书」或「图鉴」。按「继续」，它就会回来。
+ui.HowToPlayScreen.8752032d: 有些房间可以歇脚。队伍会扎营，由你选择他们如何过夜：好好休息、照料伤者、守夜或把话说开。队伍需要的那张卡会被标出。
+ui.TutorialCoach.fa973e98: 带我看看 ▸
+ui.HowToPlayScreen.ebbd5888: 这片境土正在围绕你的公会合拢。在第2、4、6、8、10年结束时，最低的赛区离开这片境土：其中前三名仍会晋升，而上一个赛区的末三名也随其余公会一同离开。此后，最后一个赛区每年失去末两个公会，第15年结束时，最后四个公会中位居榜首的公会就此加冕，成为新一脉的开端。若你的公会是离开者之一，这一局即告结束，任何模式皆然。不会有新公会成立，离开的也不会回来。每个地区的公开赛以剩下的公会进行，名额不足之处以轮空补上，熔炉容纳的公会也会变少。只剩一个赛区时，档案库的名册永久关闭，再没有探险者会转投别的公会，但酒馆和游荡者仍然开放。
+ui.HowToPlayScreen.504447b3: 这个公会的玩法
+ui.HowToPlayScreen.abeb2f4f: 你的公会创立时立有自己的规矩，凡本页与之相悖之处，都以这些规矩为准：
+ui.HowToPlayScreen.9bb108b6: 一支队伍由四位探险者组成：一个坦克负责拖住怪物，两个输出负责造成伤害，一个治疗者负责让大家活着。黑暗每加深一级，会先开出第五个席位，再开出第六个，而离开联赛的公会保留原来赛区的队伍人数。
+ui.HowToPlayScreen.751abc72: 在最低的两个赛区里，一支队伍由四位探险者组成：一个坦克负责拖住怪物，两个输出负责造成伤害，一个治疗者负责让大家活着。中间两个赛区派出五人，最高两个赛区派出六人，所以在更高处创立的公会，起步时队伍就更大。
+ui.HowToPlayScreen.b3afae94: 指令与技能
+ui.HowToPlayScreen.b5792f8f: 试炼与联赛 · 指令与技能
+ui.HowToPlayScreen.22d9c71e: 每有一年没有达成指标，就会消耗掉赞助人的一部分耐心：苛刻的赞助人给两年，其余的给三年。「总览」上会倒数剩下的天数。耐心耗尽时，另一个家族会接任你的赞助人；在铁人模式中，这一局就此结束。
+ui.HowToPlayScreen.e1e37d89: 疲劳会随着时间消退，所以真正要紧的是你多频繁地派同一批人下去。让你的探险者轮换，否则他们就会开始死去。如果你是在苦行之路下创立的，一年被派出超过二十次的人还会更早停止进步，衰退得也更快。
+ui.HowToPlayScreen.e8b88167: 告示板上的活计向你地位的上下两头，都比联赛公会的延伸得更远，所以有些活远远超出你队伍的能力，本来就是该放着不接的。看清楚一份活给多少报酬、又警告了什么，宁可撤出，也不要为了一份报酬赔上一整支队伍。
+ui.HowToPlayScreen.cf219536: 在深渊的一层里，没有回头路。你无法撤出，队伍的领队和他们的伤势都不会把他们拉出来：要么清空这一层，要么被它击垮。在波与波之间，他们可以扎营，每层两次。扎营会吃膳药房的存货，让所有还站着的人恢复25%的生命，并缓解他们的压力。
+ui.HowToPlayScreen.370e7fcf: 委托板则反过来起作用：把两个人一起派出去，他们回来时对彼此的看法就会改变。一份两人的活，可以让一对结怨的人把事情了结，也可以让一位老手陪在你希望他们照顾的年轻人身边。一份顺利的活会把人拉近，而一场灾难会让朋友互相埋怨。
+ui.IntroChart.16d5c60b: (prefers-reduced-motion: reduce)
+ui.IntroChart.350f4694: xMidYMid slice
+ui.IntroChart.712c4b79: M {val1},{val2} L {val3},{val4}
+ui.TutorialCoach.27aec11b: polygon(0px 0px, 100% 0px, 100% 100%, 0px 100%, 0px 0px, {L}px {T}px, {L}px {B}px, {R}px {B}px, {R}px {T}px, {L}px {T}px)
+ui.HowToPlayScreen.50886368: 在「游戏」下，「黑暗中的难度」会让你存档里的每个生物都更强，从沉寂、躁动、饥饿到涌起。每升一档，每次探险的报酬和收获都会多一点。你随时可以调高，但永远不能低于沉寂，铁人模式下只能往上调。
+ui.HowToPlayScreen.c7a73df4: 你所在地区的公开赛和熔炉在同一个界面上准备。
+ui.HowToPlayScreen.c68203da: 一年是四季的联赛试炼，其间穿插着另外三件事：你所在地区的公开赛，一场淘汰赛；集会，你在那里展示一位冠军；以及战争，疆域在那时集结并向你要探险者。一年以赛季回顾结束，伴随着升级或降级，如果你挣到了，还有熔炉。
+ui.RealmIntroCinematic.39cfe4f5: Enter
+ui.HowToPlayScreen.bebc3368: 布告板按你的赛区派活，所以在联赛中越往上爬，更难、报酬更高的探险就越多。
+ui.HowToPlayScreen.2346bc68: 指令会一直保持你设好的样子。想把所有人的指令一次改好，就打开训练场里的「指令」。
+ui.HowToPlayScreen.97b56dce: 你的家乡
+ui.TutorialCoach.81b011ec: ◂ 返回
+ui.TutorialCoach.b17ef459: 跳过所有提示
+ui.TutorialCoach.9fb770f6: 在所有界面关闭教程卡片。可在设置的帮助中重新开启。
+ui.HowToPlayScreen.3270b14f: 出售无法撤回。如果出售会让你凑不满一支队伍，会有警告，但人手不足的队伍仍可出发，风险更大。
+ui.TutorialCoach.96d2a32d: 我自己摸索（不要提示）
+ui.TutorialCoach.cc39bf9b: 跳过会关闭各界面的提示。可在设置的帮助中重新开启。
+ui.HowToPlayScreen.46a361ae: 签约之前先占卜一下探险者，因为在那之前，忠诚、胆魄和稳定都是隐藏的。忠诚低的探险者容易被对手挖走。胆魄是在首领房间和杯赛中能否顶住，稳定则是每场战斗之间发挥起伏有多大。
+ui.HowToPlayScreen.e161530c: 你的公会置身联赛之外，所以没有试炼、没有积分榜、没有升级和降级，也没有杯赛和熔炉。本页中凡是讲级别或积分榜的内容，都与你无关。你得到的是活计。告示板依据的是你的声望，而不是级别，而且它的活计向你地位的上下两头，都比联赛公会的延伸得更远，所以难度取决于你选择接哪一份活。如果想加入联赛，「设置」的「游戏」里有「回到联赛」。你会在年末岁首回归，并从边陲重新开始。其余一切都与联赛中的公会完全一样。
+ui.HowToPlayScreen.996fe30b: 你经营一个冒险者公会。告示板上的每一份活都是一座地窟，死在里面的探险者就永远回不来了。这里没有联赛可爬。你接自己选的活，建立一个比其中每个人都更长久的王朝。一路上，游戏会把这一切写成一个故事，你可以随时回头阅读。
+ui.HowToPlayScreen.e740b8a7: 你经营一个冒险者公会。每一场联赛试炼都是一座地牢，死在里面的探险者就永远没了。从边陲到神话之环，攀登金字塔的六个赛区，建立一个比其中任何人都更长久的王朝。一路上，游戏会把这一切写成一个你可以回头阅读的故事。
+ui.HowToPlayScreen.cc7e0ee8: 备战在同一个界面上进行，分上下两块面板。上方面板用来看：地窟本身，以及显示你胜算的「窥探池」。下方面板用来操作，从左到右依次是：在「选择」中挑选队伍，定好「阵型」，分发「装具」，设置「指令」，然后送他们出发。
+ui.HowToPlayScreen.c8044c4a: 全是输出的队伍会被团灭。这是你在最初一小时里失去探险者最常见的原因。坦克不只是一个挡在前面的人：在地窟里，他们会把怪物引到自己身上；对上另一家公会时，战斗一开始，他们就会向靠近的任何对手发起挑战，于是敌人必须先对付他们，才能去攻击你的治疗者。
+ui.HowToPlayScreen.65d77264: 大多数游戏都教你 20 级打得过 2 级，这正是本游戏不把它叫作等级的原因。资历是一位探险者亲身经历过的东西。它只能在疆域中挣得，在探险、委托、战争和深渊里，永远不能在「训练场」里挣得。它显示为一个词，旁边跟着一个数字：「未历战」「初出」「识途」「饱经风霜」「不惑」。
+ui.HowToPlayScreen.2ac8cdc6: 它能让探险者在黑暗中出手更稳，作为导师能教的东西多得多，倒下时被活着抬出来的机会也大得多。真正决定一场战斗胜负的是属性。一个有天赋的「未历战」探险者会击败一个平庸的「饱经风霜」探险者，而且本该如此。
+ui.HowToPlayScreen.63ac4845: 档案库的名册在每个季节的头八天开放，探险者只有在这段时间才能转会。历书会把这些日子框出来。名册关闭时，市场也随之关闭，但大门从不关闭：酒馆一年中任何一天都能招人，游荡者也可以在任何一天签下，因为这两种人都不需要从谁的名册上除名。
+ui.HowToPlayScreen.d330378c: 你在最初一小时需要的一切都在这里了。其余的都在「图鉴」里：每一个族裔、职业、特质、状态和生物，都直接取自游戏实际运行所用的数据，还有想看多深就有多深的指南。
+ui.HowToPlayScreen.aed40261: 以星表示的「能力」是他们如今的整体水平。旁边的星「潜力」是他们将来能达到的水平，他们会在训练场里朝它成长。满分100的数字「评分」是他们胜任作战定位的程度，所以同一位探险者当坦克和当治疗者时评分不一样。超过90后，每一分评分都要加倍努力才能拿到。
+ui.HowToPlayScreen.e749249a: 读懂一名探险者有多强的三种方式。
+ui.HowToPlayScreen.ebe8f887: 你的公会坐落在一座真正的城镇里，它有自己的界面。城镇会建起帮助公会的建筑；你可以为下一项工程出金，也可以从委托公告板的「城镇活计」页派探险者去出力。威胁会逼到它的城墙下，你的公会就站在城墙上。退役的探险者可能在那里安家，有的还会开一家店。由谁决定城镇建什么，在创立时就已选定：城镇自己、你，或者城镇议会。
