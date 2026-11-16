@@ -88,6 +88,8 @@
   - 天灾专属防线契约与决战夜王终局任务，击破即可逆转威胁度并拯救沦陷据点。
 
 ### Milestone 4: 服务器上线与 iPhone PWA 实装
-- [ ] 利用本地 SSH（`ssh sparky-server`）将 `mobile-pwa/dist` 部署至腾讯云上海服务器。
-- [ ] 在 Cloudflare Tunnel / Nginx 中配置子路径（例如 `https://orange-fit.top/game/`）或独立服务。
+- [x] 利用本地 SSH（`ssh sparky-server`）将 `mobile-pwa/dist` 部署至腾讯云上海服务器。
+- [x] 在 Cloudflare Tunnel / Nginx 中配置二级子路径 `https://orange-fit.top/game/`。
+- [x] 适配 iOS PWA Manifest、安全区域与独立全屏运行模式 (`standalone`)。
+- [x] 公网连通性与静态资源透传验证完毕（HTTP 200，全套 JS/CSS/Manifest 正常运行）。
 - [ ] 真机 Safari 测试，验证添加到 iPhone 主屏幕后的手感、离线存储与触控响应。
