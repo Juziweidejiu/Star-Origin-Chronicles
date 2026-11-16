@@ -1,18 +1,29 @@
 import { useState, useEffect } from 'react';
 import { generateHero } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
+import { TownEngine } from './engine/townEngine';
+import { TownView } from './components/TownView';
 import type { Hero } from './types/hero';
+import type { GuildContract } from './types/world';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'combat' | 'guild'>('combat');
+  const [activeTab, setActiveTab] = useState<'roster' | 'combat' | 'town'>('town');
+  const [, setTickCounter] = useState(0);
+  const triggerUpdate = () => setTickCounter(c => c + 1);
 
-  // 初始化主角与队员
-  const [party] = useState<Hero[]>(() => [
+  // 初始化城镇与后勤引擎
+  const [townEngine] = useState<TownEngine>(() => new TownEngine());
+
+  // 佣兵团名册 (主角 + 3名初始战友)
+  const [roster, setRoster] = useState<Hero[]>(() => [
     generateHero('blademaster', true), // 主角团长
     generateHero('guardian', false),   // 坦克
     generateHero('cleric', false),     // 牧师
     generateHero('ranger', false)      // 射手
   ]);
+
+  // 当前进行中的任务契约
+  const [currentContract, setCurrentContract] = useState<GuildContract | null>(null);
 
   // 战斗状态机
   const [engine, setEngine] = useState<CombatEngine | null>(null);
@@ -20,32 +31,45 @@ export function App() {
   const [combatUnits, setCombatUnits] = useState<CombatUnit[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [isAutoUlt, setIsAutoUlt] = useState<boolean>(true);
+  const [battleRewardClaimed, setBattleRewardClaimed] = useState<boolean>(false);
+  const [systemNotice, setSystemNotice] = useState<string>('欢迎来到破晓佣兵团！请在城镇公会接取契约或在酒馆招募同袍。');
 
-  // 初始化一场战斗
-  const startNewBattle = () => {
-    const enemies = [
-      generateHero('warden', false),
-      generateHero('blademaster', false),
-      generateHero('arcanist', false),
-      generateHero('bard', false)
-    ].map(e => ({ ...e, name: '荒野狂盗·' + e.name.slice(3) }));
+  // 初始化战斗（来自契约或野外遭遇）
+  const startContractBattle = (contract: GuildContract) => {
+    setCurrentContract(contract);
+    setBattleRewardClaimed(false);
 
-    const eng = new CombatEngine(party, enemies);
-    // 同步自动大招设置
+    // 挑选出活着的佣兵出战（最多 4 人前锋）
+    const deploySquad = roster.filter(h => h.currentHp > 0).slice(0, 4);
+    if (deploySquad.length === 0) {
+      setSystemNotice('⚠️ 佣兵团全员重伤倒下！请先前往医馆治疗或圣所召魂。');
+      return;
+    }
+
+    // 根据契约敌对编制生成敌人
+    const enemies = contract.enemyClasses.map(cId => {
+      const e = generateHero(cId, false);
+      return {
+        ...e,
+        name: `敌·${e.name.split(' ')[0]}`,
+        currentAbility: Math.round(e.currentAbility * (0.8 + contract.enemyLevel * 0.2))
+      };
+    });
+
+    const eng = new CombatEngine(deploySquad, enemies);
     eng.units.forEach(u => {
       if (u.side === 'player') u.autoUlt = isAutoUlt;
     });
+
     setEngine(eng);
     setCombatUnits([...eng.units]);
     setLogs([...eng.logs]);
     setIsRunning(true);
+    setActiveTab('combat');
+    setSystemNotice(`⚔️ 已进入【${contract.title}】讨伐战场！`);
   };
 
-  useEffect(() => {
-    startNewBattle();
-  }, []);
-
-  // 战斗循环 Tick (60 FPS 或 200ms 心跳)
+  // 战斗心跳 Tick
   useEffect(() => {
     if (!isRunning || !engine || engine.isFinished) return;
 
@@ -53,10 +77,36 @@ export function App() {
       engine.tick(0.2);
       setCombatUnits([...engine.units]);
       setLogs([...engine.logs]);
+
+      // 战斗结束结算
+      if (engine.isFinished && !battleRewardClaimed) {
+        // 同步存活/伤亡状态回名册
+        const updatedRoster = [...roster];
+        engine.units.filter(u => u.side === 'player').forEach(u => {
+          const hero = updatedRoster.find(h => h.id === u.hero.id);
+          if (hero) {
+            hero.currentHp = Math.max(0, u.currentHp);
+            if (u.isDead) {
+              hero.injuries.push('战死创伤');
+              townEngine.recordFallenHero(hero);
+            }
+          }
+        });
+        setRoster(updatedRoster);
+
+        if (engine.winner === 'player' && currentContract) {
+          const res = townEngine.completeContract(currentContract, updatedRoster);
+          setSystemNotice(res.message);
+        } else if (engine.winner === 'enemy') {
+          setSystemNotice('💀 战役失败，先遣队败退！队员重创，请回圣所与医馆救治！');
+        }
+        setBattleRewardClaimed(true);
+        triggerUpdate();
+      }
     }, 200);
 
     return () => clearInterval(timer);
-  }, [isRunning, engine]);
+  }, [isRunning, engine, battleRewardClaimed, currentContract, roster, townEngine]);
 
   // 切换自动/手动大招
   const toggleAutoUlt = () => {
@@ -69,7 +119,7 @@ export function App() {
     }
   };
 
-  // 玩家手动点击释放大招
+  // 玩家手动释放大招
   const handleManualUlt = (unit: CombatUnit) => {
     if (!engine || unit.side !== 'player' || unit.resource < 100 || unit.isDead) return;
     engine.triggerUltimate(unit);
@@ -79,23 +129,26 @@ export function App() {
 
   const playerUnits = combatUnits.filter(u => u.side === 'player');
   const enemyUnits = combatUnits.filter(u => u.side === 'enemy');
+  const currentTown = townEngine.towns[townEngine.logistics.currentTownId];
 
   return (
     <div style={{ maxWidth: '480px', margin: '0 auto', minHeight: '100vh', background: '#0f172a', color: '#f8fafc', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif' }}>
       
-      {/* 顶部状态栏 (iOS 安全区风格) */}
-      <header style={{ padding: '12px 16px', background: '#1e293b', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#38bdf8' }}>⚔️ 破晓佣兵团</span>
-          <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '8px' }}>第 12 天 | 金币: 850 G</span>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+      {/* 顶部 iOS 状态栏 */}
+      <header style={{ padding: '10px 14px', background: '#1e293b', borderBottom: '1px solid #334155' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#38bdf8' }}>⚔️ 破晓佣兵团</span>
+            <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>
+              第 {townEngine.logistics.day} 天 · {currentTown.name}
+            </span>
+          </div>
           <button 
             onClick={toggleAutoUlt}
             style={{ 
-              padding: '4px 10px', 
-              fontSize: '11px', 
-              borderRadius: '16px', 
+              padding: '3px 8px', 
+              fontSize: '10px', 
+              borderRadius: '12px', 
               border: 'none', 
               cursor: 'pointer',
               background: isAutoUlt ? '#10b981' : '#64748b', 
@@ -106,14 +159,30 @@ export function App() {
             {isAutoUlt ? '⚡ 大招: 自动' : '✋ 大招: 手动'}
           </button>
         </div>
+
+        {/* 后勤资源状态条 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px', background: '#0b1329', padding: '4px 8px', borderRadius: '6px' }}>
+          <span style={{ color: '#eab308' }}>💰 {townEngine.logistics.gold} G</span>
+          <span style={{ color: '#38bdf8' }}>🍞 {townEngine.logistics.rations} 份口粮</span>
+          <span style={{ color: '#a855f7' }}>✨ {townEngine.logistics.soulCrystals} 魂晶</span>
+          <span style={{ color: '#10b981' }}>🧪 {townEngine.logistics.medicines} 药剂</span>
+        </div>
       </header>
 
-      {/* 核心内容区 */}
+      {/* 广播通知浮条 */}
+      {systemNotice && (
+        <div style={{ background: '#334155', padding: '6px 12px', fontSize: '11px', color: '#38bdf8', borderBottom: '1px solid #475569', display: 'flex', justifyContent: 'space-between' }}>
+          <span>🔔 {systemNotice}</span>
+          <span onClick={() => setSystemNotice('')} style={{ cursor: 'pointer', color: '#94a3b8', marginLeft: '8px' }}>✕</span>
+        </div>
+      )}
+
+      {/* 核心展示区 */}
       <main style={{ flex: 1, padding: '12px', overflowY: 'auto' }}>
         
-        {/* 导航 Tab */}
+        {/* 顶部三 Tab 切换 */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-          {(['combat', 'roster', 'guild'] as const).map(tab => (
+          {(['town', 'combat', 'roster'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -129,26 +198,40 @@ export function App() {
                 fontSize: '12px'
               }}
             >
-              {tab === 'combat' && '🗡️ 地牢交战'}
-              {tab === 'roster' && '👥 佣兵名册'}
-              {tab === 'guild' && '🏰 城镇与公会'}
+              {tab === 'town' && '🏰 城邦据点'}
+              {tab === 'combat' && '🗡️ 战役讨伐'}
+              {tab === 'roster' && `👥 佣兵名册 (${roster.length})`}
             </button>
           ))}
         </div>
 
+        {/* Tab 1: 城邦运营与公会据点 (Milestone 2 核心) */}
+        {activeTab === 'town' && (
+          <TownView 
+            townEngine={townEngine}
+            roster={roster}
+            onRosterChange={setRoster}
+            onSelectContract={startContractBattle}
+            onLogMessage={msg => setSystemNotice(msg)}
+            triggerUpdate={triggerUpdate}
+          />
+        )}
+
+        {/* Tab 2: 地牢交战 / 讨伐 */}
         {activeTab === 'combat' && (
           <div>
-            {/* 战场双方状态卡片 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 'bold' }}>我方先遣队</span>
-              <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>敌方劫掠者</span>
-            </div>
+            {currentContract && (
+              <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px', border: '1px solid #334155', marginBottom: '10px', fontSize: '12px' }}>
+                <span style={{ color: '#eab308', fontWeight: 'bold' }}>当前契约：</span> {currentContract.title}
+                <span style={{ color: '#38bdf8', marginLeft: '8px' }}>({currentContract.stars} 星)</span>
+              </div>
+            )}
 
-            {/* 双方队伍列表 */}
+            {/* 双方队伍卡片 */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-              
-              {/* 我方队友 */}
+              {/* 我方先遣队 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold' }}>我方佣兵先遣队</div>
                 {playerUnits.map(unit => {
                   const hpPct = Math.round((unit.currentHp / unit.maxHp) * 100);
                   const canUlt = unit.resource >= 100 && !unit.isDead;
@@ -170,13 +253,9 @@ export function App() {
                         <span>{unit.hero.isLeader ? '👑 ' : ''}{unit.hero.name.slice(0, 5)}</span>
                         <span style={{ color: '#38bdf8' }}>{unit.hero.role}</span>
                       </div>
-                      
-                      {/* 生命条 */}
                       <div style={{ background: '#334155', height: '6px', borderRadius: '3px', margin: '4px 0', overflow: 'hidden' }}>
                         <div style={{ background: hpPct > 30 ? '#10b981' : '#ef4444', height: '100%', width: `${hpPct}%`, transition: 'width 0.2s' }} />
                       </div>
-                      
-                      {/* 能量条 / 大招提示 */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', color: '#94a3b8' }}>
                         <span>HP {unit.currentHp}/{unit.maxHp}</span>
                         {canUlt && !isAutoUlt ? (
@@ -190,8 +269,9 @@ export function App() {
                 })}
               </div>
 
-              {/* 敌方部队 */}
+              {/* 敌方目标 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 'bold' }}>敌对悬赏目标</div>
                 {enemyUnits.map(unit => {
                   const hpPct = Math.round((unit.currentHp / unit.maxHp) * 100);
                   return (
@@ -210,10 +290,9 @@ export function App() {
                   );
                 })}
               </div>
-
             </div>
 
-            {/* 战况结果提示 */}
+            {/* 战役结果通知 */}
             {engine?.isFinished && (
               <div style={{ 
                 padding: '12px', 
@@ -224,18 +303,18 @@ export function App() {
                 textAlign: 'center'
               }}>
                 <div style={{ fontWeight: 'bold', fontSize: '14px', color: engine.winner === 'player' ? '#34d399' : '#f87171' }}>
-                  {engine.winner === 'player' ? '🎉 战役告捷！获得暗黑战利品：【破损的龙鳞板甲】' : '💀 战败溃败，队员负伤！'}
+                  {engine.winner === 'player' ? '🎉 战役告捷！公会悬赏金已核算入库！' : '💀 战役惨败，兄弟受创！请返回城镇避难！'}
                 </div>
                 <button
-                  onClick={startNewBattle}
-                  style={{ marginTop: '8px', padding: '6px 16px', background: '#38bdf8', color: '#0f172a', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                  onClick={() => setActiveTab('town')}
+                  style={{ marginTop: '8px', padding: '6px 16px', background: '#38bdf8', color: '#0f172a', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
                 >
-                  继续下一场清剿
+                  返回城邦公会 🏰
                 </button>
               </div>
             )}
 
-            {/* 战术操作控制条 */}
+            {/* 战斗操作条 */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
               <button
                 onClick={() => setIsRunning(!isRunning)}
@@ -243,16 +322,10 @@ export function App() {
               >
                 {isRunning ? '⏸️ 暂停演练' : '▶️ 恢复推演'}
               </button>
-              <button
-                onClick={startNewBattle}
-                style={{ padding: '8px 12px', background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
-              >
-                🔄 重开战场
-              </button>
             </div>
 
-            {/* 战斗实时日志流 */}
-            <div style={{ background: '#0b1329', padding: '10px', borderRadius: '8px', height: '180px', overflowY: 'auto', border: '1px solid #1e293b' }}>
+            {/* 战况日志 */}
+            <div style={{ background: '#0b1329', padding: '10px', borderRadius: '8px', height: '160px', overflowY: 'auto', border: '1px solid #1e293b' }}>
               <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px', borderBottom: '1px solid #1e293b', paddingBottom: '4px' }}>
                 📜 实时战术推演日志 (Gambit 驱动)
               </div>
@@ -262,25 +335,42 @@ export function App() {
                 </div>
               ))}
             </div>
-
           </div>
         )}
 
+        {/* Tab 3: 佣兵名册 */}
         {activeTab === 'roster' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ fontSize: '12px', color: '#94a3b8' }}>佣兵团现役 4 人 (每日口粮消耗: 4 / 周薪支出: 78G)</div>
-            {party.map(hero => (
+            <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+              <span>现役成员 {roster.length}/8 人</span>
+              <span>每日口粮消耗: {roster.length} / 周薪总额: {roster.reduce((s, h) => s + h.wage, 0)} G</span>
+            </div>
+            {roster.map(hero => (
               <div key={hero.id} style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#f8fafc' }}>{hero.name}</span>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#f8fafc' }}>
+                      {hero.isLeader ? '👑 ' : ''}{hero.name}
+                    </span>
                     <span style={{ fontSize: '11px', color: '#38bdf8', marginLeft: '6px' }}>Lv.{hero.level} {hero.role}</span>
                   </div>
                   <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 'bold' }}>CA {hero.currentAbility} / PA {hero.potentialAbility}</span>
                 </div>
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+                
+                {/* 状态与伤残 */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                  <span>生命: {hero.currentHp}/{hero.maxHp}</span>
+                  <span>士气: {hero.morale}</span>
+                  <span>压力: {hero.stress}/100</span>
+                  <span style={{ color: hero.injuries.length > 0 ? '#ef4444' : '#10b981' }}>
+                    {hero.injuries.length > 0 ? `伤残: ${hero.injuries.join(',')}` : '健康'}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
                   力量 {hero.attributes.strength} | 武器 {hero.attributes.weaponSkill} | 坚毅 {hero.attributes.resolve} | 抗压 {hero.hidden.pressure}
                 </div>
+
                 <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
                   {hero.traits.map(t => (
                     <span key={t} style={{ fontSize: '10px', background: '#334155', padding: '2px 6px', borderRadius: '4px', color: '#34d399' }}>
@@ -288,7 +378,7 @@ export function App() {
                     </span>
                   ))}
                   <span style={{ fontSize: '10px', background: '#334155', padding: '2px 6px', borderRadius: '4px', color: '#94a3b8' }}>
-                    周薪: {hero.wage}G
+                    周薪: {hero.wage} G
                   </span>
                 </div>
               </div>
@@ -296,28 +386,15 @@ export function App() {
           </div>
         )}
 
-        {activeTab === 'guild' && (
-          <div style={{ padding: '16px', background: '#1e293b', borderRadius: '8px', border: '1px solid #334155', textAlign: 'center' }}>
-            <h3 style={{ fontSize: '15px', color: '#38bdf8', marginBottom: '8px' }}>🏰 灰烬堡垒 · 冒险者公会</h3>
-            <p style={{ fontSize: '12px', color: '#94a3b8', lineHeight: '1.6' }}>
-              城邦好感度: 【友善】(声望 +120)<br />
-              世界天灾阶段: 【平静】 (距离天灾爆发还剩 28 天)<br />
-              医馆与圣所: 正常运转 (支持重伤疗愈与灵魂召回仪式)
-            </p>
-            <div style={{ marginTop: '16px', fontSize: '11px', color: '#64748b' }}>
-              💡 Milestone 2 将开放酒馆雇佣、委托契约与圣所召魂系统。
-            </div>
-          </div>
-        )}
-
       </main>
 
-      {/* 底部版权与 PWA 提示 */}
+      {/* 底部 PWA 离线提示 */}
       <footer style={{ padding: '8px', textAlign: 'center', fontSize: '10px', color: '#64748b', background: '#0b1329', borderTop: '1px solid #1e293b' }}>
-        可添加到 iPhone 主屏幕直接畅玩 · 离线推演引擎
+        破晓佣兵团 · 移动端 PWA 运营引擎 · 离线自动运算
       </footer>
 
     </div>
   );
 }
+
 export default App;
