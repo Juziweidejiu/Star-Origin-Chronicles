@@ -18,6 +18,10 @@ import { DungeonEventModal } from './components/DungeonEventModal';
 import { CampBarkBubble } from './components/CampBarkBubble';
 import { FormationModal } from './components/FormationModal';
 import { CombatStage } from './components/CombatStage';
+import { BattleStatsModal } from './components/BattleStatsModal';
+import { LootDropModal } from './components/LootDropModal';
+import type { BattleSettlementSummary } from './types/combatSettlement';
+import { generateRandomLoot } from './engine/dungeonEngine';
 import type { Projectile } from './components/CombatProjectiles';
 import type { FloatingTextItem, UnitVisualState, UltCinematicEvent } from './types/combatVisual';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
@@ -121,13 +125,19 @@ export function App() {
   const [focusedTargetId, setFocusedTargetId] = useState<string | null>(null);
   const [systemNotice, setSystemNotice] = useState<string>('欢迎来到《星原战纪》！请在城镇接取委托、整备队伍，踏上原野与迷宫探险旅程。');
 
-  // Milestone 13 战斗视觉动效状态
+  // 战斗视觉动效状态
   const [floatingTexts, setFloatingTexts] = useState<FloatingTextItem[]>([]);
   const [visualStates, setVisualStates] = useState<Record<string, UnitVisualState>>({});
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [ultEvent, setUltEvent] = useState<UltCinematicEvent | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
   const [showCombatLogs, setShowCombatLogs] = useState<boolean>(false); // 战况日志折叠状态（默认收起以省屏幕空间）
+
+  // 战斗结算两步走与掉落弹窗状态
+  const [settlementStep, setSettlementStep] = useState<'idle' | 'stats' | 'loot'>('idle');
+  const [settlementSummary, setSettlementSummary] = useState<BattleSettlementSummary | null>(null);
+  const [activeLootDrop, setActiveLootDrop] = useState<Equipment | null>(null);
+  const [lootModalTitle, setLootModalTitle] = useState<string>('🎁 战利品掉落 · 装备查验');
 
   // 结算叙事分支/事件后果对游戏数值的影响
   const handleApplyNarrativeConsequence = (consequence: ChoiceConsequence) => {
@@ -360,6 +370,9 @@ export function App() {
     setFocusedTargetId(null);
     setFloatingTexts([]);
     setVisualStates({});
+    setSettlementStep('idle');
+    setSettlementSummary(null);
+    setActiveLootDrop(null);
     setEngine(eng);
     setCombatUnits([...eng.units]);
     setLogs([...eng.logs]);
@@ -387,16 +400,21 @@ export function App() {
     triggerUpdate();
   };
 
-  // 启封宝箱
+  // 启封宝箱（带品质光效与装备对比替换弹窗）
   const handleOpenChest = (room: DungeonRoom) => {
     if (room.chestGold) {
       townEngine.logistics.gold += room.chestGold;
     }
-    if (room.chestItem && currentDungeon) {
-      currentDungeon.lootItems.push(room.chestItem);
-    }
     room.cleared = true;
-    setSystemNotice(`✨ 储物箱启封！缴获金币 ${room.chestGold} G，获得战备物资！`);
+
+    // 如果宝箱包含装备，直接弹出战利品弹窗供穿戴替换
+    if (room.chestItem) {
+      setActiveLootDrop(room.chestItem);
+      setLootModalTitle('📦 储物宝箱 · 军械启封');
+      setSystemNotice(`✨ 宝箱启封！缴获金币 ${room.chestGold || 0} G，发现珍稀装备【${room.chestItem.name}】！`);
+    } else {
+      setSystemNotice(`✨ 储物箱启封！缴获金币 ${room.chestGold || 0} G！`);
+    }
     triggerUpdate();
   };
 
@@ -553,12 +571,26 @@ export function App() {
           if (activeDungeonRoom) {
             activeDungeonRoom.cleared = true;
           }
+
+          // 胜利战利品掉落计算（普通房 65% 几率掉落，Boss房 100% 掉落）
+          const stars = currentContract?.stars || 1;
+          const dropLoot = (Math.random() < 0.65 || activeDungeonRoom?.isBoss)
+            ? generateRandomLoot(stars)
+            : null;
+
+          const summary = engine.getSettlementSummary(dropLoot);
+          setSettlementSummary(summary);
+          setSettlementStep('stats'); // 进入第一步：展示数据统计与 MVP
+
           if (activeDungeonRoom?.isBoss) {
-            setSystemNotice('👑 最终首领已被斩杀！地牢全线扫清！');
+            setSystemNotice('👑 最终首领已被斩杀！缴获极品军械！');
           } else {
             setSystemNotice('🎉 房间守卫已被全歼，道路畅通！');
           }
         } else if (engine.winner === 'enemy') {
+          const summary = engine.getSettlementSummary(null);
+          setSettlementSummary(summary);
+          setSettlementStep('stats'); // 败北也展示数据统计
           setSystemNotice('💀 战役失败，先遣队败退！队员重创，请回圣所与医馆救治！');
         }
         setBattleRewardClaimed(true);
@@ -725,6 +757,30 @@ export function App() {
         {/* Tab 2: 深度地牢探索系统 (Milestone 3 核心) */}
         {activeTab === 'dungeon' && (
           <div>
+            {/* 宝箱房直接掉落装备弹窗展示与穿戴对比 */}
+            {activeLootDrop && (
+              <div style={{ marginBottom: '14px' }}>
+                <LootDropModal
+                  loot={activeLootDrop}
+                  squad={deployedSquad}
+                  title={lootModalTitle}
+                  onEquipToHero={(heroId, item) => {
+                    handleEquipItem(heroId, item);
+                    setActiveLootDrop(null);
+                  }}
+                  onPutIntoInventory={(item) => {
+                    if (currentDungeon) {
+                      currentDungeon.lootItems.push(item);
+                    } else {
+                      setInventory(prev => [...prev, item]);
+                    }
+                    setSystemNotice(`🎒 【${item.name}】已放入探险战利品行囊！`);
+                    setActiveLootDrop(null);
+                  }}
+                />
+              </div>
+            )}
+
             {currentDungeon ? (
               <DungeonView
                 dungeon={currentDungeon}
@@ -810,66 +866,125 @@ export function App() {
               onSelectTarget={handleSelectFocusedTarget}
               onTriggerUlt={handleManualUlt}
               resultOverlay={engine?.isFinished ? (
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '12px',
-                  background: engine.winner === 'player' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(30, 15, 20, 0.95)',
-                  border: engine.winner === 'player' ? '2px solid #10b981' : '2px solid #ef4444',
-                  boxShadow: engine.winner === 'player' ? '0 10px 25px -5px rgba(16, 185, 129, 0.4)' : '0 10px 25px -5px rgba(239, 68, 68, 0.4)',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '15px', color: engine.winner === 'player' ? '#34d399' : '#f87171', marginBottom: '6px' }}>
-                    {engine.winner === 'player' ? '🎉 房间肃清！斩杀所有强敌！' : '💀 战役惨败，先遣队溃退！'}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>
-                    {engine.winner === 'player' ? '战术阵地已清除，可整队推进至下一节点。' : '全队士气动荡，需紧急撤回城邦修整治疗。'}
-                  </div>
-                  {engine.winner === 'player' ? (
-                    <button
-                      onClick={() => {
-                        if (activeDungeonRoom?.isBoss) {
-                          advanceDungeonRoom();
+                settlementStep === 'stats' && settlementSummary ? (
+                  <BattleStatsModal
+                    summary={settlementSummary}
+                    onNext={() => {
+                      if (engine.winner === 'player') {
+                        if (settlementSummary.lootDrop) {
+                          // 进入第二步：战利品翻牌与装备对比替换
+                          setActiveLootDrop(settlementSummary.lootDrop);
+                          setLootModalTitle('🎁 战役大捷 · 战利品查验');
+                          setSettlementStep('loot');
                         } else {
-                          handleReturnToDungeonAfterBattle();
+                          // 没有掉落装备，直接返回沙盘
+                          if (activeDungeonRoom?.isBoss) {
+                            advanceDungeonRoom();
+                          } else {
+                            handleReturnToDungeonAfterBattle();
+                          }
+                          setSettlementStep('idle');
                         }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        background: '#38bdf8',
-                        color: '#0f172a',
-                        fontWeight: 'bold',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        boxShadow: '0 4px 12px rgba(56, 189, 248, 0.35)'
-                      }}
-                    >
-                      {activeDungeonRoom?.isBoss ? '夺得最终胜利 · 离开地牢 🏆' : '返回探险沙盘 · 推进路线 🧭'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
+                      } else {
+                        // 败北撤回医馆
                         handleFinishDungeon(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        background: '#ef4444',
-                        color: '#fff',
-                        fontWeight: 'bold',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)'
-                      }}
-                    >
-                      撤回城邦医馆 🏥
-                    </button>
-                  )}
-                </div>
+                        setSettlementStep('idle');
+                      }
+                    }}
+                  />
+                ) : settlementStep === 'loot' && activeLootDrop ? (
+                  <LootDropModal
+                    loot={activeLootDrop}
+                    squad={deployedSquad}
+                    title={lootModalTitle}
+                    onEquipToHero={(heroId, item) => {
+                      handleEquipItem(heroId, item);
+                      setActiveLootDrop(null);
+                      setSettlementStep('idle');
+                      if (activeDungeonRoom?.isBoss) {
+                        advanceDungeonRoom();
+                      } else {
+                        handleReturnToDungeonAfterBattle();
+                      }
+                    }}
+                    onPutIntoInventory={(item) => {
+                      if (currentDungeon) {
+                        currentDungeon.lootItems.push(item);
+                      } else {
+                        setInventory(prev => [...prev, item]);
+                      }
+                      setSystemNotice(`🎒 【${item.name}】已放入探险战利品行囊！`);
+                      setActiveLootDrop(null);
+                      setSettlementStep('idle');
+                      if (activeDungeonRoom?.isBoss) {
+                        advanceDungeonRoom();
+                      } else {
+                        handleReturnToDungeonAfterBattle();
+                      }
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    background: engine.winner === 'player' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(30, 15, 20, 0.95)',
+                    border: engine.winner === 'player' ? '2px solid #10b981' : '2px solid #ef4444',
+                    boxShadow: engine.winner === 'player' ? '0 10px 25px -5px rgba(16, 185, 129, 0.4)' : '0 10px 25px -5px rgba(239, 68, 68, 0.4)',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', color: engine.winner === 'player' ? '#34d399' : '#f87171', marginBottom: '6px' }}>
+                      {engine.winner === 'player' ? '🎉 房间肃清！斩杀所有强敌！' : '💀 战役惨败，先遣队溃退！'}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>
+                      {engine.winner === 'player' ? '战术阵地已清除，可整队推进至下一节点。' : '全队士气动荡，需紧急撤回城邦修整治疗。'}
+                    </div>
+                    {engine.winner === 'player' ? (
+                      <button
+                        onClick={() => {
+                          if (activeDungeonRoom?.isBoss) {
+                            advanceDungeonRoom();
+                          } else {
+                            handleReturnToDungeonAfterBattle();
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 16px',
+                          background: '#38bdf8',
+                          color: '#0f172a',
+                          fontWeight: 'bold',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          boxShadow: '0 4px 12px rgba(56, 189, 248, 0.35)'
+                        }}
+                      >
+                        {activeDungeonRoom?.isBoss ? '夺得最终胜利 · 离开地牢 🏆' : '返回探险沙盘 · 推进路线 🧭'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          handleFinishDungeon(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 16px',
+                          background: '#ef4444',
+                          color: '#fff',
+                          fontWeight: 'bold',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)'
+                        }}
+                      >
+                        撤回城邦医馆 🏥
+                      </button>
+                    )}
+                  </div>
+                )
               ) : null}
             />
 

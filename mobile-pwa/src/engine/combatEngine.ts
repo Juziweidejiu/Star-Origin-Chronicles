@@ -4,7 +4,7 @@
  * 战术阵型：前排/中排/后排仇恨权重、前排近战阻挡、战位属性修正
  */
 
-import type { Hero, ResolvedStats } from '../types/hero';
+import type { Hero, ResolvedStats, Equipment } from '../types/hero';
 import type { GridSlotId, GridColumn } from '../types/formation';
 import { GRID_SLOTS } from '../types/formation';
 import { getPositionCombatModifier } from './formationEngine';
@@ -40,6 +40,7 @@ export function mitigationRate(defense: number, penetration: number): number {
 }
 
 import { assignEnemyFormation } from '../types/enemyFormation';
+import type { UnitCombatPerformance, BattleSettlementSummary } from '../types/combatSettlement';
 
 export class CombatEngine {
   units: CombatUnit[] = [];
@@ -48,6 +49,16 @@ export class CombatEngine {
   winner: 'player' | 'enemy' | null = null;
   focusedTargetId: string | null = null; // 玩家手动集火标记
   onCombatFx?: (event: CombatFxEvent) => void; // 动效回调钩子
+  elapsedSeconds = 0; // 累计战斗时长（秒）
+
+  // 单场战斗表现统计（以 unit.hero.id 为索引）
+  performanceMap: Record<string, {
+    damageDealt: number;
+    damageTaken: number;
+    healingDone: number;
+    kills: number;
+    critsCount: number;
+  }> = {};
 
   constructor(
     playerParty: Hero[],
@@ -116,11 +127,23 @@ export class CombatEngine {
       ...playerParty.map(h => makePlayer(h)),
       ...enemyParty.map((h, idx) => makeEnemy(h, idx)),
     ];
+
+    // 初始化所有单位的表现数据
+    this.units.forEach(u => {
+      this.performanceMap[u.hero.id] = {
+        damageDealt: 0,
+        damageTaken: 0,
+        healingDone: 0,
+        kills: 0,
+        critsCount: 0,
+      };
+    });
   }
 
   // 步进一个时间切片 (dt: 秒)
   tick(dt: number) {
     if (this.isFinished) return;
+    this.elapsedSeconds += dt;
 
     for (const unit of this.units) {
       if (unit.isDead) continue;
@@ -154,9 +177,15 @@ export class CombatEngine {
 
     if (unit.hero.role === 'healer') {
       const heal = Math.round(unit.stats.healingPower * 1.8 + 20);
+      let totalHeal = 0;
       for (const ally of allies) {
+        const actual = Math.min(ally.maxHp - ally.currentHp, heal);
         ally.currentHp = Math.min(ally.maxHp, ally.currentHp + heal);
+        totalHeal += Math.max(0, actual);
         this.onCombatFx?.({ type: 'heal', sourceId: unit.hero.id, targetId: ally.hero.id, value: heal, label: `+${heal}` });
+      }
+      if (this.performanceMap[unit.hero.id]) {
+        this.performanceMap[unit.hero.id].healingDone += totalHeal;
       }
       this.onCombatFx?.({ type: 'ult_burst', sourceId: unit.hero.id, label: '回春圣域' });
       this.addLog(`✨ [${unit.hero.name}] 释放【回春圣域】，全队恢复 ${heal} 生命！`, 'ult');
@@ -264,7 +293,20 @@ export class CombatEngine {
   }
 
   private applyDamage(target: CombatUnit, dmg: number, crit: boolean, sourceId?: string) {
+    const actualDamage = Math.min(target.currentHp, dmg);
     target.currentHp = Math.max(0, target.currentHp - dmg);
+
+    // 记录统计数据：承受伤害
+    if (this.performanceMap[target.hero.id]) {
+      this.performanceMap[target.hero.id].damageTaken += actualDamage;
+    }
+
+    // 记录统计数据：输出伤害与暴击
+    if (sourceId && this.performanceMap[sourceId]) {
+      this.performanceMap[sourceId].damageDealt += actualDamage;
+      if (crit) this.performanceMap[sourceId].critsCount += 1;
+    }
+
     if (crit) {
       this.addLog(`💢 暴击！[${target.hero.name}] -${dmg} HP`, 'crit');
       this.onCombatFx?.({ type: 'crit_shake' });
@@ -272,7 +314,12 @@ export class CombatEngine {
     } else {
       this.onCombatFx?.({ type: 'hit', sourceId, targetId: target.hero.id, value: dmg, label: `-${dmg}` });
     }
-    if (target.currentHp <= 0) this.handleDeath(target);
+    if (target.currentHp <= 0) {
+      if (sourceId && this.performanceMap[sourceId]) {
+        this.performanceMap[sourceId].kills += 1;
+      }
+      this.handleDeath(target);
+    }
   }
 
   private executeAction(unit: CombatUnit) {
@@ -284,7 +331,11 @@ export class CombatEngine {
       const lowestAlly = allies.slice().sort((a, b) => (a.currentHp / a.maxHp) - (b.currentHp / b.maxHp))[0];
       if (lowestAlly && lowestAlly.currentHp < lowestAlly.maxHp * 0.92) {
         const heal = Math.round(unit.stats.healingPower * (0.9 + Math.random() * 0.2));
+        const actual = Math.min(lowestAlly.maxHp - lowestAlly.currentHp, heal);
         lowestAlly.currentHp = Math.min(lowestAlly.maxHp, lowestAlly.currentHp + heal);
+        if (this.performanceMap[unit.hero.id]) {
+          this.performanceMap[unit.hero.id].healingDone += Math.max(0, actual);
+        }
         unit.resource = Math.min(100, unit.resource + 15);
         this.onCombatFx?.({ type: 'heal', sourceId: unit.hero.id, targetId: lowestAlly.hero.id, value: heal, label: `+${heal}` });
         this.addLog(`💚 [${unit.hero.name}] 治疗 [${lowestAlly.hero.name}] +${heal} HP`, 'heal');
@@ -332,6 +383,82 @@ export class CombatEngine {
 
   getAliveUnits(side: 'player' | 'enemy'): CombatUnit[] {
     return this.units.filter(u => !u.isDead && u.side === side);
+  }
+
+  /**
+   * 生成本场战斗详尽表现与 MVP 结算报表
+   */
+  getSettlementSummary(lootDrop?: Equipment | null): BattleSettlementSummary {
+    const playerUnits = this.units.filter(u => u.side === 'player');
+    const enemyUnits = this.units.filter(u => u.side === 'enemy');
+
+    let totalDamagePlayer = 0;
+    let totalDamageEnemy = 0;
+
+    // 统计敌我总输出
+    playerUnits.forEach(u => {
+      totalDamagePlayer += this.performanceMap[u.hero.id]?.damageDealt || 0;
+    });
+    enemyUnits.forEach(u => {
+      totalDamageEnemy += this.performanceMap[u.hero.id]?.damageDealt || 0;
+    });
+
+    // 计算我方每个队员的 MVP 战力积分
+    // 权重配比：输出 1.0 + 承伤 0.75 + 治疗 1.25 + 击杀 80 + 暴击 25
+    const playerPerformances: UnitCombatPerformance[] = playerUnits.map(u => {
+      const perf = this.performanceMap[u.hero.id] || {
+        damageDealt: 0,
+        damageTaken: 0,
+        healingDone: 0,
+        kills: 0,
+        critsCount: 0,
+      };
+
+      const mvpScore = Math.round(
+        perf.damageDealt * 1.0 +
+        perf.damageTaken * 0.75 +
+        perf.healingDone * 1.25 +
+        perf.kills * 80 +
+        perf.critsCount * 25
+      );
+
+      return {
+        hero: u.hero,
+        side: 'player',
+        damageDealt: perf.damageDealt,
+        damageTaken: perf.damageTaken,
+        healingDone: perf.healingDone,
+        kills: perf.kills,
+        critsCount: perf.critsCount,
+        mvpScore,
+        isMvp: false,
+      };
+    });
+
+    // 评选最高分的 MVP 英雄
+    let mvpHeroId: string | null = null;
+    let maxMvpScore = -1;
+    playerPerformances.forEach(p => {
+      if (p.mvpScore > maxMvpScore) {
+        maxMvpScore = p.mvpScore;
+        mvpHeroId = p.hero.id;
+      }
+    });
+
+    if (mvpHeroId) {
+      const top = playerPerformances.find(p => p.hero.id === mvpHeroId);
+      if (top) top.isMvp = true;
+    }
+
+    return {
+      winner: this.winner || 'player',
+      durationSeconds: Math.round(this.elapsedSeconds),
+      totalDamagePlayer,
+      totalDamageEnemy,
+      playerPerformances,
+      mvpHeroId,
+      lootDrop: lootDrop || null,
+    };
   }
 
   private addLog(text: string, type: CombatLog['type']) {
