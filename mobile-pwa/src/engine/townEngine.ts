@@ -93,7 +93,7 @@ const CONTRACT_TITLES: Record<ContractType, { titles: string[]; desc: string; ba
     baseEnemy: ['guardian', 'blademaster', 'ranger', 'arcanist']
   },
   ruins_cleansing: {
-    titles: ['前朝沉陷关隘妖异拔除', '探明古烽燧妖兽巢穴', '肃清荒山旧校场暴走傀儡'],
+    titles: ['前朝沉陷关隘异动拔除', '探明古烽燧妖兽巢穴', '清缴荒山旧校场聚集猛兽'],
     desc: '三十年前边塞战役废弃的沉陷工事中盘踞着危险生物，公会悬赏探明虚实并彻底肃清。',
     baseEnemy: ['arcanist', 'paladin', 'blademaster', 'bard']
   }

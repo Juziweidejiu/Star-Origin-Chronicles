@@ -183,6 +183,7 @@ export function App() {
   const startRoomBattle = (room: DungeonRoom) => {
     setActiveDungeonRoom(room);
     setBattleRewardClaimed(false);
+    setActiveTab('combat');
 
     // 挑选当前首发阵容中存活的佣兵出战 (若首发存活不足，自动从替补中补足存活成员)
     let activeDeploy = deployedSquad.filter(h => h.currentHp > 0);
@@ -199,7 +200,8 @@ export function App() {
 
     const enemyClasses = room.enemyClasses || ['guardian', 'blademaster'];
     const stars = room.enemyLevel || currentContract?.stars || 1;
-    const enemies = createEnemyParty(enemyClasses, stars, Boolean(room.isBoss));
+    const contractType = currentContract?.type || 'goblin_mine';
+    const enemies = createEnemyParty(enemyClasses, stars, Boolean(room.isBoss), contractType);
 
     const playerSlotMap: Record<string, GridSlotId> = {};
     for (const a of formationAssignments) {
@@ -382,7 +384,6 @@ export function App() {
     }
 
     room.cleared = true;
-    advanceDungeonRoom();
     triggerUpdate();
   };
 
@@ -395,22 +396,37 @@ export function App() {
       currentDungeon.lootItems.push(room.chestItem);
     }
     room.cleared = true;
-    setSystemNotice(`✨ 宝箱启封！缴获金币 ${room.chestGold} G，获得稀有战利品！`);
-    advanceDungeonRoom();
+    setSystemNotice(`✨ 储物箱启封！缴获金币 ${room.chestGold} G，获得战备物资！`);
     triggerUpdate();
   };
 
-  // 推进地牢房间
-  const advanceDungeonRoom = () => {
+  // 推进地牢房间（支持指定二选一分支房间）
+  const advanceDungeonRoom = (targetRoom?: DungeonRoom) => {
     if (!currentDungeon) return;
     const nextIdx = currentDungeon.currentRoomIndex + 1;
     if (nextIdx < currentDungeon.totalRooms) {
+      if (targetRoom) {
+        // 如果玩家选择了特定分支房间，则替换并设为当前
+        targetRoom.index = nextIdx;
+        targetRoom.status = 'current';
+        currentDungeon.rooms[nextIdx] = targetRoom;
+      } else {
+        currentDungeon.rooms[nextIdx].status = 'current';
+      }
       currentDungeon.currentRoomIndex = nextIdx;
-      currentDungeon.rooms[nextIdx].status = 'current';
     } else {
       currentDungeon.isCompleted = true;
       handleFinishDungeon(true);
     }
+  };
+
+  // 战后回地牢继续探索
+  const handleReturnToDungeonAfterBattle = () => {
+    if (activeDungeonRoom) {
+      activeDungeonRoom.cleared = true;
+    }
+    setActiveTab('dungeon');
+    setTickCounter(c => c + 1);
   };
 
   // 结算完成地牢
@@ -717,20 +733,26 @@ export function App() {
                 onEnterBattle={startRoomBattle}
                 onDisarmTrap={handleDisarmTrap}
                 onOpenChest={handleOpenChest}
-                onCampRest={(consumedRations, msg) => {
+                onCampRest={(consumedRations, msg, buff) => {
                   townEngine.logistics.rations = Math.max(0, townEngine.logistics.rations - consumedRations);
+                  if (buff && currentDungeon) {
+                    currentDungeon.campBuff = buff;
+                  }
                   setSystemNotice(msg);
-                  advanceDungeonRoom();
                   triggerUpdate();
                 }}
                 onEquipItem={handleEquipItem}
                 onExitDungeon={() => handleFinishDungeon(false)}
                 onApplyNarrativeConsequence={handleApplyNarrativeConsequence}
+                onSelectBranchRoom={(chosenRoom) => {
+                  advanceDungeonRoom(chosenRoom);
+                  setTickCounter(c => c + 1);
+                }}
               />
             ) : (
               <div style={{ textAlign: 'center', padding: '40px 10px', color: '#94a3b8' }}>
                 <div style={{ fontSize: '32px', marginBottom: '8px' }}>🗝️</div>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8fafc' }}>当前未在任何地牢深渊中</div>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8fafc' }}>当前未在任何地牢探险中</div>
                 <div style={{ fontSize: '11px', marginTop: '6px' }}>
                   请前往【🏰据点】的【冒险者公会】接取契约任务，即可踏入程序化地牢序列！
                 </div>
@@ -805,12 +827,15 @@ export function App() {
                 {engine.winner === 'player' ? (
                   <button
                     onClick={() => {
-                      advanceDungeonRoom();
-                      setActiveTab('dungeon');
+                      if (activeDungeonRoom?.isBoss) {
+                        advanceDungeonRoom();
+                      } else {
+                        handleReturnToDungeonAfterBattle();
+                      }
                     }}
                     style={{ marginTop: '8px', padding: '6px 16px', background: '#38bdf8', color: '#0f172a', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
                   >
-                    继续深入地牢下层 🗝️
+                    {activeDungeonRoom?.isBoss ? '夺得最终胜利 · 离开地牢 🏆' : '返回探险沙盘 · 选择前进路线 🧭'}
                   </button>
                 ) : (
                   <button

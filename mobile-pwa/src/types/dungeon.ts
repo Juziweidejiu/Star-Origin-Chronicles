@@ -4,9 +4,10 @@
  */
 
 import type { ClassId, Equipment } from './hero';
+import type { DungeonEvent } from './narrative';
 
-// 房间类型：普通战斗、陷阱房、宝箱房、扎营休整房、Boss首领房
-export type RoomType = 'battle' | 'trap' | 'chest' | 'camp' | 'boss';
+// 房间类型：普通战斗、陷阱房、宝箱房、扎营休整房、奇遇事件房、Boss首领房
+export type RoomType = 'battle' | 'trap' | 'chest' | 'camp' | 'event' | 'boss';
 
 // 房间状态
 export type RoomStatus = 'hidden' | 'revealed' | 'current' | 'cleared';
@@ -14,8 +15,8 @@ export type RoomStatus = 'hidden' | 'revealed' | 'current' | 'cleared';
 // 装备品质 (白/绿/蓝/紫/橙)
 export type EquipmentRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
-// 营地角色分工
-export type CampRole = 'tender' | 'sentry' | 'scout' | 'rest';
+// 营地料理与互动类型
+export type CampMealType = 'soup' | 'meat' | 'tea';
 
 // 地牢房间定义
 export interface DungeonRoom {
@@ -38,6 +39,11 @@ export interface DungeonRoom {
   chestItem?: Equipment;
   // 营地房特有
   campUsed?: boolean;
+  // 奇遇房特有
+  dungeonEvent?: DungeonEvent;
+  eventResolved?: boolean;
+  // 分支路线二选一候选房间（打通当前房间后，展示下一层二选一选项）
+  branchOptions?: DungeonRoom[];
 }
 
 // 探索地牢实例
@@ -54,12 +60,21 @@ export interface DungeonInstance {
   accumulatedGold: number;
   accumulatedSoulCrystals: number;
   lootItems: Equipment[];
+  // 探险临时获得的餐后 Buff
+  campBuff?: {
+    name: string;
+    description: string;
+    adBonusPercent?: number;
+    armorBonusPercent?: number;
+    healBonusPercent?: number;
+  };
 }
 
 // 营地休整结果
 export interface CampRestResult {
   healedHeroes: Array<{ heroId: string; name: string; amount: number }>;
   stressRelievedHeroes: Array<{ heroId: string; name: string; amount: number }>;
-  scoutEvent?: string;
   consumedRations: number;
+  buffApplied?: string;
+  chatSnippet?: { speakerName: string; text: string };
 }

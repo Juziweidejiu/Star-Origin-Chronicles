@@ -61,7 +61,7 @@ export const STAGE_THEMES: Record<StageTheme, StageEnvironment> = {
   },
   crypt: {
     id: 'crypt',
-    name: '覆雪幽墓与深渊',
+    name: '极夜覆雪古战场',
     bgGradient: 'linear-gradient(180deg, #0d1117 0%, #131a26 60%, #1a2333 100%)',
     groundGradient: 'linear-gradient(180deg, #151e2e 0%, #0a0d14 100%)',
     ambientGlow: 'rgba(147, 197, 253, 0.09)', // 极夜霜白
