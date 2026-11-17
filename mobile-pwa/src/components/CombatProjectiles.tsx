@@ -54,18 +54,19 @@ export const CombatProjectiles: React.FC<CombatProjectilesProps> = ({ projectile
 
       {projectiles.map(p => {
         const curX = p.startX + (p.targetX - p.startX) * p.progress;
-        // 抛物线轨迹高度 (最高抬升 20px)
-        const arcY = Math.sin(p.progress * Math.PI) * -22;
-        const curY = p.startY + (p.targetY - p.startY) * p.progress + arcY;
+        // 纵向飞弹：X轴轻微侧向弧度，主要在Y轴纵向推进
+        const arcX = Math.sin(p.progress * Math.PI) * 12;
+        const curY = p.startY + (p.targetY - p.startY) * p.progress;
+        const actualX = curX + arcX;
 
         // 计算航向角度
-        const dx = p.targetX - p.startX;
+        const dx = (p.targetX - p.startX) + (Math.cos(p.progress * Math.PI) * 12);
         const dy = (p.targetY - p.startY);
         const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
         if (p.type === 'arrow') {
           return (
-            <g key={p.id} transform={`translate(${curX}, ${curY}) rotate(${angle})`}>
+            <g key={p.id} transform={`translate(${actualX}, ${curY}) rotate(${angle})`}>
               {/* 尾迹 */}
               <line x1="-16" y1="0" x2="0" y2="0" stroke="url(#arrowGrad)" strokeWidth="2.5" />
               {/* 箭簇 */}
@@ -76,7 +77,7 @@ export const CombatProjectiles: React.FC<CombatProjectilesProps> = ({ projectile
 
         if (p.type === 'magic') {
           return (
-            <g key={p.id} transform={`translate(${curX}, ${curY})`}>
+            <g key={p.id} transform={`translate(${actualX}, ${curY})`}>
               <circle r="7" fill="url(#magicGrad)" />
               <circle r="3" fill="#ffffff" />
             </g>
@@ -85,7 +86,7 @@ export const CombatProjectiles: React.FC<CombatProjectilesProps> = ({ projectile
 
         if (p.type === 'holy') {
           return (
-            <g key={p.id} transform={`translate(${curX}, ${curY})`}>
+            <g key={p.id} transform={`translate(${actualX}, ${curY})`}>
               <circle r="6" fill="url(#holyGrad)" />
               <circle r="2.5" fill="#f0fdf4" />
             </g>
@@ -94,7 +95,7 @@ export const CombatProjectiles: React.FC<CombatProjectilesProps> = ({ projectile
 
         // 斩击刀光
         return (
-          <g key={p.id} transform={`translate(${curX}, ${curY}) rotate(${angle})`}>
+          <g key={p.id} transform={`translate(${actualX}, ${curY}) rotate(${angle})`}>
             <ellipse rx="10" ry="2" fill="#f87171" opacity={0.8} />
           </g>
         );

@@ -40,24 +40,24 @@ export const BattlePawn: React.FC<BattlePawnProps> = ({
   const isHealing = visualState?.isHealing;
   const isFocused = visualState?.focused;
 
-  // 计算动态位移 (自走棋近战冲锋对撞/远程蓄力后仰/受击震颤)
+  // 计算动态位移 (自走棋近战冲锋对撞/远程蓄力后仰/受击震颤 - 上下纵向对决)
   let transform = 'translate(0, 0) scale(1)';
   let filter = 'none';
 
   if (isDead) {
-    transform = 'translateY(8px) scale(0.85)';
+    transform = 'scale(0.85)';
     filter = 'grayscale(100%) opacity(0.35)';
   } else if (isAttacking) {
     if (attackMotion === 'lunge') {
-      // 玩家向右突进 24px，敌人向左突进 24px
-      transform = isPlayer ? 'translateX(24px) scale(1.1)' : 'translateX(-24px) scale(1.1)';
+      // 玩家在下方，向上突进 -18px；敌人在上方，向下突进 +18px
+      transform = isPlayer ? 'translateY(-18px) scale(1.08)' : 'translateY(18px) scale(1.08)';
     } else {
       // 远程/法术蓄力浮起
-      transform = 'translateY(-6px) scale(1.06)';
+      transform = 'scale(1.08)';
     }
   } else if (isHit) {
-    // 受击后退震颤
-    transform = isPlayer ? 'translateX(-8px) scale(0.95)' : 'translateX(8px) scale(0.95)';
+    // 受击后退震颤：玩家向后下退 +6px，敌人向后上退 -6px
+    transform = isPlayer ? 'translateY(6px) scale(0.96)' : 'translateY(-6px) scale(0.96)';
     filter = isCritHit ? 'drop-shadow(0 0 10px #ef4444) brightness(1.6)' : 'brightness(1.3)';
   } else if (isHealing) {
     filter = 'drop-shadow(0 0 8px #22c55e) brightness(1.2)';

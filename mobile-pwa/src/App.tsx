@@ -85,6 +85,7 @@ export function App() {
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [ultEvent, setUltEvent] = useState<UltCinematicEvent | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
+  const [showCombatLogs, setShowCombatLogs] = useState<boolean>(false); // 战况日志折叠状态（默认收起以省屏幕空间）
 
   // 结算叙事分支/事件后果对游戏数值的影响
   const handleApplyNarrativeConsequence = (consequence: ChoiceConsequence) => {
@@ -207,18 +208,21 @@ export function App() {
           const pId = `${Date.now()}_proj_${Math.random().toString(36).slice(2, 6)}`;
           const projType = fx.type === 'heal' ? 'holy' : sourceUnit.hero.classId === 'ranger' ? 'arrow' : 'magic';
 
-          // 估算起点与终点百分比位置 (以 3x3 网格比例估算)
+          // 垂直纵向布局下的坐标计算 (上：敌方 3x3，中：交火线，下：我方 3x3)
           const isPlayerSource = sourceUnit.side === 'player';
-          const sColIdx = sourceUnit.col === 'back' ? 0 : sourceUnit.col === 'mid' ? 1 : 2;
           const sRowIdx = sourceUnit.slotId.endsWith('top') ? 0 : sourceUnit.slotId.endsWith('center') ? 1 : 2;
-
-          const tColIdx = targetUnit.col === 'front' ? 0 : targetUnit.col === 'mid' ? 1 : 2;
           const tRowIdx = targetUnit.slotId.endsWith('top') ? 0 : targetUnit.slotId.endsWith('center') ? 1 : 2;
 
-          const startX = isPlayerSource ? 40 + sColIdx * 80 : 340 - sColIdx * 80;
-          const startY = 40 + sRowIdx * 84;
-          const targetX = targetUnit.side === 'enemy' ? 360 + tColIdx * 80 : 40 + (2 - tColIdx) * 80;
-          const targetY = 40 + tRowIdx * 84;
+          // X 坐标：3 列从左至右 (top: 80px, center: 160px, bottom: 240px 左右)
+          const startX = 65 + sRowIdx * 80;
+          const targetX = 65 + tRowIdx * 80;
+
+          // Y 坐标：敌方 (上方后/中/前，约 50~180px)，玩家 (下方前/中/后，约 260~390px)
+          const sColDist = sourceUnit.col === 'front' ? 0 : sourceUnit.col === 'mid' ? 1 : 2;
+          const tColDist = targetUnit.col === 'front' ? 0 : targetUnit.col === 'mid' ? 1 : 2;
+
+          const startY = isPlayerSource ? 260 + sColDist * 70 : 180 - sColDist * 70;
+          const targetY = targetUnit.side === 'enemy' ? 180 - tColDist * 70 : 260 + tColDist * 70;
 
           const newProj: Projectile = {
             id: pId,
@@ -803,16 +807,63 @@ export function App() {
               </button>
             </div>
 
-            {/* 战况日志 */}
-            <div style={{ background: '#0b1329', padding: '8px 10px', borderRadius: '8px', height: '120px', overflowY: 'auto', border: '1px solid #1e293b' }}>
-              <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '4px', borderBottom: '1px solid #1e293b', paddingBottom: '3px' }}>
-                📜 实时战术推演日志 (点击敌方可锁定集火)
-              </div>
-              {logs.map(log => (
-                <div key={log.id} style={{ fontSize: '10px', margin: '2px 0', color: log.type === 'ult' ? '#eab308' : log.type === 'heal' ? '#34d399' : log.type === 'death' ? '#f87171' : '#cbd5e1' }}>
-                  {log.text}
+            {/* 战况日志：默认折叠以节约移动端屏幕高度，点击展开 */}
+            <div
+              style={{
+                background: '#0b1329',
+                borderRadius: '8px',
+                border: '1px solid #1e293b',
+                overflow: 'hidden',
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              <div
+                onClick={() => setShowCombatLogs(!showCombatLogs)}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '7px 10px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold' }}>
+                    📜 战术推演日志
+                  </span>
+                  {logs.length > 0 && (
+                    <span style={{ fontSize: '9px', color: '#64748b' }}>
+                      ({logs.length} 条记录 · 最新: {logs[logs.length - 1]?.text?.slice(0, 14)}...)
+                    </span>
+                  )}
                 </div>
-              ))}
+                <div style={{ fontSize: '10px', color: '#38bdf8' }}>
+                  {showCombatLogs ? '收起 ▲' : '展开日志 ▼'}
+                </div>
+              </div>
+
+              {showCombatLogs && (
+                <div style={{ padding: '6px 10px', maxHeight: '140px', overflowY: 'auto', borderTop: '1px solid #1e293b' }}>
+                  {logs.length === 0 ? (
+                    <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'center', padding: '6px 0' }}>暂无战况数据</div>
+                  ) : (
+                    logs.map(log => (
+                      <div
+                        key={log.id}
+                        style={{
+                          fontSize: '10px',
+                          margin: '2px 0',
+                          color: log.type === 'ult' ? '#eab308' : log.type === 'heal' ? '#34d399' : log.type === 'death' ? '#f87171' : '#cbd5e1'
+                        }}
+                      >
+                        {log.text}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

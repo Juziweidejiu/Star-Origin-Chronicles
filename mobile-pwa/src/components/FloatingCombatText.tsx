@@ -6,29 +6,37 @@ interface FloatingCombatTextProps {
 }
 
 export const FloatingCombatText: React.FC<FloatingCombatTextProps> = ({ items }) => {
+  if (!items || items.length === 0) return null;
+
   return (
     <div
       style={{
         position: 'absolute',
-        inset: 0,
+        top: 0,
+        left: 0,
+        width: 0,
+        height: 0,
         pointerEvents: 'none',
-        overflow: 'hidden',
-        zIndex: 50,
+        zIndex: 100,
       }}
     >
       <style>{`
         @keyframes floatUpDamage {
           0% {
             opacity: 0;
-            transform: translate(-50%, 0px) scale(0.85);
+            transform: translate(-50%, 4px) scale(0.7);
           }
           15% {
             opacity: 1;
-            transform: translate(-50%, -10px) scale(1.05);
+            transform: translate(-50%, -10px) scale(1.15);
+          }
+          75% {
+            opacity: 0.95;
+            transform: translate(-50%, -32px) scale(1.0);
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -46px) scale(0.95);
+            transform: translate(-50%, -48px) scale(0.85);
           }
         }
         @keyframes floatUpCrit {
@@ -38,42 +46,37 @@ export const FloatingCombatText: React.FC<FloatingCombatTextProps> = ({ items })
           }
           20% {
             opacity: 1;
-            transform: translate(-50%, -12px) scale(1.4);
+            transform: translate(-50%, -14px) scale(1.45);
           }
           40% {
-            transform: translate(-50%, -16px) scale(1.15);
+            opacity: 1;
+            transform: translate(-50%, -20px) scale(1.2);
+          }
+          80% {
+            opacity: 0.95;
+            transform: translate(-50%, -42px) scale(1.05);
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -58px) scale(0.9);
+            transform: translate(-50%, -60px) scale(0.85);
           }
         }
         @keyframes floatUpHeal {
           0% {
             opacity: 0;
-            transform: translate(-50%, 0px) scale(0.9);
-          }
-          25% {
-            opacity: 1;
-            transform: translate(-50%, -8px) scale(1.1);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -42px) scale(1);
-          }
-        }
-        @keyframes blockFlash {
-          0% {
-            opacity: 0;
-            transform: translate(-50%, 0px) scale(0.9);
+            transform: translate(-50%, 4px) scale(0.8);
           }
           20% {
             opacity: 1;
-            transform: translate(-50%, -6px) scale(1.05);
+            transform: translate(-50%, -10px) scale(1.2);
+          }
+          75% {
+            opacity: 0.95;
+            transform: translate(-50%, -28px) scale(1.0);
           }
           100% {
             opacity: 0;
-            transform: translate(-50%, -28px) scale(0.95);
+            transform: translate(-50%, -44px) scale(0.85);
           }
         }
       `}</style>
@@ -85,29 +88,28 @@ export const FloatingCombatText: React.FC<FloatingCombatTextProps> = ({ items })
 
         let color = '#f8fafc';
         let strokeColor = '#000000';
-        let animation = 'floatUpDamage 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards';
-        let fontSize = '13px';
-        let fontWeight = 'bold';
+        let animation = 'floatUpDamage 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        let fontSize = '15px';
+        let fontWeight = '900';
 
         if (isCrit) {
           color = '#fbbf24';
-          strokeColor = '#b45309';
-          animation = 'floatUpCrit 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
-          fontSize = '17px';
+          strokeColor = '#9a3412';
+          animation = 'floatUpCrit 1.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+          fontSize = '18px';
           fontWeight = '900';
         } else if (isHeal) {
-          color = '#34d399';
-          strokeColor = '#065f46';
-          animation = 'floatUpHeal 1.0s ease-out forwards';
-          fontSize = '14px';
+          color = '#4ade80';
+          strokeColor = '#064e3b';
+          animation = 'floatUpHeal 1.05s ease-out forwards';
+          fontSize = '15px';
         } else if (isBlock) {
           color = '#38bdf8';
-          strokeColor = '#0369a1';
-          animation = 'blockFlash 0.9s ease-out forwards';
-          fontSize = '12px';
+          strokeColor = '#0c4a6e';
+          fontSize = '14px';
         } else if (item.type === 'magic') {
-          color = '#c084fc';
-          strokeColor = '#6b21a8';
+          color = '#d8b4fe';
+          strokeColor = '#581c87';
         }
 
         return (
@@ -116,14 +118,17 @@ export const FloatingCombatText: React.FC<FloatingCombatTextProps> = ({ items })
             data-target-id={item.targetId}
             style={{
               position: 'absolute',
+              top: '-12px',
+              left: `${item.xOffset || 0}px`,
               color,
               fontSize,
               fontWeight,
-              textShadow: `0 0 4px ${strokeColor}, 1px 1px 0 ${strokeColor}, -1px -1px 0 ${strokeColor}`,
+              textShadow: `0 0 6px ${strokeColor}, 1px 1px 0 ${strokeColor}, -1px -1px 0 ${strokeColor}, 0 2px 4px rgba(0,0,0,0.9)`,
               animation,
-              letterSpacing: isCrit ? '0.5px' : '0px',
+              letterSpacing: isCrit ? '1px' : '0.5px',
               whiteSpace: 'nowrap',
-              marginLeft: `${item.xOffset}px`,
+              pointerEvents: 'none',
+              zIndex: 120,
             }}
           >
             {item.text}

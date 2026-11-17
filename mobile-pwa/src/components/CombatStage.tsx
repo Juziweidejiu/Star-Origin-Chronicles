@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import type { CombatUnit } from '../engine/combatEngine';
-import type { UnitVisualState, FloatingTextItem, UltCinematicEvent } from '../types/combatVisual';
 import type { StageTheme } from '../config/stageThemes';
 import { STAGE_THEMES } from '../config/stageThemes';
+import type { FloatingTextItem, UltCinematicEvent, UnitVisualState } from '../types/combatVisual';
 import type { GridSlotId, GridRow } from '../types/formation';
 import { BattlePawn } from './BattlePawn';
 import { FloatingCombatText } from './FloatingCombatText';
@@ -23,7 +23,7 @@ interface CombatStageProps {
   isScreenShaking?: boolean;
   onSelectTarget: (unit: CombatUnit) => void;
   onTriggerUlt: (unit: CombatUnit) => void;
-  onSwapPlayerSlot?: (heroIdA: string, heroIdB: string) => void; // 战前可对调站位
+  onSwapPlayerSlot?: (heroIdA: string, heroIdB: string) => void;
 }
 
 // 棋盘格行定义：上 (top) / 中 (center) / 下 (bottom)
@@ -62,7 +62,7 @@ export const CombatStage: React.FC<CombatStageProps> = ({
     return map;
   }, [enemyUnits]);
 
-  // 渲染单个棋盘格子
+  // 渲染单个棋盘格子 (纵向 3x3 自走棋微缩方格)
   const renderSlot = (slotId: GridSlotId, side: 'player' | 'enemy') => {
     const unit = side === 'player' ? playerUnitMap[slotId] : enemyUnitMap[slotId];
     const isFocused = unit && focusedTargetId === unit.hero.id;
@@ -73,10 +73,10 @@ export const CombatStage: React.FC<CombatStageProps> = ({
         id={`slot_${side}_${slotId}`}
         style={{
           width: '74px',
-          height: '78px',
+          height: '66px',
           borderRadius: '8px',
-          background: 'rgba(15, 23, 42, 0.45)',
-          border: `1px dashed ${side === 'player' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(248, 113, 113, 0.2)'}`,
+          background: side === 'player' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(30, 15, 20, 0.5)',
+          border: `1px dashed ${side === 'player' ? 'rgba(56, 189, 248, 0.22)' : 'rgba(248, 113, 113, 0.22)'}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -99,14 +99,14 @@ export const CombatStage: React.FC<CombatStageProps> = ({
                 }
               }}
             />
-            {/* 跳字挂载在棋子上方 */}
+            {/* 伤害与治疗浮动跳字挂载点 */}
             <div
               style={{
                 position: 'absolute',
-                top: '-10px',
+                top: '-6px',
                 left: '50%',
                 pointerEvents: 'none',
-                zIndex: 40
+                zIndex: 100
               }}
             >
               <FloatingCombatText
@@ -170,16 +170,94 @@ export const CombatStage: React.FC<CombatStageProps> = ({
       {/* 4. 终极大招黑幕与特写 */}
       {ultEvent && <UltCinematicOverlay event={ultEvent} />}
 
-      {/* 5. 战场头部信息栏 */}
+      {/* 5. 战场头部信息栏：红方据守阵 */}
       <div
         style={{
           position: 'relative',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '8px 12px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          background: 'rgba(0, 0, 0, 0.35)',
+          padding: '6px 12px',
+          borderBottom: '1px solid rgba(248, 113, 113, 0.15)',
+          background: 'rgba(20, 10, 15, 0.6)',
+          zIndex: 10
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#f87171' }}>⚔️ 红方据守阵</span>
+          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+            ({enemyUnits.filter(u => !u.isDead).length} 敌对)
+          </span>
+        </div>
+        <span style={{ fontSize: '9px', color: '#eab308' }}>点击敌军可锁定集火 🎯</span>
+      </div>
+
+      {/* 6. 纵向垂直对垒战场容器 */}
+      <div
+        style={{
+          position: 'relative',
+          padding: '10px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          zIndex: 10,
+          gap: '8px'
+        }}
+      >
+        {/* 上半区：敌方 3x3 阵地 (从上至下：后排 back -> 中排 mid -> 前排 front 向交火线推进) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
+          {(['back', 'mid', 'front'] as const).map(col => (
+            <div key={`enemy_col_${col}`} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <span style={{ fontSize: '9px', color: 'rgba(248,113,113,0.5)', width: '22px', textAlign: 'right' }}>
+                {col === 'back' ? '后卫' : col === 'mid' ? '中坚' : '前锋'}
+              </span>
+              {ROWS.map(row => renderSlot(`${col}_${row}` as GridSlotId, 'enemy'))}
+            </div>
+          ))}
+        </div>
+
+        {/* 中央战术交火线 (No Man's Land) */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            maxWidth: '300px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2px 0',
+            borderTop: '1px dashed rgba(234, 179, 8, 0.3)',
+            borderBottom: '1px dashed rgba(234, 179, 8, 0.3)',
+            background: 'linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.12), transparent)'
+          }}
+        >
+          <span style={{ fontSize: '9px', color: '#f59e0b', fontWeight: 'bold', letterSpacing: '2px' }}>
+            ⚔️ 战术交锋线 ⚔️
+          </span>
+        </div>
+
+        {/* 下半区：我方 3x3 阵地 (从上至下：前排 front -> 中排 mid -> 后排 back 迎击敌阵) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
+          {(['front', 'mid', 'back'] as const).map(col => (
+            <div key={`player_col_${col}`} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <span style={{ fontSize: '9px', color: 'rgba(56,189,248,0.6)', width: '22px', textAlign: 'right' }}>
+                {col === 'front' ? '前锋' : col === 'mid' ? '中坚' : '后卫'}
+              </span>
+              {ROWS.map(row => renderSlot(`${col}_${row}` as GridSlotId, 'player'))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 底部战场阵列标注：蓝方先遣阵 */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '6px 12px',
+          background: 'rgba(10, 20, 30, 0.65)',
+          borderTop: '1px solid rgba(56, 189, 248, 0.15)',
           zIndex: 10
         }}
       >
@@ -189,87 +267,7 @@ export const CombatStage: React.FC<CombatStageProps> = ({
             ({playerUnits.filter(u => !u.isDead).length}/4 存活)
           </span>
         </div>
-        <div style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 'bold', letterSpacing: '1px' }}>
-          ⚔️ 战术交锋线 ⚔️
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
-            ({enemyUnits.filter(u => !u.isDead).length} 敌对)
-          </span>
-          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#f87171' }}>红方据守阵 ⚔️</span>
-        </div>
-      </div>
-
-      {/* 6. 双向 3x3 自走棋微缩战场核心网格 */}
-      <div
-        style={{
-          position: 'relative',
-          padding: '12px 6px',
-          minHeight: '270px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          zIndex: 10,
-          gap: '4px'
-        }}
-      >
-        {/* 左侧：玩家 3x3 棋盘 (列次序：后排 back -> 中排 mid -> 前排 front，迎向交火线) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {ROWS.map(row => (
-            <div key={`p_row_${row}`} style={{ display: 'flex', gap: '6px' }}>
-              {renderSlot(`back_${row}` as GridSlotId, 'player')}
-              {renderSlot(`mid_${row}` as GridSlotId, 'player')}
-              {renderSlot(`front_${row}` as GridSlotId, 'player')}
-            </div>
-          ))}
-        </div>
-
-        {/* 核心中线交火带 (No Man's Land) */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '16px',
-            height: '240px',
-            borderLeft: '1px dashed rgba(255,255,255,0.12)',
-            borderRight: '1px dashed rgba(255,255,255,0.12)',
-            background: 'linear-gradient(to bottom, transparent, rgba(234, 179, 8, 0.08), transparent)'
-          }}
-        >
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)', writingMode: 'vertical-rl' }}>
-            前沿阻截
-          </span>
-        </div>
-
-        {/* 右侧：敌方 3x3 棋盘 (列次序：前排 front -> 中排 mid -> 后排 back，迎向玩家) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {ROWS.map(row => (
-            <div key={`e_row_${row}`} style={{ display: 'flex', gap: '6px' }}>
-              {renderSlot(`front_${row}` as GridSlotId, 'enemy')}
-              {renderSlot(`mid_${row}` as GridSlotId, 'enemy')}
-              {renderSlot(`back_${row}` as GridSlotId, 'enemy')}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 底部战场阵列标注 */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          padding: '4px 14px 6px 14px',
-          fontSize: '9px',
-          color: '#64748b',
-          background: 'rgba(0,0,0,0.5)',
-          borderTop: '1px solid rgba(255,255,255,0.05)'
-        }}
-      >
-        <span>后卫 ➔ 中坚 ➔ 前锋</span>
-        <span style={{ color: '#eab308' }}>点击敌方棋子可手动集火</span>
-        <span>前锋 ➔ 中坚 ➔ 后卫</span>
+        <span style={{ fontSize: '9px', color: '#64748b' }}>迎击前突 ➔ 稳健防守</span>
       </div>
     </div>
   );
