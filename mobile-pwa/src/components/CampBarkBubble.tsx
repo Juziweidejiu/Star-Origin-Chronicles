@@ -9,22 +9,30 @@ interface CampBarkBubbleProps {
 
 export const CampBarkBubble: React.FC<CampBarkBubbleProps> = ({ dialogue, speaker }) => {
   const personalityColorMap: Record<string, string> = {
-    cynical: '#eab308',      // 讽刺/现实：金黄
-    stoic: '#38bdf8',        // 坚韧/寡言：天蓝
-    superstitious: '#c084fc',// 迷信/疑神疑鬼：淡紫
+    cynical: '#eab308',      // 敏锐/现实：金黄
+    stoic: '#38bdf8',        // 沉稳/坚毅：天蓝
+    superstitious: '#c084fc',// 敏锐/直觉：淡紫
     weary: '#94a3b8',        // 疲惫/沧桑：岩灰
-    grim: '#f87171',         // 冷酷/死寂：暗红
+    grim: '#f87171',         // 严肃/冷冽：暗红
+    heroic: '#f97316',       // 豪迈/热血：暖橙
+    gentle: '#34d399',       // 温柔/治愈：青绿
+    pragmatic: '#fbbf24',    // 务实/工巧：金琥珀
+    playful: '#a78bfa',      // 洒脱/开朗：淡紫罗兰
   };
 
   const personalityLabelMap: Record<string, string> = {
-    cynical: '现实',
+    cynical: '敏锐',
     stoic: '沉稳',
-    superstitious: '迷信',
+    superstitious: '直觉',
     weary: '疲惫',
-    grim: '冷硬',
+    grim: '冷冽',
+    heroic: '豪迈',
+    gentle: '温和',
+    pragmatic: '工巧',
+    playful: '洒脱',
   };
 
-  const speakerName = speaker?.name || '老兵佣兵';
+  const speakerName = speaker?.name || dialogue.speakerName || '探险者';
   const tagColor = personalityColorMap[dialogue.personality] || '#94a3b8';
   const tagLabel = personalityLabelMap[dialogue.personality] || dialogue.personality;
 

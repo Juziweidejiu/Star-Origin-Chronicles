@@ -1,0 +1,125 @@
+/**
+ * 《星原战纪》角色、地名与生态场景数据池
+ * 
+ * 核心设计规范：
+ * 1. 角色：东亚二次元风，男女参半，全员英姿飒爽、各具特色、兼备实战实力。
+ * 2. 城镇与据点：有探索欲、生活气息与开阔史诗感，拒绝绝望压抑。
+ * 3. 副本生态：哥布林矿洞、巨兽与龙巢、自然迷宫、当代/前朝关隘、校场试炼。
+ * 4. 严禁任何“远古高等文明”、“失落科技遗物”、“青铜守卫”等伪断代设定，文明发展为严格线性。
+ */
+
+export interface CharacterProfile {
+  name: string;
+  title: string;
+  gender: 'male' | 'female';
+  role: string;
+  weapon: string;
+  tagline: string;
+}
+
+// 男女参半的主力冒险者名录 (10人核心矩阵)
+export const HERO_PROFILES: CharacterProfile[] = [
+  // 🚹 男性主力角色 (5人)
+  {
+    name: '沈云舒',
+    title: '惊鸿剑',
+    gender: 'male',
+    role: '轻装直剑士 / 疾风剑客',
+    weapon: '三尺青锋直剑',
+    tagline: '出剑如穿林惊鸿，既有剑客的洒脱，也有战阵的精准。'
+  },
+  {
+    name: '陆曜',
+    title: '玄武之盾',
+    gender: 'male',
+    role: '重装壁垒 / 守护中坚',
+    weapon: '精钢方棱重盾 & 破甲钢锏',
+    tagline: '站在全队最前沿的沉稳兄长，擅长防守与营地热汤烹饪。'
+  },
+  {
+    name: '裴少陵',
+    title: '观星策士',
+    gender: 'male',
+    role: '战术指挥 / 奇门奇术使',
+    weapon: '铜质二十八宿浑天手炉',
+    tagline: '洞悉地脉与敌人破绽的军师，平日腹黑毒舌，战时极其护短。'
+  },
+  {
+    name: '秦渊',
+    title: '追影',
+    gender: 'male',
+    role: '斥候刺客 / 机关探陷专精',
+    weapon: '玄铁双曲刃 & 飞爪锁绳',
+    tagline: '行动迅捷如影的探路先锋，喜欢随身揣着松子糖。'
+  },
+  {
+    name: '顾平川',
+    title: '烈阳神射',
+    gender: 'male',
+    role: '远程狙杀 / 荒野猎手',
+    weapon: '重型筋角反曲复合弓',
+    tagline: '能在暴风雪中射穿靶心的猎户青年，阳光健朗，百发百中。'
+  },
+
+  // 🚺 女性主力角色 (5人)
+  {
+    name: '楚清弦',
+    title: '破阵戟',
+    gender: 'female',
+    role: '重装前锋 / 战阵破垒核心',
+    weapon: '六十斤方天重戟',
+    tagline: '身披亮银鱼鳞锁甲的豪迈武将，横戟立马，力拔千钧。'
+  },
+  {
+    name: '季秋水',
+    title: '折月刀',
+    gender: 'female',
+    role: '双手横刀 / 居合拔刀术',
+    weapon: '精锻霜纹唐横刀',
+    tagline: '黑长直束发、眼神清澈坚毅的顶尖刀客，一刀断甲，迅疾如电。'
+  },
+  {
+    name: '温竹君',
+    title: '悬壶金针',
+    gender: 'female',
+    role: '战地医官 / 金针气脉武师',
+    weapon: '沉香木金针囊 & 护身缠手',
+    tagline: '青衫利落的神医，一手金针起死回生，近身短打亦能力碎坚石。'
+  },
+  {
+    name: '白苏',
+    title: '千机火器师',
+    gender: 'female',
+    role: '重型破甲 / 工巧破城大师',
+    weapon: '自制三管折叠重火铳',
+    tagline: '戴着单边黄铜护目镜的天才工坊少女，沉迷火药与机械改造。'
+  },
+  {
+    name: '墨微凉',
+    title: '影缚使',
+    gender: 'female',
+    role: '游击控制 / 处决暗卫',
+    weapon: '符印淬火黑钢锁链',
+    tagline: '身法神出鬼没的锁链高手，眼神锐利冷静，外冷内热。'
+  }
+];
+
+// 繁华城邦与安全据点
+export const REGIONAL_HUBS = [
+  { id: 'frostmoon_keep', name: '霜月城', desc: '极北雪峰与温泉交汇处的石构城邦，炉火常温，热酒飘香。' },
+  { id: 'breeze_bastion', name: '听风关', desc: '峡谷咽喉处的宏伟要塞，行商、游侠与探险家的集散枢纽。' },
+  { id: 'azure_wharf', name: '碧落行坞', desc: '内陆大湖上的水上船坞，探险飞舟穿梭如织。' },
+  { id: 'vermilion_corridor', name: '朱雀回廊', desc: '漫山红枫的官道驿站，各方势力委托与公会驻地。' },
+  { id: 'maple_post', name: '枫桥驿', desc: '林海边缘的宁静驿站，猎户与采药人的补给歇脚所。' }
+];
+
+// 多元生态探索场景 (无任何远古科技，均为自然地貌、异族据点与前朝遗址)
+export const EXPLORATION_ZONES = [
+  { id: 'goblin_red_mine', name: '赤耳哥布林矿洞', type: 'goblin_cave', desc: '盘踞在废弃铜矿里的哥布林聚落，布满捕兽夹与毒箭暗索。' },
+  { id: 'thunder_wyvern_cliff', name: '雷鸣飞龙崖', type: 'dragon_roost', desc: '陡峭万仞的雷暴悬崖，狂暴双足飞龙筑巢的高风险狩猎区。' },
+  { id: 'frost_ape_cave', name: '霜爪雪猿窟', type: 'beast_den', desc: '暴风雪原深处的冰川溶洞，凶悍巨猿与雪狼盘踞的猛兽巢穴。' },
+  { id: 'sunken_star_cavern', name: '沉星晶石窟', type: 'subterranean_cavern', desc: '地底深处布满发光晶石与暗河的天然地质溶洞。' },
+  { id: 'mist_labyrinth', name: '幻林迷宫', type: 'labyrinth', desc: '常年浓雾弥漫、树冠遮天的盘根迷津，极易迷失方向。' },
+  { id: 'fallen_border_fort', name: '前朝沉陷关隘', type: 'frontier_fort', desc: '三十年前边塞战役废弃的沉陷要塞，留存着封尘的旧军械库。' },
+  { id: 'nine_stars_trial', name: '天枢九曜校场', type: 'trial_grounds', desc: '守备军团用于考核精英佣兵与游侠的实战战术演武场。' }
+];

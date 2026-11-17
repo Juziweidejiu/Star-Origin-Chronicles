@@ -121,8 +121,8 @@ export class CrisisEngine {
       this.crisis.phase = 'resolved';
       this.crisis.threatLevel = 0;
       this.crisis.fallenTowns = [];
-      this.crisis.description = '夜王已被斩杀，游荡的不死生物灰飞烟灭，全境迎来了久违的黎明！破晓佣兵团名垂青史！';
-      return '🎉【史诗胜利】夜王被斩首！亡灵狂潮退去，大陆重见光明！破晓佣兵团成为全境传奇！';
+      this.crisis.description = '危机魁首已被斩杀，凶潮退去，星原大陆迎来了久违的清晨！探险团名垂青史！';
+      return '🎉【史诗胜利】危机核心被击溃！边境重见安宁，星原探险团成为全境传奇！';
     } else {
       this.crisis.threatLevel = Math.max(10, this.crisis.threatLevel - 35);
       return '⚔️【战术大捷】亡灵前锋被重创崩溃，据点防御稳固，威胁度大幅降低！';

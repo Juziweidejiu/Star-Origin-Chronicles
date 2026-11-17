@@ -47,7 +47,7 @@ export function App() {
   const [logs, setLogs] = useState<any[]>([]);
   const [isAutoUlt, setIsAutoUlt] = useState<boolean>(true);
   const [battleRewardClaimed, setBattleRewardClaimed] = useState<boolean>(false);
-  const [systemNotice, setSystemNotice] = useState<string>('欢迎来到破晓佣兵团！请在城镇公会接取契约或深入地牢探险。');
+  const [systemNotice, setSystemNotice] = useState<string>('欢迎来到《星原战纪》！请在城镇接取委托、整备队伍，踏上原野与迷宫探险旅程。');
 
   // 结算叙事分支/事件后果对游戏数值的影响
   const handleApplyNarrativeConsequence = (consequence: ChoiceConsequence) => {
@@ -90,7 +90,7 @@ export function App() {
     const dungeon = generateDungeonFromContract(contract);
     setCurrentDungeon(dungeon);
     setActiveTab('dungeon');
-    setSystemNotice(`🗝️ 破晓前锋已抵达【${contract.title}】地宫入口！`);
+    setSystemNotice(`🗝️ 探险先锋已抵达【${contract.title}】探索区域！`);
   };
 
   // 接取天灾战役
@@ -321,7 +321,7 @@ export function App() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#38bdf8' }}>⚔️ 破晓佣兵团</span>
+            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#38bdf8' }}>⚔️ 星原战纪</span>
             <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>
               第 {townEngine.logistics.day} 天 · {currentTown.name}
             </span>
@@ -833,7 +833,7 @@ export function App() {
         background: '#0b1329', 
         borderTop: '1px solid #1e293b' 
       }}>
-        破晓佣兵团 · 移动端 PWA 运营引擎 · 离线自动运算
+        星原战纪 · 移动端 PWA 运营引擎 · 离线自动运算
       </footer>
 
     </div>

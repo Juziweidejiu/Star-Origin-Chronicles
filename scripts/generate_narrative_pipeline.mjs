@@ -2,12 +2,16 @@
 
 /**
  * ==============================================================================
- * 《破晓佣兵团》暗黑叙事批量生成与质检验收流水线
+ * 《星原战纪》东方二次元奇幻探险叙事生成与质检流水线
  * 
- * 核心目标：
- * 1. 彻底过滤中二网文腔、廉价血腥煽情与亢长废话
- * 2. 产出符合《暗黑地牢》(Darkest Dungeon) 与《战场兄弟》(Battle Brothers) 的克制冷硬白描
- * 3. 严格遵循 UI 盒子字数硬约束与 TypeScript Schema
+ * 核心基调：
+ * 1. 探险 (Exploration)、生存 (Survival)、浪漫羁绊 (Camaraderie)、对抗危机 (Crisis)
+ * 2. 角色：东亚二次元风，男女参半，全员英姿飒爽、各有千秋、强劲实力
+ * 3. 【核心铁律·禁远古高等文明】：
+ *    - 历史发展严格线性，不存在任何“远古文明”、“超古代神迹”、“失落科技”、“先祖魔法断代”。
+ *    - 严禁出现“青铜守卫”、“古代守卫”、“构装体傀儡”、“超古代遗物”。
+ *    - 副本生态：哥布林与异族矿洞、猛兽与龙穴、地质迷宫溶洞、当朝/前朝边塞旧址与王陵、演武试炼场。
+ * 4. 严禁网文浮夸抒情（修罗场、毁天灭地、苍穹、蝼蚁等）与虚假血浆煽情。
  * ==============================================================================
  */
 
@@ -42,8 +46,13 @@ function loadEnv() {
 }
 loadEnv();
 
-// 违禁词库：网文常见词、过度血腥夸张词、日漫轻小说感叹词
+// 违禁词库：网文滥俗词 + 严厉禁止“远古高文明/失落科技/青铜守卫”词汇
 const PURPLE_PROSE_BLACKLIST = [
+  // 1. 严禁非线性世界观与古文明机械词
+  '远古', '古文明', '超古代', '失落文明', '先祖科技', '先史', '史前',
+  '青铜守卫', '古代守卫', '古神', '断代遗产', '高维', '遗落科技',
+
+  // 2. 网文常见中二夸张词
   '瞳孔骤缩', '瞳孔微缩', '倒吸一口凉气', '嘴角泛起冷笑', '嘴角勾起一抹',
   '修罗场', '宛如地狱般的', '血雾喷涌', '血肉横飞', '恐怖如斯',
   '碎成齑粉', '毁天灭地', '苍穹', '滔天', '宛若神明', '蝼蚁',
@@ -53,19 +62,28 @@ const PURPLE_PROSE_BLACKLIST = [
 
 // 系统设定与生成Prompt
 const NARRATIVE_DESIGNER_SYSTEM_PROMPT = `
-你是一名资深暗黑低魔奇幻CRPG（如《Darkest Dungeon》、《Battle Brothers》）的首席叙事文案设计师。
-你的任务是为移动端回合制游戏《破晓佣兵团》生成【地下城奇遇事件】与【营地佣兵短对话】。
+你是一名资深东亚二次元奇幻探险战记（如《星原战纪》）的首席叙事文案设计师。
+你的任务是为移动端角色扮演游戏生成【探索奇遇事件】与【营地伙伴短对话】。
 
-【叙事风格军规】：
-1. 【冷峻克制，绝对白描】：禁止任何主观抒情与心理煽情。只描述现场的物理实物：生锈的铁钉、发霉的皮革、马粪油脂味、寒冷泥泞、带缺口的断刃。
-2. 【生存代价，没有爽文英雄】：选择总是两难的。收益永远伴随着创伤、压力上升、金币耗损或武器耐久破损。
-3. 【极度精炼，贴合UI】：
-   - 奇遇场景 hook: 80~130字。
-   - 选项 label: 6~12字（动词打头）。
-   - 选项 flavor: 15~28字。
-   - 结算 narrative: 40~75字。
-   - 营地短台词: 15~35字（糙汉、疲倦、现实、算账视角）。
-4. 【死刑黑名单】：绝对严禁使用任何网文词汇，如：瞳孔骤缩、倒吸凉气、嘴角冷笑、血雾、修罗场、恐怖如斯、蝼蚁等。
+【四大核心基调】：
+1. 【探险】：聚焦未知探索的惊险与好奇，涵盖五大生态（赤耳哥布林矿洞、猛兽与飞龙巢穴、地质晶石迷宫、前朝沉陷关隘武库、军门实战试炼场）。
+2. 【生存】：充满真实冒险生活细节（烹饪野炊、整理箭羽、擦拭刀剑、采药包扎），绝非自虐式绝望。
+3. 【浪漫羁绊】：东亚二次元风，男女参半，全员英姿飒爽、各有千秋、强劲实力（男：沈云舒、陆曜、裴少陵、秦渊、顾平川；女：楚清弦、季秋水、温竹君、白苏、墨微凉），彼此信任，配合默契。
+4. 【对抗危机】：在边塞风云与魔物侵袭中共同破局。
+
+【绝对世界观铁律·禁远古高等文明】：
+- 严禁出现“远古文明”、“超古代科技”、“失落魔法”、“先民遗产”！
+- 严禁出现“青铜守卫”、“古代守卫”、“构装体傀儡”！
+- 人类历史是实打实【线性发展】的，当今各城邦的铁器、机关、火器即为历史一步一个脚印演进的最高水准。
+
+【字数与UI硬约束】：
+- 奇遇场景 hook: 80~130字（白描生动，环境细节与战术考量清晰）。
+- 选项 label: 6~12字（动词打头，战术明确）。
+- 选项 flavor: 15~28字。
+- 结算 narrative: 40~75字。
+- 营地短台词: 15~35字（有名字、性格鲜明、战术与烟火气）。
+
+【死刑黑名单】：绝对严禁使用任何网文词汇（瞳孔骤缩、倒吸凉气、嘴角冷笑、血雾、修罗场等）以及古文明词（远古、超古代、青铜守卫等）。
 
 输出必须为严格合法的 JSON 对象，不带任何 Markdown 包裹或解释。
 `;
@@ -84,7 +102,7 @@ function validateText(text, maxLen, fieldName) {
   }
   for (const bad of PURPLE_PROSE_BLACKLIST) {
     if (text.includes(bad)) {
-      issues.push(`[${fieldName}] 命中违禁网文词: "${bad}"`);
+      issues.push(`[${fieldName}] 命中违禁词: "${bad}"`);
     }
   }
   return issues;
@@ -125,7 +143,7 @@ function validateEvent(event) {
 }
 
 /**
- * 真实 LLM API 生成（支持 OpenAI / DeepSeek / 任何兼容 OpenAI 协议的 API）
+ * 真实 LLM API 生成（支持 OpenAI / Gemini / 兼容 OpenAI 协议的本地代理）
  */
 async function callLlmApi(prompt, apiKey, baseUrl) {
   const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
@@ -168,76 +186,76 @@ async function callLlmApi(prompt, apiKey, baseUrl) {
 function generateSyntheticEvent(index) {
   const templates = [
     {
-      title: '封死的地窖铁门',
-      theme: 'ruins',
-      category: 'curio',
-      hook: '塌陷的石阶尽头横着一扇灌了铅的铸铁门，门栓上插着半柄断裂的宽刃剑。缝隙里渗出潮湿的酒糟气与发馊的油脂味。',
+      title: '赤耳哥布林的积铁坑',
+      theme: 'goblin_cave',
+      category: 'encounter',
+      hook: '废弃矿道拐角处挖了个深坑，坑底堆满哥布林从行商马车上抢来的生铁锭与碎银两。上方拉着几根系着羊骨铃铛的极细韧藤。',
       choices: [
         {
           id: `c_${index}_1`,
-          label: '合力砸开锁扣',
-          flavor: '可能会破坏里面的藏品，并发出巨响。',
-          successRate: 0.75,
+          label: '由秦渊飞爪取铁锭',
+          flavor: '避开骨铃暗锁，需极高的轻身手法。',
+          successRate: 0.8,
           successConsequence: {
-            stressChange: 5,
+            stressChange: -5,
             moraleChange: 10,
-            goldChange: 120,
-            resultNarrative: '铁闩崩裂。几坛尚未挥发的麦酒和一小袋行商银币滚落出来。'
+            goldChange: 130,
+            resultNarrative: '飞爪无声扣住麻袋。全队利落地将精铁块拉起，未发出一丝声响。'
           },
           failureConsequence: {
             stressChange: 15,
             moraleChange: -5,
             hpPercentChange: -5,
-            resultNarrative: '飞溅的铁屑划破了手背，刺耳的撞击声引来了远处的徘徊者。'
+            resultNarrative: '骨铃被藤条扯响，黑暗中射来两排竹箭，擦伤了掩护的前排皮甲。'
           }
         },
         {
           id: `c_${index}_2`,
-          label: '在门缝塞入细油绳探路',
-          flavor: '观察内部是否有可燃毒气或盘踞毒虫。',
-          requirement: { attribute: 'anticipation', minAttrValue: 12 },
-          successRate: 0.9,
+          label: '楚清弦重戟破网扫除',
+          flavor: '以强悍正面武力扫碎埋伏。',
+          successRate: 1.0,
           successConsequence: {
-            stressChange: -5,
-            moraleChange: 5,
-            resultNarrative: '油绳没有变色，地窖里没有毒瘴，佣兵们松了一口气。'
+            stressChange: 5,
+            moraleChange: 15,
+            goldChange: 70,
+            resultNarrative: '重戟横空砸断支撑木架。几只惊慌失措的哥布林尖叫逃窜。'
           }
         }
       ]
     },
     {
-      title: '被遗弃的溃兵木桩',
-      theme: 'forest',
-      category: 'dilemma',
-      hook: '林间小径旁立着三根削尖的原木，上面绑着风干的领主军溃兵皮甲。一具残缺的布袋还吊在枝头，底下滴落着浑浊的雨水。',
+      title: '雷鸣飞龙崖脱落龙鳞',
+      theme: 'dragon_roost',
+      category: 'hunt',
+      hook: '陡峭岩缝间挂着一层泛着青紫微光的蜕化龙鳞，足有半面圆盾大。万仞绝壁上方传来飞龙高亢的厉啼，狂风扑面。',
       choices: [
         {
           id: `c_${index}_1`,
-          label: '割断绳索取下布袋',
-          flavor: '溃兵往往藏匿着劫掠来的贵重细软。',
-          successRate: 0.8,
+          label: '由沈云舒攀岩采割',
+          flavor: '剑术身法轻灵，但风势极其凶猛。',
+          successRate: 0.75,
           successConsequence: {
             stressChange: -5,
-            moraleChange: 5,
-            goldChange: 85,
-            resultNarrative: '袋里除了一双磨平的旧军靴，还有两只金耳坠与三枚受潮火石。'
+            moraleChange: 15,
+            goldChange: 180,
+            resultNarrative: '云舒踏岩如飞，长剑精准剔下完整鳞片，防雷甲片入手。'
           },
           failureConsequence: {
-            stressChange: 12,
+            stressChange: 20,
             moraleChange: -5,
-            resultNarrative: '绳索扯断了腐烂的蜂巢，蛰咬使得探路哨兵满面红肿。'
+            hpPercentChange: -10,
+            resultNarrative: '岩层碎裂，滑落时手腕被尖石割破，但全队迅速退入岩洞。'
           }
         },
         {
           id: `c_${index}_2`,
-          label: '拔起木桩劈作营火柴木',
-          flavor: '行军需要干燥的柴薪，死人的晦气不必理会。',
+          label: '顾平川张重弓戒备',
+          flavor: '放弃采鳞，全神贯注警戒龙巢动向。',
           successRate: 1.0,
           successConsequence: {
-            stressChange: 5,
+            stressChange: -10,
             moraleChange: 5,
-            rationChange: 1,
-            resultNarrative: '硬木被砍成适手的柴块，今晚的营火有了着落。'
+            resultNarrative: '重箭在弦，队伍趁飞龙盘旋入云的间隙安全脱离了威胁区域。'
           }
         }
       ]
@@ -258,21 +276,24 @@ function generateSyntheticDialogues() {
   return [
     {
       id: `camp_gen_${Date.now()}_1`,
-      personality: 'weary',
-      condition: 'idle',
-      text: '把潮湿的裹脚布烤干。生冻疮比被箭射中还折磨人。'
+      speakerName: '陆曜',
+      personality: 'heroic',
+      condition: 'cooking',
+      text: '今晚炖了雪原野猪肉配松子，多喝一碗驱寒，明天顶住飞龙风压。'
     },
     {
       id: `camp_gen_${Date.now()}_2`,
-      personality: 'cynical',
-      condition: 'high_stress',
-      text: '老爷们坐在城堡里数金币，我们在烂泥里替他捞祖坟。'
+      speakerName: '楚清弦',
+      personality: 'heroic',
+      condition: 'repairing',
+      text: '矿坑里的机关很多，大家盯紧脚下，正面冲阵交给我和大戟！'
     },
     {
       id: `camp_gen_${Date.now()}_3`,
+      speakerName: '季秋水',
       personality: 'stoic',
-      condition: 'injured',
-      text: '肋骨没断，还能挥剑。把绷带再勒紧一圈。'
+      condition: 'after_victory',
+      text: '刚才那一刀出得很顺畅。你的侧翼策应时机抓得很好，多谢。'
     }
   ];
 }
@@ -282,7 +303,7 @@ function generateSyntheticDialogues() {
  */
 async function main() {
   console.log('='.repeat(70));
-  console.log('🛡️  破晓佣兵团 · 暗黑叙事质量过滤与生成流水线');
+  console.log('🛡️  《星原战纪》东方二次元奇幻探险叙事生成与质检流水线');
   console.log('='.repeat(70));
 
   const apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY;
@@ -293,41 +314,48 @@ async function main() {
 
   if (apiKey) {
     console.log(`📡 检测到 API 密钥，开始通过远程 LLM (${baseUrl}) 批量生成...`);
-    const prompt = `请生成 2 个地下城奇遇事件和 3 条营地台词。严格遵循冷峻克制白描军规与UI字数硬约束。
+    const prompt = `请生成 2 个探索奇遇事件和 3 条营地台词。
+【严格约束】：
+1. 游戏为东方二次元奇幻探险战记《星原战纪》，基调为探险、生存、浪漫羁绊与对抗危机。
+2. 绝对严禁“远古、古文明、超古代、失落科技、青铜守卫”等词汇！历史严格线性发展！
+3. 事件生态可选：哥布林矿洞(goblin_cave)、飞龙巢穴(dragon_roost)、猛兽雪猿窟(beast_den)、晶石溶洞迷宫(labyrinth)、前朝关隘(frontier_fort)。
+4. 角色采用东亚二次元姓名（男：沈云舒、陆曜、裴少陵、秦渊、顾平川；女：楚清弦、季秋水、温竹君、白苏、墨微凉），男女参半，英姿飒爽，实力强劲。
+5. 营地台词必须极简短（控制在15~30字之间，严禁超长，体现野炊、修武器、并肩战友感）。
+
 必须严格输出满足以下格式的 JSON 对象：
 {
   "events": [
     {
       "id": "ev_llm_1",
       "title": "标题(6-10字)",
-      "theme": "crypt",
-      "category": "curio",
-      "hook": "80-130字冷硬现场白描",
+      "theme": "goblin_cave",
+      "category": "encounter",
+      "hook": "80-130字生动现场白描与探索细节",
       "choices": [
         {
           "id": "c_1",
           "label": "动词开头(6-12字)",
-          "flavor": "15-28字选项代价考量",
+          "flavor": "15-28字战术抉择考量",
           "successRate": 0.75,
           "successConsequence": {
-            "stressChange": 5,
-            "goldChange": 100,
+            "stressChange": -5,
+            "goldChange": 120,
             "resultNarrative": "40-75字成功结算描述"
           },
           "failureConsequence": {
             "stressChange": 15,
-            "hpPercentChange": -10,
-            "resultNarrative": "40-75字失败结算描述"
+            "hpPercentChange": -8,
+            "resultNarrative": "40-75字受挫结算描述"
           }
         },
         {
           "id": "c_2",
-          "label": "保守抉择(6-12字)",
-          "flavor": "15-28字稳妥观察考量",
+          "label": "稳妥对策(6-12字)",
+          "flavor": "15-28字稳妥戒备考量",
           "successRate": 1.0,
           "successConsequence": {
-            "stressChange": -5,
-            "resultNarrative": "40-75字稳妥结算描述"
+            "stressChange": 0,
+            "resultNarrative": "40-75字稳妥脱离描述"
           }
         }
       ]
@@ -336,9 +364,10 @@ async function main() {
   "dialogues": [
     {
       "id": "camp_llm_1",
-      "personality": "weary",
-      "condition": "idle",
-      "text": "极简短佣兵台词(必须控制在15~30字之间，严禁超长，如鞋袜、干粮、生锈铁剑、伤口发炎)"
+      "speakerName": "陆曜",
+      "personality": "heroic",
+      "condition": "cooking",
+      "text": "简短台词(15~30字，带生活与战意，严禁超35字)"
     }
   ]
 }`;
@@ -365,7 +394,7 @@ async function main() {
   for (const ev of generatedEvents) {
     const check = validateEvent(ev);
     if (check.valid) {
-      console.log(`  ✅ 事件 [${ev.title}] (${ev.id}) 质检通过！风格冷硬，无网文词，字数达标。`);
+      console.log(`  ✅ 事件 [${ev.title}] (${ev.id}) 质检通过！生态明确，无古文明/网文词，字数达标。`);
       validatedEvents.push(ev);
       passedCount++;
     } else {
@@ -377,9 +406,9 @@ async function main() {
   // 质检台词
   const validatedDialogues = [];
   for (const d of generatedDialogues) {
-    const errs = validateText(d.text, 40, 'camp.dialogue');
+    const errs = validateText(d.text, 35, 'camp.dialogue');
     if (errs.length === 0) {
-      console.log(`  ✅ 营地台词 [${d.personality}]: "${d.text}"`);
+      console.log(`  ✅ 营地台词 [${d.speakerName || d.personality}]: "${d.text}"`);
       validatedDialogues.push(d);
     } else {
       console.error(`  ❌ 营地台词违规: ${errs.join(', ')}`);
@@ -391,9 +420,9 @@ async function main() {
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
+  const outFile = path.join(outDir, 'generated_narratives.json');
 
-  const exportPath = path.join(outDir, 'generated_narratives.json');
-  const payload = {
+  const exportPayload = {
     generatedAt: new Date().toISOString(),
     stats: {
       totalGenerated: generatedEvents.length,
@@ -403,12 +432,12 @@ async function main() {
     dialogues: validatedDialogues
   };
 
-  fs.writeFileSync(exportPath, JSON.stringify(payload, null, 2), 'utf-8');
-  console.log(`\n📦 质检合格的叙事数据已持久化导出至: ${exportPath}`);
+  fs.writeFileSync(outFile, JSON.stringify(exportPayload, null, 2), 'utf-8');
+  console.log(`\n📦 质检合格的叙事数据已持久化导出至: ${outFile}`);
   console.log('='.repeat(70));
 }
 
 main().catch(err => {
-  console.error('Fatal execution error:', err);
+  console.error('❌ 流水线执行严重异常:', err);
   process.exit(1);
 });

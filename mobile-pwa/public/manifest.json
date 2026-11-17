@@ -1,7 +1,7 @@
 {
-  "name": "破晓佣兵团",
-  "short_name": "破晓佣兵",
-  "description": "中世纪战术佣兵团与地牢冒险游戏",
+  "name": "星原战纪",
+  "short_name": "星原战纪",
+  "description": "东方二次元奇幻探险与战术小队RPG",
   "start_url": "/game/",
   "scope": "/game/",
   "display": "standalone",
