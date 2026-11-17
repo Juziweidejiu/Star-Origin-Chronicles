@@ -17,6 +17,8 @@ import { InkStoryRunner } from './components/InkStoryRunner';
 import { DungeonEventModal } from './components/DungeonEventModal';
 import { CampBarkBubble } from './components/CampBarkBubble';
 import { FormationModal } from './components/FormationModal';
+import { CombatStage } from './components/CombatStage';
+import type { FloatingTextItem, UnitVisualState, UltCinematicEvent } from './types/combatVisual';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
 import { ENABLE_WORLD_CRISIS } from './config/features';
 import type { FormationPresetId, FormationSlotAssignment, GridSlotId } from './types/formation';
@@ -68,11 +70,19 @@ export function App() {
   // 战斗状态机
   const [engine, setEngine] = useState<CombatEngine | null>(null);
   const [isRunning, setIsRunning] = useState<boolean>(true);
+  const [combatSpeed, setCombatSpeed] = useState<1 | 2>(1); // 1x / 2x 倍速
   const [combatUnits, setCombatUnits] = useState<CombatUnit[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [isAutoUlt, setIsAutoUlt] = useState<boolean>(true);
   const [battleRewardClaimed, setBattleRewardClaimed] = useState<boolean>(false);
+  const [focusedTargetId, setFocusedTargetId] = useState<string | null>(null);
   const [systemNotice, setSystemNotice] = useState<string>('欢迎来到《星原战纪》！请在城镇接取委托、整备队伍，踏上原野与迷宫探险旅程。');
+
+  // Milestone 13 战斗视觉动效状态
+  const [floatingTexts, setFloatingTexts] = useState<FloatingTextItem[]>([]);
+  const [visualStates, setVisualStates] = useState<Record<string, UnitVisualState>>({});
+  const [ultEvent, setUltEvent] = useState<UltCinematicEvent | null>(null);
+  const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
 
   // 结算叙事分支/事件后果对游戏数值的影响
   const handleApplyNarrativeConsequence = (consequence: ChoiceConsequence) => {
@@ -150,6 +160,96 @@ export function App() {
       if (u.side === 'player') u.autoUlt = isAutoUlt;
     });
 
+    // 绑定实时动效管线
+    eng.onCombatFx = (fx) => {
+      // 1. 浮动跳字
+      if (fx.targetId && fx.label) {
+        const textItem: FloatingTextItem = {
+          id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          targetId: fx.targetId,
+          text: fx.label,
+          type: fx.type === 'crit_shake' ? 'crit' : fx.type === 'heal' ? 'heal' : fx.type === 'ult_burst' ? 'ult' : fx.label.startsWith('CRIT') ? 'crit' : 'damage',
+          xOffset: Math.round((Math.random() - 0.5) * 26),
+          createdAt: Date.now(),
+        };
+        setFloatingTexts(prev => [...prev.slice(-12), textItem]);
+      }
+
+      // 2. 角色打击与受击瞬态微动效
+      if (fx.sourceId) {
+        setVisualStates(prev => ({
+          ...prev,
+          [fx.sourceId!]: {
+            ...prev[fx.sourceId!],
+            isAttacking: true,
+            attackMotion: 'lunge',
+            isHit: false,
+            isCritHit: false,
+            isHealing: false,
+            isDead: false,
+          },
+        }));
+        setTimeout(() => {
+          setVisualStates(prev => ({
+            ...prev,
+            [fx.sourceId!]: { ...prev[fx.sourceId!], isAttacking: false },
+          }));
+        }, 220);
+      }
+
+      if (fx.targetId) {
+        const isCrit = fx.label?.startsWith('CRIT');
+        setVisualStates(prev => ({
+          ...prev,
+          [fx.targetId!]: {
+            ...prev[fx.targetId!],
+            isAttacking: false,
+            isHit: !isCrit && fx.type !== 'heal',
+            isCritHit: Boolean(isCrit),
+            isHealing: fx.type === 'heal',
+            isDead: false,
+          },
+        }));
+        setTimeout(() => {
+          setVisualStates(prev => ({
+            ...prev,
+            [fx.targetId!]: {
+              ...prev[fx.targetId!],
+              isHit: false,
+              isCritHit: false,
+              isHealing: false,
+            },
+          }));
+        }, 200);
+      }
+
+      // 3. 暴击全屏微震
+      if (fx.type === 'crit_shake') {
+        setIsScreenShaking(true);
+        setTimeout(() => setIsScreenShaking(false), 140);
+      }
+
+      // 4. 终极技能特写横幅
+      if (fx.type === 'ult_burst' && fx.sourceId) {
+        const caster = eng.units.find(u => u.hero.id === fx.sourceId);
+        if (caster) {
+          setUltEvent({
+            id: `${Date.now()}`,
+            casterId: caster.hero.id,
+            casterName: caster.hero.name,
+            casterClass: caster.hero.classId,
+            ultName: fx.label || '必杀奥义',
+            role: caster.hero.role,
+            durationMs: 700,
+          });
+          setTimeout(() => setUltEvent(null), 700);
+        }
+      }
+    };
+
+    setFocusedTargetId(null);
+    setFloatingTexts([]);
+    setVisualStates({});
     setEngine(eng);
     setCombatUnits([...eng.units]);
     setLogs([...eng.logs]);
@@ -283,8 +383,17 @@ export function App() {
   useEffect(() => {
     if (!isRunning || !engine || engine.isFinished) return;
 
+    // 清理超过 1.2 秒的浮动跳字
+    const cleanupTimer = setInterval(() => {
+      const now = Date.now();
+      setFloatingTexts(prev => prev.filter(t => now - t.createdAt < 1200));
+    }, 400);
+
+    const stepDt = 0.2 * combatSpeed;
+    const intervalMs = Math.round(200 / combatSpeed);
+
     const timer = setInterval(() => {
-      engine.tick(0.2);
+      engine.tick(stepDt);
       setCombatUnits([...engine.units]);
       setLogs([...engine.logs]);
 
@@ -331,10 +440,13 @@ export function App() {
         setBattleRewardClaimed(true);
         triggerUpdate();
       }
-    }, 200);
+    }, intervalMs);
 
-    return () => clearInterval(timer);
-  }, [isRunning, engine, battleRewardClaimed, roster, townEngine, activeDungeonRoom]);
+    return () => {
+      clearInterval(timer);
+      clearInterval(cleanupTimer);
+    };
+  }, [isRunning, engine, battleRewardClaimed, roster, townEngine, activeDungeonRoom, combatSpeed]);
 
   // 切换自动/手动大招
   const toggleAutoUlt = () => {
@@ -353,6 +465,17 @@ export function App() {
     engine.triggerUltimate(unit);
     setCombatUnits([...engine.units]);
     setLogs([...engine.logs]);
+  };
+
+  // 玩家手动点选集火目标
+  const handleSelectFocusedTarget = (unit: CombatUnit) => {
+    if (unit.side !== 'enemy' || unit.isDead) return;
+    const newTargetId = focusedTargetId === unit.hero.id ? null : unit.hero.id;
+    setFocusedTargetId(newTargetId);
+    if (engine) engine.focusedTargetId = newTargetId;
+    if (newTargetId) {
+      setSystemNotice(`🎯 全队远程与先锋已锁定集火目标：【${unit.hero.name}】！`);
+    }
   };
 
   const playerUnits = combatUnits.filter(u => u.side === 'player');
@@ -528,91 +651,34 @@ export function App() {
         {activeTab === 'combat' && (
           <div>
             {currentContract && (
-              <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px', border: '1px solid #334155', marginBottom: '10px', fontSize: '12px' }}>
-                <span style={{ color: '#eab308', fontWeight: 'bold' }}>战场：</span> {activeDungeonRoom?.title || currentContract.title}
-                <span style={{ color: '#38bdf8', marginLeft: '8px' }}>({currentContract.stars} 星深渊)</span>
+              <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px', border: '1px solid #334155', marginBottom: '8px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ color: '#eab308', fontWeight: 'bold' }}>战场：</span> {activeDungeonRoom?.title || currentContract.title}
+                  <span style={{ color: '#38bdf8', marginLeft: '6px' }}>({currentContract.stars}★)</span>
+                </div>
+                <button
+                  onClick={() => setShowFormationModal(true)}
+                  style={{ fontSize: '10px', padding: '2px 8px', background: '#334155', border: '1px solid #475569', borderRadius: '4px', color: '#fde047', cursor: 'pointer' }}
+                >
+                  📐 阵型: {FORMATION_PRESETS[currentFormationPreset]?.name}
+                </button>
               </div>
             )}
 
-            {/* 双方队伍卡片 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-              {/* 我方先遣队 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>我方先遣队 ({FORMATION_PRESETS[currentFormationPreset]?.name || '阵型'})</span>
-                  <button
-                    onClick={() => setShowFormationModal(true)}
-                    style={{ fontSize: '10px', padding: '2px 6px', background: '#334155', border: '1px solid #475569', borderRadius: '4px', color: '#fde047', cursor: 'pointer' }}
-                  >
-                    📐 调阵
-                  </button>
-                </div>
-                {playerUnits.map(unit => {
-                  const hpPct = Math.round((unit.currentHp / unit.maxHp) * 100);
-                  const canUlt = unit.resource >= 100 && !unit.isDead;
-                  const posBadge = unit.col === 'front' ? '前' : unit.col === 'mid' ? '中' : '后';
-                  const posColor = unit.col === 'front' ? '#f59e0b' : unit.col === 'mid' ? '#38bdf8' : '#10b981';
-                  return (
-                    <div 
-                      key={unit.hero.id} 
-                      onClick={() => handleManualUlt(unit)}
-                      style={{ 
-                        background: '#1e293b', 
-                        padding: '8px', 
-                        borderRadius: '8px', 
-                        border: canUlt && !isAutoUlt ? '2px solid #eab308' : '1px solid #334155',
-                        opacity: unit.isDead ? 0.35 : 1,
-                        cursor: canUlt && !isAutoUlt ? 'pointer' : 'default',
-                        boxShadow: canUlt && !isAutoUlt ? '0 0 10px rgba(234, 179, 8, 0.5)' : 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
-                        <span>
-                          <span style={{ fontSize: '9px', padding: '1px 3px', borderRadius: '2px', background: `${posColor}22`, color: posColor, border: `1px solid ${posColor}44`, marginRight: '4px' }}>
-                            {posBadge}
-                          </span>
-                          {unit.hero.isLeader ? '👑 ' : ''}{unit.hero.name.slice(0, 5)}
-                        </span>
-                        <span style={{ color: '#38bdf8' }}>{heroRoleLabel(unit.hero)}</span>
-                      </div>
-                      <div style={{ background: '#334155', height: '6px', borderRadius: '3px', margin: '4px 0', overflow: 'hidden' }}>
-                        <div style={{ background: hpPct > 30 ? '#10b981' : '#ef4444', height: '100%', width: `${hpPct}%`, transition: 'width 0.2s' }} />
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', color: '#94a3b8' }}>
-                        <span>HP {unit.currentHp}/{unit.maxHp}</span>
-                        {canUlt && !isAutoUlt ? (
-                          <span style={{ color: '#eab308', fontWeight: 'bold' }}>点按大招!</span>
-                        ) : (
-                          <span>⚡ {Math.round(unit.resource)}%</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 敌方目标 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 'bold' }}>敌对悬赏目标</div>
-                {enemyUnits.map(unit => {
-                  const hpPct = Math.round((unit.currentHp / unit.maxHp) * 100);
-                  return (
-                    <div key={unit.hero.id} style={{ background: '#1e293b', padding: '8px', borderRadius: '8px', border: '1px solid #334155', opacity: unit.isDead ? 0.35 : 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
-                        <span>{unit.hero.name.slice(0, 5)}</span>
-                        <span style={{ color: '#ef4444' }}>{heroRoleLabel(unit.hero)}</span>
-                      </div>
-                      <div style={{ background: '#334155', height: '6px', borderRadius: '3px', margin: '4px 0', overflow: 'hidden' }}>
-                        <div style={{ background: '#ef4444', height: '100%', width: `${hpPct}%`, transition: 'width 0.2s' }} />
-                      </div>
-                      <div style={{ fontSize: '9px', color: '#94a3b8', textAlign: 'right' }}>
-                        HP {unit.currentHp}/{unit.maxHp}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            {/* Milestone 13: 沉浸式战术战斗舞台 (可继承当前地牢 theme，含浮动跳字、打击微动效与大招演出) */}
+            <CombatStage
+              theme={currentDungeon?.theme || 'catacomb'}
+              playerUnits={playerUnits}
+              enemyUnits={enemyUnits}
+              visualStates={visualStates}
+              floatingTexts={floatingTexts}
+              ultEvent={ultEvent}
+              focusedTargetId={focusedTargetId}
+              isAutoUlt={isAutoUlt}
+              isScreenShaking={isScreenShaking}
+              onSelectTarget={handleSelectFocusedTarget}
+              onTriggerUlt={handleManualUlt}
+            />
 
             {/* 战役结果通知 */}
             {engine?.isFinished && (
@@ -621,7 +687,7 @@ export function App() {
                 borderRadius: '8px', 
                 background: engine.winner === 'player' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', 
                 border: engine.winner === 'player' ? '1px solid #10b981' : '1px solid #ef4444',
-                marginBottom: '12px',
+                marginBottom: '10px',
                 textAlign: 'center'
               }}>
                 <div style={{ fontWeight: 'bold', fontSize: '14px', color: engine.winner === 'player' ? '#34d399' : '#f87171' }}>
@@ -650,23 +716,43 @@ export function App() {
               </div>
             )}
 
-            {/* 战斗操作条 */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            {/* 战斗快捷控制台：暂停/继续 + 1x/2x 倍速 + 自动/手动大招 */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
               <button
                 onClick={() => setIsRunning(!isRunning)}
-                style={{ flex: 1, padding: '8px', background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                style={{ flex: 1.2, padding: '7px', background: '#334155', color: '#fff', border: '1px solid #475569', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
               >
-                {isRunning ? '⏸️ 暂停演练' : '▶️ 恢复推演'}
+                {isRunning ? '⏸️ 暂停' : '▶️ 演练'}
+              </button>
+              <button
+                onClick={() => setCombatSpeed(s => s === 1 ? 2 : 1)}
+                style={{ flex: 1, padding: '7px', background: combatSpeed === 2 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #38bdf8', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+              >
+                ⚡ {combatSpeed}x 倍速
+              </button>
+              <button
+                onClick={() => {
+                  const next = !isAutoUlt;
+                  setIsAutoUlt(next);
+                  if (engine) {
+                    engine.units.forEach(u => {
+                      if (u.side === 'player') u.autoUlt = next;
+                    });
+                  }
+                }}
+                style={{ flex: 1.4, padding: '7px', background: isAutoUlt ? '#ca8a04' : '#1e293b', color: '#fff', border: '1px solid #eab308', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+              >
+                {isAutoUlt ? '🤖 自动大招: 开' : '✋ 手动释放'}
               </button>
             </div>
 
             {/* 战况日志 */}
-            <div style={{ background: '#0b1329', padding: '10px', borderRadius: '8px', height: '140px', overflowY: 'auto', border: '1px solid #1e293b' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '6px', borderBottom: '1px solid #1e293b', paddingBottom: '4px' }}>
-                📜 实时战术推演日志 (Gambit 驱动)
+            <div style={{ background: '#0b1329', padding: '8px 10px', borderRadius: '8px', height: '120px', overflowY: 'auto', border: '1px solid #1e293b' }}>
+              <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '4px', borderBottom: '1px solid #1e293b', paddingBottom: '3px' }}>
+                📜 实时战术推演日志 (点击敌方可锁定集火)
               </div>
               {logs.map(log => (
-                <div key={log.id} style={{ fontSize: '11px', margin: '3px 0', color: log.type === 'ult' ? '#eab308' : log.type === 'heal' ? '#34d399' : log.type === 'death' ? '#f87171' : '#cbd5e1' }}>
+                <div key={log.id} style={{ fontSize: '10px', margin: '2px 0', color: log.type === 'ult' ? '#eab308' : log.type === 'heal' ? '#34d399' : log.type === 'death' ? '#f87171' : '#cbd5e1' }}>
                   {log.text}
                 </div>
               ))}

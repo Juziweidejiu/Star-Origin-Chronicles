@@ -9,6 +9,7 @@ import type { GridSlotId, GridColumn } from '../types/formation';
 import { GRID_SLOTS } from '../types/formation';
 import { getPositionCombatModifier } from './formationEngine';
 import { DAMAGE_TYPE, resolveStats } from './statResolver';
+import type { CombatFxEvent } from '../types/combatVisual';
 
 export interface CombatUnit {
   hero: Hero;
@@ -43,6 +44,8 @@ export class CombatEngine {
   logs: CombatLog[] = [];
   isFinished = false;
   winner: 'player' | 'enemy' | null = null;
+  focusedTargetId: string | null = null; // 玩家手动集火标记
+  onCombatFx?: (event: CombatFxEvent) => void; // 动效回调钩子
 
   constructor(
     playerParty: Hero[],
@@ -150,14 +153,18 @@ export class CombatEngine {
       const heal = Math.round(unit.stats.healingPower * 1.8 + 20);
       for (const ally of allies) {
         ally.currentHp = Math.min(ally.maxHp, ally.currentHp + heal);
+        this.onCombatFx?.({ type: 'heal', sourceId: unit.hero.id, targetId: ally.hero.id, value: heal, label: `+${heal}` });
       }
+      this.onCombatFx?.({ type: 'ult_burst', sourceId: unit.hero.id, label: '回春圣域' });
       this.addLog(`✨ [${unit.hero.name}] 释放【回春圣域】，全队恢复 ${heal} 生命！`, 'ult');
     } else if (unit.hero.role === 'tank') {
       this.addLog(`🛡️ [${unit.hero.name}] 释放【不动如山·战吼】，震慑全场并吸引仇恨！`, 'ult');
+      this.onCombatFx?.({ type: 'ult_burst', sourceId: unit.hero.id, label: '不动如山·战吼' });
+      this.onCombatFx?.({ type: 'crit_shake' });
       unit.threatMult *= 1.5; // 战吼大幅提升嘲讽仇恨
       for (const t of targets) {
         const dmg = Math.max(1, Math.round(this.attackPower(unit) * 1.0));
-        this.applyDamage(t, dmg, false);
+        this.applyDamage(t, dmg, false, unit.hero.id);
         this.addLog(`💥 [${t.hero.name}] 被战吼冲击 -${dmg} HP`, 'skill');
       }
     } else {
@@ -165,7 +172,8 @@ export class CombatEngine {
       const target = this.selectAttackTarget(unit, targets, true);
       if (target) {
         const { dmg, crit } = this.rollDamage(unit, target, 3.0);
-        this.applyDamage(target, dmg, crit);
+        this.onCombatFx?.({ type: 'ult_burst', sourceId: unit.hero.id, targetId: target.hero.id, value: dmg, label: '破空斩' });
+        this.applyDamage(target, dmg, crit, unit.hero.id);
         this.addLog(
           `⚡ [${unit.hero.name}] 释放绝杀【破空斩】对 [${target.hero.name}] 造成 ${dmg} 点${crit ? '暴击' : ''}伤害！`,
           'ult',
@@ -199,6 +207,12 @@ export class CombatEngine {
     // 近战普通攻击：前排只要有人，就受到防线阻挡，无法直击后排
     if (!isRanged && !isUlt && frontRow.length > 0) {
       eligible = frontRow;
+    }
+
+    // 玩家集火标记优先：若目标在合法攻击列表中，且集火目标存活，优先锁定
+    if (attacker.side === 'player' && this.focusedTargetId) {
+      const focused = eligible.find(u => u.hero.id === this.focusedTargetId);
+      if (focused) return focused;
     }
 
     // 综合评分：仇恨倍率 (threatMult) * 伤残加成 (越残血仇恨略高) * 随机浮动
@@ -246,9 +260,15 @@ export class CombatEngine {
     return { dmg: Math.max(1, Math.round(raw)), crit };
   }
 
-  private applyDamage(target: CombatUnit, dmg: number, crit: boolean) {
+  private applyDamage(target: CombatUnit, dmg: number, crit: boolean, sourceId?: string) {
     target.currentHp = Math.max(0, target.currentHp - dmg);
-    if (crit) this.addLog(`💢 暴击！[${target.hero.name}] -${dmg} HP`, 'crit');
+    if (crit) {
+      this.addLog(`💢 暴击！[${target.hero.name}] -${dmg} HP`, 'crit');
+      this.onCombatFx?.({ type: 'crit_shake' });
+      this.onCombatFx?.({ type: 'hit', sourceId, targetId: target.hero.id, value: dmg, label: `CRIT! -${dmg}` });
+    } else {
+      this.onCombatFx?.({ type: 'hit', sourceId, targetId: target.hero.id, value: dmg, label: `-${dmg}` });
+    }
     if (target.currentHp <= 0) this.handleDeath(target);
   }
 
@@ -263,6 +283,7 @@ export class CombatEngine {
         const heal = Math.round(unit.stats.healingPower * (0.9 + Math.random() * 0.2));
         lowestAlly.currentHp = Math.min(lowestAlly.maxHp, lowestAlly.currentHp + heal);
         unit.resource = Math.min(100, unit.resource + 15);
+        this.onCombatFx?.({ type: 'heal', sourceId: unit.hero.id, targetId: lowestAlly.hero.id, value: heal, label: `+${heal}` });
         this.addLog(`💚 [${unit.hero.name}] 治疗 [${lowestAlly.hero.name}] +${heal} HP`, 'heal');
         return;
       }
@@ -274,7 +295,7 @@ export class CombatEngine {
 
     const isMagic = DAMAGE_TYPE[unit.hero.classId] === 'magic';
     const { dmg, crit } = this.rollDamage(unit, target, 1.0);
-    this.applyDamage(target, dmg, crit);
+    this.applyDamage(target, dmg, crit, unit.hero.id);
     unit.resource = Math.min(100, unit.resource + 12);
 
     if (!crit) {
