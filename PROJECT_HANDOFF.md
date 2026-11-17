@@ -249,6 +249,15 @@
   - 战况日志重构为可折叠抽屉：默认收起展示最新摘要（节约大片垂直屏幕空间聚焦战场），点击即可一键展开完整滚动推演记录。
 - [x] 验证：`npm run build`（tsc -b && vite build）0 报错，耗时 904ms；浏览器实机验证无横向溢出，动态跳字正常触发。
 
+- [x] **首发/替补轮换系统 (Milestone 16: 招新人可编入出战队伍)**:
+  - 根因：出战队伍与阵型布阵此前全部硬编码 `roster.slice(0, 4)`，酒馆招募的第 5 人永远无法上阵。
+  - `App.tsx` 新增 `deployedHeroIds: string[]` 首发名单状态与 `deployedSquad` 派生队伍；战斗、地牢、事件、阵型弹窗全部改用该名单（`startRoomBattle`、`DungeonView`、`DungeonEventModal`、`FormationModal`）。
+  - `handleSwapHeroDeploy(outgoingId, incomingId)`：一对一换人，替补英雄继承被换下者的 3×3 阵位，并推送系统提示。
+  - 名册卡片新增状态徽章：【⚔️ 首发出战 (阵位名)】/【💤 驻营待命】，替补卡片带「换上出战 🔁」下拉可直接选择替换哪位首发出战成员；首发出战卡片提供「调位」入口。
+  - `FormationModal.tsx` 重构：新增 `allHeroes` 与 `onSwapHeroDeploy` 属性，棋盘下方同时展示【首发出战先遣队 4/4】与【驻营待命替补席】，点选替补再点棋盘主力格子即可一键轮换上阵 + 继承阵位。
+  - `startRoomBattle` 首发存活不足时自动从替补中补足，避免首发重伤导致无法出征。
+  - 验证：`npm run build` 0 报错；浏览器实测「酒馆签约温飞燕 → 名册 5/8 显示驻营待命 → 下拉换上出战 → 阵型弹窗替补席点选上阵 → 进入地牢战斗蓝方先遣阵 4/4 含温飞燕」全链路通过。
+
 
 
 

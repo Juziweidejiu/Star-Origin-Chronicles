@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { generateHero, heroRoleLabel } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
 import { TownEngine } from './engine/townEngine';
@@ -23,6 +23,7 @@ import type { FloatingTextItem, UnitVisualState, UltCinematicEvent } from './typ
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
 import { ENABLE_WORLD_CRISIS } from './config/features';
 import type { FormationPresetId, FormationSlotAssignment, GridSlotId } from './types/formation';
+import { GRID_SLOTS } from './types/formation';
 import { FORMATION_PRESETS, applyPresetToParty } from './engine/formationEngine';
 
 export function App() {
@@ -44,20 +45,61 @@ export function App() {
     generateHero('ranger', false, 'male')        // 远程猎手
   ]);
 
+  // 出战先遣队（4 人名单 ID）
+  const [deployedHeroIds, setDeployedHeroIds] = useState<string[]>(() => []);
+
   // 阵型系统状态：当前预设 + 4 人槽位分配 + 阵型弹窗
   const [currentFormationPreset, setCurrentFormationPreset] = useState<FormationPresetId>('shield_wall');
   const [formationAssignments, setFormationAssignments] = useState<FormationSlotAssignment[]>(() => []);
   const [showFormationModal, setShowFormationModal] = useState<boolean>(false);
 
+  // 初始化首发 4 人名单与阵型
   useEffect(() => {
-    if (roster.length > 0 && formationAssignments.length === 0) {
-      setFormationAssignments(applyPresetToParty('shield_wall', roster.slice(0, 4)));
+    if (roster.length > 0 && deployedHeroIds.length === 0) {
+      const initialDeployed = roster.slice(0, 4).map(h => h.id);
+      setDeployedHeroIds(initialDeployed);
+      const activeParty = roster.filter(h => initialDeployed.includes(h.id));
+      setFormationAssignments(applyPresetToParty('shield_wall', activeParty));
     }
   }, [roster]);
 
+  // 获取当前首发出战的 4 位英雄对象列表
+  const deployedSquad = useMemo(() => {
+    const list = roster.filter(h => deployedHeroIds.includes(h.id));
+    if (list.length === 0) return roster.slice(0, 4);
+    return list;
+  }, [roster, deployedHeroIds]);
+
   const handleApplyFormationPreset = (presetId: FormationPresetId) => {
     setCurrentFormationPreset(presetId);
-    setFormationAssignments(applyPresetToParty(presetId, roster.slice(0, 4)));
+    setFormationAssignments(applyPresetToParty(presetId, deployedSquad));
+  };
+
+  // 替补与首发队员一对一轮换
+  const handleSwapHeroDeploy = (outgoingHeroId: string, incomingHeroId: string) => {
+    const outgoing = roster.find(h => h.id === outgoingHeroId);
+    const incoming = roster.find(h => h.id === incomingHeroId);
+    if (!incoming) return;
+
+    setDeployedHeroIds(prev => {
+      const next = prev.filter(id => id !== outgoingHeroId);
+      if (!next.includes(incomingHeroId)) {
+        next.push(incomingHeroId);
+      }
+      return next.slice(0, 4);
+    });
+
+    // 继承或更新阵型槽位
+    setFormationAssignments(prev => {
+      const outgoingSlot = prev.find(a => a.heroId === outgoingHeroId)?.slotId;
+      const filtered = prev.filter(a => a.heroId !== outgoingHeroId && a.heroId !== incomingHeroId);
+      if (outgoingSlot) {
+        filtered.push({ heroId: incomingHeroId, slotId: outgoingSlot });
+      }
+      return filtered;
+    });
+
+    setSystemNotice(`🔄 轮换调整：【${incoming.name}】上阵出战，【${outgoing?.name || '队员'}】转入待命席！`);
   };
 
   // 当前进行中的任务契约与地牢探索实例
@@ -142,9 +184,15 @@ export function App() {
     setActiveDungeonRoom(room);
     setBattleRewardClaimed(false);
 
-    // 挑选活着的佣兵出战
-    const deploySquad = roster.filter(h => h.currentHp > 0).slice(0, 4);
-    if (deploySquad.length === 0) {
+    // 挑选当前首发阵容中存活的佣兵出战 (若首发存活不足，自动从替补中补足存活成员)
+    let activeDeploy = deployedSquad.filter(h => h.currentHp > 0);
+    if (activeDeploy.length < 4) {
+      const reservesAlive = roster.filter(h => !deployedHeroIds.includes(h.id) && h.currentHp > 0);
+      const needed = 4 - activeDeploy.length;
+      activeDeploy = [...activeDeploy, ...reservesAlive.slice(0, needed)];
+    }
+
+    if (activeDeploy.length === 0) {
       setSystemNotice('⚠️ 佣兵团全员重伤倒下！请先前往医馆治疗或圣所召魂。');
       return;
     }
@@ -158,7 +206,7 @@ export function App() {
       playerSlotMap[a.heroId] = a.slotId;
     }
 
-    const eng = new CombatEngine(deploySquad, enemies, playerSlotMap);
+    const eng = new CombatEngine(activeDeploy, enemies, playerSlotMap);
     eng.units.forEach(u => {
       if (u.side === 'player') u.autoUlt = isAutoUlt;
     });
@@ -664,7 +712,7 @@ export function App() {
             {currentDungeon ? (
               <DungeonView
                 dungeon={currentDungeon}
-                squad={roster.filter(h => h.currentHp > 0).slice(0, 4)}
+                squad={deployedSquad.filter(h => h.currentHp > 0)}
                 rations={townEngine.logistics.rations}
                 onEnterBattle={startRoomBattle}
                 onDisarmTrap={handleDisarmTrap}
@@ -874,7 +922,9 @@ export function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', padding: '8px 12px', borderRadius: '8px', border: '1px solid #334155' }}>
               <div style={{ fontSize: '12px', color: '#94a3b8' }}>
                 <span style={{ color: '#f8fafc', fontWeight: 'bold' }}>现役名册 {roster.length}/8 人</span>
-                <span style={{ marginLeft: '8px', color: '#eab308' }}>当前阵型：【{FORMATION_PRESETS[currentFormationPreset]?.name}】</span>
+                <span style={{ marginLeft: '8px', color: '#34d399' }}>首发 {deployedSquad.length}/4</span>
+                <span style={{ marginLeft: '6px', color: '#a78bfa' }}>待命 {Math.max(0, roster.length - deployedSquad.length)} 人</span>
+                <div style={{ marginTop: '2px', color: '#eab308' }}>当前阵型：【{FORMATION_PRESETS[currentFormationPreset]?.name}】</div>
               </div>
               <button
                 onClick={() => setShowFormationModal(true)}
@@ -883,17 +933,93 @@ export function App() {
                 📐 调整 3×3 阵型
               </button>
             </div>
-            {roster.map(hero => (
-              <div key={hero.id} style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#f8fafc' }}>
-                      {hero.isLeader ? '👑 ' : ''}{hero.name}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#38bdf8', marginLeft: '6px' }}>Lv.{hero.level} {heroRoleLabel(hero)}</span>
+            {roster.map(hero => {
+              const isDeployed = deployedHeroIds.includes(hero.id);
+              const heroSlot = formationAssignments.find(a => a.heroId === hero.id)?.slotId;
+              const slotMeta = GRID_SLOTS.find(s => s.id === heroSlot);
+
+              return (
+                <div 
+                  key={hero.id} 
+                  style={{ 
+                    background: isDeployed ? '#1e293b' : 'rgba(15, 23, 42, 0.75)', 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    border: isDeployed ? '1px solid #334155' : '1px dashed #475569',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#f8fafc' }}>
+                        {hero.isLeader ? '👑 ' : ''}{hero.name}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#38bdf8' }}>Lv.{hero.level} {heroRoleLabel(hero)}</span>
+                      
+                      {/* 出战/待命徽章 */}
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 'bold',
+                          backgroundColor: isDeployed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.15)',
+                          border: isDeployed ? '1px solid #10b981' : '1px solid #64748b',
+                          color: isDeployed ? '#34d399' : '#94a3b8',
+                        }}
+                      >
+                        {isDeployed ? `⚔️ 首发出战 (${slotMeta ? slotMeta.name : '阵中'})` : '💤 驻营待命'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '11px', color: '#eab308', fontWeight: 'bold' }}>CA {hero.currentAbility} / PA {hero.potentialAbility}</span>
+                      
+                      {/* 轮换上阵/下阵操作 */}
+                      {!isDeployed ? (
+                        <select
+                          defaultValue=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleSwapHeroDeploy(e.target.value, hero.id);
+                              e.target.value = "";
+                            }
+                          }}
+                          style={{
+                            background: '#d97706',
+                            color: '#0f172a',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '3px 6px',
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="" disabled>换上出战 🔁</option>
+                          {deployedSquad.map(d => (
+                            <option key={d.id} value={d.id}>替换: {d.name} ({heroRoleLabel(d)})</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <button
+                          onClick={() => setShowFormationModal(true)}
+                          style={{
+                            background: '#334155',
+                            color: '#cbd5e1',
+                            border: '1px solid #475569',
+                            borderRadius: '4px',
+                            padding: '2px 6px',
+                            fontSize: '10px',
+                            cursor: 'pointer'
+                          }}
+                          title="调整该队员在 3x3 阵型中的位置"
+                        >
+                          调位
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 'bold' }}>CA {hero.currentAbility} / PA {hero.potentialAbility}</span>
-                </div>
                 
                 {/* 装备栏（点击卸下） */}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '6px', fontSize: '10px' }}>
@@ -963,7 +1089,8 @@ export function App() {
                   </span>
                 </div>
               </div>
-            ))}
+            );
+          })}
 
             {/* 公共背包 */}
             <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
@@ -1181,7 +1308,8 @@ export function App() {
       {/* 阵型调整弹窗 */}
       {showFormationModal && (
         <FormationModal
-          party={roster.slice(0, 4)}
+          party={deployedSquad}
+          allHeroes={roster}
           assignments={formationAssignments}
           currentPreset={currentFormationPreset}
           onApplyPreset={handleApplyFormationPreset}
@@ -1189,6 +1317,7 @@ export function App() {
             setFormationAssignments(next);
             setCurrentFormationPreset('custom');
           }}
+          onSwapHeroDeploy={handleSwapHeroDeploy}
           onClose={() => setShowFormationModal(false)}
         />
       )}
@@ -1197,7 +1326,7 @@ export function App() {
       {interactiveEvent && (
         <DungeonEventModal
           event={interactiveEvent}
-          squad={roster.filter(h => h.currentHp > 0).slice(0, 4)}
+          squad={deployedSquad.filter(h => h.currentHp > 0)}
           onClose={() => setInteractiveEvent(null)}
           onResolve={(consequence) => {
             handleApplyNarrativeConsequence(consequence);
