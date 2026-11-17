@@ -51,26 +51,27 @@ type AffixDef = {
   label: string;
 };
 
+// 词缀定义：label 直接采用与九维属性面板统一的纯白话名称
 const AFFIX_POOL: Record<Equipment['slot'], AffixDef[]> = {
   weapon: [
-    { stat: 'ad', kind: 'percent', min: 0.08, max: 0.22, label: '锋锐' },
-    { stat: 'ap', kind: 'percent', min: 0.08, max: 0.24, label: '通脉' },
-    { stat: 'attackSpeed', kind: 'percent', min: 0.06, max: 0.16, label: '迅捷' },
-    { stat: 'critChance', kind: 'flat', min: 0.03, max: 0.08, label: '精准' },
-    { stat: 'penetration', kind: 'flat', min: 4, max: 14, label: '破甲' },
+    { stat: 'ad', kind: 'percent', min: 0.08, max: 0.22, label: '物攻' },
+    { stat: 'ap', kind: 'percent', min: 0.08, max: 0.24, label: '法攻' },
+    { stat: 'attackSpeed', kind: 'percent', min: 0.06, max: 0.16, label: '攻速' },
+    { stat: 'critChance', kind: 'flat', min: 0.03, max: 0.08, label: '暴击' },
+    { stat: 'penetration', kind: 'flat', min: 4, max: 14, label: '穿透' },
   ],
   armor: [
-    { stat: 'maxHp', kind: 'percent', min: 0.06, max: 0.18, label: '健体' },
-    { stat: 'armor', kind: 'flat', min: 6, max: 18, label: '坚固' },
-    { stat: 'magicResist', kind: 'flat', min: 6, max: 18, label: '抗法' },
-    { stat: 'tenacity', kind: 'flat', min: 0.05, max: 0.15, label: '不屈' },
+    { stat: 'maxHp', kind: 'percent', min: 0.06, max: 0.18, label: '生命' },
+    { stat: 'armor', kind: 'flat', min: 6, max: 18, label: '物防' },
+    { stat: 'magicResist', kind: 'flat', min: 6, max: 18, label: '法防' },
+    { stat: 'tenacity', kind: 'flat', min: 0.05, max: 0.15, label: '韧性' },
   ],
   trinket: [
-    { stat: 'critDamage', kind: 'flat', min: 0.12, max: 0.35, label: '必杀' },
-    { stat: 'healingPower', kind: 'flat', min: 8, max: 24, label: '慈爱' },
-    { stat: 'ap', kind: 'flat', min: 6, max: 16, label: '凝神' },
-    { stat: 'critChance', kind: 'flat', min: 0.03, max: 0.07, label: '窥机' },
-    { stat: 'ad', kind: 'flat', min: 4, max: 12, label: '聚力' },
+    { stat: 'critDamage', kind: 'flat', min: 0.12, max: 0.35, label: '暴伤' },
+    { stat: 'healingPower', kind: 'flat', min: 8, max: 24, label: '治疗' },
+    { stat: 'ap', kind: 'flat', min: 6, max: 16, label: '法攻' },
+    { stat: 'critChance', kind: 'flat', min: 0.03, max: 0.07, label: '暴击' },
+    { stat: 'ad', kind: 'flat', min: 4, max: 12, label: '物攻' },
   ],
 };
 
@@ -89,7 +90,12 @@ export function generateRandomLoot(stars: number): Equipment {
 
   const base: Partial<Record<CoreStatKey, number>> = {};
   for (const [key, value] of Object.entries(template.base) as [CoreStatKey, number][]) {
-    base[key] = key === 'critChance' ? value : Math.round(value * tierMult);
+    // 浮点属性（暴击率、攻速、韧性）不应直接 Math.round 导致归零，保留2位小数
+    if (key === 'critChance' || key === 'attackSpeed' || key === 'tenacity') {
+      base[key] = Math.round(value * tierMult * 100) / 100;
+    } else {
+      base[key] = Math.round(value * tierMult);
+    }
   }
 
   const pool = [...AFFIX_POOL[template.slot]];
@@ -99,9 +105,21 @@ export function generateRandomLoot(stars: number): Equipment {
     const rollDef = pool.splice(idx, 1)[0];
     const raw = rollDef.min + Math.random() * (rollDef.max - rollDef.min);
     const scaled = rollDef.kind === 'percent' ? raw * (1 + 0.15 * (tier - 1)) : raw * tierMult;
-    const value = Math.round(scaled * 100) / 100;
+    // 整型属性（ad, ap, armor, magicResist, maxHp, healingPower, penetration）取整；百分比与暴击暴伤四舍五入到百分比
+    let value = Math.round(scaled * 100) / 100;
+    if (['ad', 'ap', 'armor', 'magicResist', 'maxHp', 'healingPower', 'penetration'].includes(rollDef.stat) && rollDef.kind === 'flat') {
+      value = Math.round(scaled);
+    }
     affixes.push({ stat: rollDef.stat, kind: rollDef.kind, value, label: rollDef.label });
   }
+
+  const formatAffixText = (a: Affix) => {
+    // 暴击率与暴伤属于加算浮点，展示为百分比
+    if (a.kind === 'percent' || a.stat === 'critChance' || a.stat === 'critDamage' || a.stat === 'tenacity') {
+      return `${a.label} +${Math.round(a.value * 100)}%`;
+    }
+    return `${a.label} +${a.value}`;
+  };
 
   return {
     id: `loot_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
@@ -111,7 +129,7 @@ export function generateRandomLoot(stars: number): Equipment {
     tier,
     base,
     affixes,
-    affixText: affixes.length > 0 ? affixes.map(a => `${a.label} +${a.kind === 'percent' ? Math.round(a.value * 100) + '%' : a.value}`).join(' · ') : undefined,
+    affixText: affixes.length > 0 ? affixes.map(formatAffixText).join(' · ') : undefined,
   };
 }
 

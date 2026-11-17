@@ -124,14 +124,22 @@ export function resolveStats(hero: Hero): ResolvedStats {
 
 /** 词条展示文本，如「物攻 +12%」 */
 export function describeAffix(affix: Affix): string {
-  const value = affix.kind === 'percent' ? `${Math.round(affix.value * 100)}%` : `${affix.value}`;
-  return `${affix.label} +${value}`;
+  if (affix.kind === 'percent' || affix.stat === 'critChance' || affix.stat === 'critDamage' || affix.stat === 'tenacity') {
+    return `${affix.label} +${Math.round(affix.value * 100)}%`;
+  }
+  return `${affix.label} +${affix.value}`;
 }
 
 /** 装备基础值展示文本，如「物攻 18 · 生命 30」 */
 export function describeBase(item: Equipment): string {
   return (Object.entries(item.base) as [CoreStatKey, number][])
-    .map(([key, value]) => `${STAT_LABEL[key]} ${value}`)
+    .filter(([_, value]) => value > 0)
+    .map(([key, value]) => {
+      if (key === 'critChance' || key === 'attackSpeed' || key === 'tenacity') {
+        return `${STAT_LABEL[key]} ${Math.round(value * 100)}%`;
+      }
+      return `${STAT_LABEL[key]} ${value}`;
+    })
     .join(' · ');
 }
 

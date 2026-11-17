@@ -572,25 +572,28 @@ export function App() {
             activeDungeonRoom.cleared = true;
           }
 
-          // 胜利战利品掉落计算（普通房 65% 几率掉落，Boss房 100% 掉落）
-          const stars = currentContract?.stars || 1;
-          const dropLoot = (Math.random() < 0.65 || activeDungeonRoom?.isBoss)
-            ? generateRandomLoot(stars)
-            : null;
-
-          const summary = engine.getSettlementSummary(dropLoot);
-          setSettlementSummary(summary);
-          setSettlementStep('stats'); // 进入第一步：展示数据统计与 MVP
-
-          if (activeDungeonRoom?.isBoss) {
+          // 战利品掉落与结算面板触发逻辑：
+          // 仅在最终首领房间 (isBoss) 胜利时触发战役总评 (MVP 榜) 与 极品装备翻牌结算
+          // 普通小怪房间胜利后直接进入快捷返回沙盘模式，避免频繁弹窗与装备爆仓
+          const isBossFight = Boolean(activeDungeonRoom?.isBoss);
+          if (isBossFight) {
+            const stars = currentContract?.stars || 1;
+            // 最终首领房间必掉落 1 件高阶军械装备
+            const dropLoot = generateRandomLoot(stars);
+            const summary = engine.getSettlementSummary(dropLoot);
+            setSettlementSummary(summary);
+            setSettlementStep('stats'); // 仅 Boss 战进入结算面板与翻牌两步走
             setSystemNotice('👑 最终首领已被斩杀！缴获极品军械！');
           } else {
+            // 普通战斗胜利：小幅奖励队伍少许金币或补给，不弹大面板不塞背包
+            setSettlementSummary(null);
+            setSettlementStep('idle');
             setSystemNotice('🎉 房间守卫已被全歼，道路畅通！');
           }
         } else if (engine.winner === 'enemy') {
           const summary = engine.getSettlementSummary(null);
           setSettlementSummary(summary);
-          setSettlementStep('stats'); // 败北也展示数据统计
+          setSettlementStep('stats'); // 败北展示数据统计以便玩家分析原因
           setSystemNotice('💀 战役失败，先遣队败退！队员重创，请回圣所与医馆救治！');
         }
         setBattleRewardClaimed(true);
@@ -1291,9 +1294,11 @@ export function App() {
                         <div>
                           <span style={{ fontWeight: 'bold', color: rarityColor }}>{item.name}</span>
                           <span style={{ color: '#94a3b8', marginLeft: '6px' }}>[{item.slot}] T{item.tier}</span>
-                          <div style={{ color: '#94a3b8', fontSize: '10px' }}>
-                            {describeBase(item)}
-                            {item.affixText ? ` · ${item.affixText}` : ''}
+                          <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '2px' }}>
+                            <span style={{ color: '#cbd5e1' }}>{describeBase(item)}</span>
+                            {item.affixText ? (
+                              <span style={{ color: '#38bdf8', marginLeft: '6px' }}>· {item.affixText}</span>
+                            ) : null}
                           </div>
                         </div>
                         <button
