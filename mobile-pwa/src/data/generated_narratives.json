@@ -1,0 +1,109 @@
+{
+  "generatedAt": "2026-11-17T02:08:44.544Z",
+  "stats": {
+    "totalGenerated": 2,
+    "passed": 2
+  },
+  "events": [
+    {
+      "id": "synth_event_1794881324543_1",
+      "title": "被遗弃的溃兵木桩",
+      "theme": "forest",
+      "category": "dilemma",
+      "hook": "林间小径旁立着三根削尖的原木，上面绑着风干的领主军溃兵皮甲。一具残缺的布袋还吊在枝头，底下滴落着浑浊的雨水。",
+      "choices": [
+        {
+          "id": "c_1_1",
+          "label": "割断绳索取下布袋",
+          "flavor": "溃兵往往藏匿着劫掠来的贵重细软。",
+          "successRate": 0.8,
+          "successConsequence": {
+            "stressChange": -5,
+            "moraleChange": 5,
+            "goldChange": 85,
+            "resultNarrative": "袋里除了一双磨平的旧军靴，还有两只金耳坠与三枚受潮火石。"
+          },
+          "failureConsequence": {
+            "stressChange": 12,
+            "moraleChange": -5,
+            "resultNarrative": "绳索扯断了腐烂的蜂巢，蛰咬使得探路哨兵满面红肿。"
+          }
+        },
+        {
+          "id": "c_1_2",
+          "label": "拔起木桩劈作营火柴木",
+          "flavor": "行军需要干燥的柴薪，死人的晦气不必理会。",
+          "successRate": 1,
+          "successConsequence": {
+            "stressChange": 5,
+            "moraleChange": 5,
+            "rationChange": 1,
+            "resultNarrative": "硬木被砍成适手的柴块，今晚的营火有了着落。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "synth_event_1794881324543_2",
+      "title": "封死的地窖铁门",
+      "theme": "ruins",
+      "category": "curio",
+      "hook": "塌陷的石阶尽头横着一扇灌了铅的铸铁门，门栓上插着半柄断裂的宽刃剑。缝隙里渗出潮湿的酒糟气与发馊的油脂味。",
+      "choices": [
+        {
+          "id": "c_2_1",
+          "label": "合力砸开锁扣",
+          "flavor": "可能会破坏里面的藏品，并发出巨响。",
+          "successRate": 0.75,
+          "successConsequence": {
+            "stressChange": 5,
+            "moraleChange": 10,
+            "goldChange": 120,
+            "resultNarrative": "铁闩崩裂。几坛尚未挥发的麦酒和一小袋行商银币滚落出来。"
+          },
+          "failureConsequence": {
+            "stressChange": 15,
+            "moraleChange": -5,
+            "hpPercentChange": -5,
+            "resultNarrative": "飞溅的铁屑划破了手背，刺耳的撞击声引来了远处的徘徊者。"
+          }
+        },
+        {
+          "id": "c_2_2",
+          "label": "在门缝塞入细油绳探路",
+          "flavor": "观察内部是否有可燃毒气或盘踞毒虫。",
+          "requirement": {
+            "attribute": "anticipation",
+            "minAttrValue": 12
+          },
+          "successRate": 0.9,
+          "successConsequence": {
+            "stressChange": -5,
+            "moraleChange": 5,
+            "resultNarrative": "油绳没有变色，地窖里没有毒瘴，佣兵们松了一口气。"
+          }
+        }
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "id": "camp_gen_1794881324543_1",
+      "personality": "weary",
+      "condition": "idle",
+      "text": "把潮湿的裹脚布烤干。生冻疮比被箭射中还折磨人。"
+    },
+    {
+      "id": "camp_gen_1794881324543_2",
+      "personality": "cynical",
+      "condition": "high_stress",
+      "text": "老爷们坐在城堡里数金币，我们在烂泥里替他捞祖坟。"
+    },
+    {
+      "id": "camp_gen_1794881324543_3",
+      "personality": "stoic",
+      "condition": "injured",
+      "text": "肋骨没断，还能挥剑。把绷带再勒紧一圈。"
+    }
+  ]
+}

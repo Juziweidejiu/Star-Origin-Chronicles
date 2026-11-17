@@ -10,9 +10,16 @@ import { CrisisAlert } from './components/CrisisAlert';
 import type { Hero, Equipment } from './types/hero';
 import type { GuildContract } from './types/world';
 import type { DungeonInstance, DungeonRoom } from './types/dungeon';
+import type { DungeonEvent, ChoiceConsequence } from './types/narrative';
+import { InkStoryRunner } from './components/InkStoryRunner';
+import { DungeonEventModal } from './components/DungeonEventModal';
+import { CampBarkBubble } from './components/CampBarkBubble';
+import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town'>('town');
+  const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town' | 'story'>('town');
+  const [storySubTab, setStorySubTab] = useState<'ink' | 'event' | 'bark'>('ink');
+  const [interactiveEvent, setInteractiveEvent] = useState<DungeonEvent | null>(null);
   const [, setTickCounter] = useState(0);
   const triggerUpdate = () => setTickCounter(c => c + 1);
 
@@ -41,6 +48,41 @@ export function App() {
   const [isAutoUlt, setIsAutoUlt] = useState<boolean>(true);
   const [battleRewardClaimed, setBattleRewardClaimed] = useState<boolean>(false);
   const [systemNotice, setSystemNotice] = useState<string>('欢迎来到破晓佣兵团！请在城镇公会接取契约或深入地牢探险。');
+
+  // 结算叙事分支/事件后果对游戏数值的影响
+  const handleApplyNarrativeConsequence = (consequence: ChoiceConsequence) => {
+    let msg = consequence.resultNarrative;
+    if (consequence.goldChange) {
+      townEngine.logistics.gold = Math.max(0, townEngine.logistics.gold + consequence.goldChange);
+      msg += ` [金币 ${consequence.goldChange > 0 ? '+' : ''}${consequence.goldChange}]`;
+    }
+    if (consequence.rationChange) {
+      townEngine.logistics.rations = Math.max(0, townEngine.logistics.rations + consequence.rationChange);
+      msg += ` [口粮 ${consequence.rationChange > 0 ? '+' : ''}${consequence.rationChange}]`;
+    }
+    if (consequence.stressChange) {
+      roster.forEach(h => {
+        h.stress = Math.min(100, Math.max(0, h.stress + consequence.stressChange!));
+      });
+      msg += ` [全队压力 ${consequence.stressChange > 0 ? '+' : ''}${consequence.stressChange}]`;
+    }
+    if (consequence.moraleChange) {
+      roster.forEach(h => {
+        h.morale = Math.max(0, h.morale + consequence.moraleChange!);
+      });
+      msg += ` [全队士气 ${consequence.moraleChange > 0 ? '+' : ''}${consequence.moraleChange}]`;
+    }
+    if (consequence.hpPercentChange) {
+      const vanguard = roster.find(h => h.currentHp > 0);
+      if (vanguard) {
+        const delta = Math.round(vanguard.maxHp * (consequence.hpPercentChange / 100));
+        vanguard.currentHp = Math.min(vanguard.maxHp, Math.max(1, vanguard.currentHp + delta));
+        msg += ` [${vanguard.name} 生命 ${delta > 0 ? '+' : ''}${delta}]`;
+      }
+    }
+    setSystemNotice(msg);
+    triggerUpdate();
+  };
 
   // 接取契约并生成程序化地牢
   const handleSelectContract = (contract: GuildContract) => {
@@ -327,15 +369,15 @@ export function App() {
           onAcceptCrisisBattle={handleAcceptCrisisBattle}
         />
 
-        {/* 顶部四 Tab 切换 */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-          {(['town', 'dungeon', 'combat', 'roster'] as const).map(tab => (
+        {/* 顶部五 Tab 切换 */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
+          {(['town', 'dungeon', 'combat', 'roster', 'story'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               style={{
                 flex: 1,
-                padding: '8px 4px',
+                padding: '8px 2px',
                 borderRadius: '8px',
                 border: 'none',
                 cursor: 'pointer',
@@ -348,7 +390,8 @@ export function App() {
               {tab === 'town' && '🏰 据点'}
               {tab === 'dungeon' && `🗝️ 地牢${currentDungeon ? '●' : ''}`}
               {tab === 'combat' && '🗡️ 战役'}
-              {tab === 'roster' && `👥 名册(${roster.length})`}
+              {tab === 'roster' && `👥 名册`}
+              {tab === 'story' && '📜 物语'}
             </button>
           ))}
         </div>
@@ -384,6 +427,7 @@ export function App() {
                 }}
                 onEquipItem={handleEquipItem}
                 onExitDungeon={() => handleFinishDungeon(false)}
+                onApplyNarrativeConsequence={handleApplyNarrativeConsequence}
               />
             ) : (
               <div style={{ textAlign: 'center', padding: '40px 10px', color: '#94a3b8' }}>
@@ -609,7 +653,175 @@ export function App() {
           </div>
         )}
 
+        {/* Tab 5: 暗黑叙事与 DSL 剧本系统 */}
+        {activeTab === 'story' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* 子 Tab 切换 */}
+            <div style={{ display: 'flex', gap: '6px', background: '#0b1329', padding: '4px', borderRadius: '8px' }}>
+              {(
+                [
+                  { id: 'ink', label: '📜 Ink分支剧本' },
+                  { id: 'event', label: '⚖️ 偶发事件库' },
+                  { id: 'bark', label: '🏕️ 营地碎碎念' },
+                ] as const
+              ).map(sub => (
+                <button
+                  key={sub.id}
+                  onClick={() => setStorySubTab(sub.id)}
+                  style={{
+                    flex: 1,
+                    padding: '6px 4px',
+                    fontSize: '11px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: storySubTab === sub.id ? '#38bdf8' : 'transparent',
+                    color: storySubTab === sub.id ? '#0f172a' : '#94a3b8',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 子面板 1: Ink.js DSL 剧本运行器 */}
+            {storySubTab === 'ink' && (
+              <InkStoryRunner
+                onApplyEffectsToGame={({ stressDelta, goldDelta, message }) => {
+                  if (goldDelta) townEngine.logistics.gold += goldDelta;
+                  if (stressDelta) {
+                    roster.forEach(h => {
+                      h.stress = Math.min(100, Math.max(0, h.stress + stressDelta));
+                    });
+                  }
+                  setSystemNotice(message || '物语分支推进完成，影响已作用至军团！');
+                  triggerUpdate();
+                }}
+              />
+            )}
+
+            {/* 子面板 2: 暗黑地牢偶发事件检定架 */}
+            {storySubTab === 'event' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8', padding: '0 4px' }}>
+                  暗黑低魔风格事件库（已消除网文修饰与无谓血浆），支持队伍属性与职业检定：
+                </div>
+                {GOLD_STANDARD_DUNGEON_EVENTS.map((ev: DungeonEvent) => (
+                  <div
+                    key={ev.id}
+                    style={{
+                      background: '#1e293b',
+                      borderRadius: '8px',
+                      border: '1px solid #334155',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#fbbf24' }}>
+                        {ev.title}
+                      </span>
+                      <span style={{ fontSize: '10px', background: '#334155', color: '#94a3b8', padding: '2px 6px', borderRadius: '4px' }}>
+                        {ev.category} · {ev.theme}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.5' }}>
+                      {ev.hook}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      抉择分支: {ev.choices.map((c) => `[${c.label}]`).join(' ')}
+                    </div>
+                    <button
+                      onClick={() => setInteractiveEvent(ev)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: '#38bdf8',
+                        color: '#0f172a',
+                        fontWeight: 'bold',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        marginTop: '4px',
+                      }}
+                    >
+                      ▶ 带领当前小队进行互动检定
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 子面板 3: 佣兵营地碎碎念 (Bark) 展示 */}
+            {storySubTab === 'bark' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8', padding: '0 4px' }}>
+                  基于性格特质（沉稳/酗酒/贪婪/偏执等）与压力动态生成的营地短台词：
+                </div>
+                {roster.map(hero => {
+                  const bark = getCampDialogueForHero(hero);
+                  return (
+                    <div
+                      key={hero.id}
+                      style={{
+                        background: '#1e293b',
+                        borderRadius: '8px',
+                        border: '1px solid #334155',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                        <span style={{ fontWeight: 'bold', color: '#f8fafc' }}>
+                          {hero.name} ({hero.role})
+                        </span>
+                        <span style={{ fontSize: '11px', color: hero.stress > 60 ? '#f87171' : '#38bdf8' }}>
+                          压力: {hero.stress}/100
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {hero.traits.map(t => (
+                          <span
+                            key={t}
+                            style={{
+                              fontSize: '10px',
+                              background: '#334155',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              color: '#34d399',
+                            }}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                      <CampBarkBubble dialogue={bark} speaker={hero} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
+
+      {/* 独立互动检定事件模态框 */}
+      {interactiveEvent && (
+        <DungeonEventModal
+          event={interactiveEvent}
+          squad={roster.filter(h => h.currentHp > 0).slice(0, 4)}
+          onClose={() => setInteractiveEvent(null)}
+          onResolve={(consequence) => {
+            handleApplyNarrativeConsequence(consequence);
+          }}
+        />
+      )}
 
       {/* 底部 PWA 离线提示（包含底部小黑条安全区域 Safe Area Inset Bottom） */}
       <footer style={{ 

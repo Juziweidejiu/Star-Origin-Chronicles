@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import type { DungeonInstance, DungeonRoom, CampRole } from '../types/dungeon';
 import type { Hero, Equipment } from '../types/hero';
+import type { DungeonEvent, ChoiceConsequence } from '../types/narrative';
 import { executeCampRest } from '../engine/dungeonEngine';
+import { CampBarkBubble } from './CampBarkBubble';
+import { DungeonEventModal } from './DungeonEventModal';
+import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from '../data/mockNarratives';
 
 interface DungeonViewProps {
   dungeon: DungeonInstance;
@@ -13,6 +17,7 @@ interface DungeonViewProps {
   onCampRest: (consumedRations: number, message: string) => void;
   onEquipItem: (heroId: string, item: Equipment) => void;
   onExitDungeon: () => void;
+  onApplyNarrativeConsequence?: (consequence: ChoiceConsequence) => void;
 }
 
 export const DungeonView: React.FC<DungeonViewProps> = ({
@@ -25,8 +30,10 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
   onCampRest,
   onEquipItem,
   onExitDungeon,
+  onApplyNarrativeConsequence,
 }) => {
   const currentRoom = dungeon.rooms[dungeon.currentRoomIndex];
+  const [activeNarrativeEvent, setActiveNarrativeEvent] = useState<DungeonEvent | null>(null);
   const [campAssignments, setCampAssignments] = useState<Record<string, CampRole>>(() => {
     const init: Record<string, CampRole> = {};
     squad.forEach((h, idx) => {
@@ -237,45 +244,51 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
               <span style={{ color: '#38bdf8' }}>警戒哨兵</span> 降压效果翻倍。
             </div>
 
-            {squad.map(hero => (
-              <div
-                key={hero.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: '#0f172a',
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                }}
-              >
-                <div>
-                  <span style={{ fontWeight: 'bold' }}>{hero.name}</span>
-                  <span style={{ color: '#94a3b8', marginLeft: '6px' }}>
-                    HP:{hero.currentHp}/{hero.maxHp} 压:{hero.stress}
-                  </span>
+            {squad.map(hero => {
+              const bark = getCampDialogueForHero(hero);
+              return (
+                <div key={hero.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#0f172a',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontWeight: 'bold' }}>{hero.name}</span>
+                      <span style={{ color: '#94a3b8', marginLeft: '6px' }}>
+                        HP:{hero.currentHp}/{hero.maxHp} 压:{hero.stress}
+                      </span>
+                    </div>
+                    <select
+                      value={campAssignments[hero.id]}
+                      onChange={e =>
+                        setCampAssignments({ ...campAssignments, [hero.id]: e.target.value as CampRole })
+                      }
+                      style={{
+                        background: '#1e293b',
+                        color: '#fff',
+                        border: '1px solid #475569',
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        fontSize: '11px',
+                      }}
+                    >
+                      <option value="sentry">🛡️ 警戒哨兵</option>
+                      <option value="tender">💉 医护管事</option>
+                      <option value="rest">💤 篝火休养</option>
+                    </select>
+                  </div>
+                  {/* 营地碎碎念冷峻台词气泡 */}
+                  <CampBarkBubble dialogue={bark} speaker={hero} />
                 </div>
-                <select
-                  value={campAssignments[hero.id]}
-                  onChange={e =>
-                    setCampAssignments({ ...campAssignments, [hero.id]: e.target.value as CampRole })
-                  }
-                  style={{
-                    background: '#1e293b',
-                    color: '#fff',
-                    border: '1px solid #475569',
-                    borderRadius: '4px',
-                    padding: '2px 6px',
-                    fontSize: '11px',
-                  }}
-                >
-                  <option value="sentry">🛡️ 警戒哨兵</option>
-                  <option value="tender">💉 医护管事</option>
-                  <option value="rest">💤 篝火休养</option>
-                </select>
-              </div>
-            ))}
+              );
+            })}
 
             <button
               onClick={handleRest}
@@ -295,6 +308,33 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
             </button>
           </div>
         )}
+
+        {/* 偶发深度叙事探索交互入口 */}
+        <div style={{ marginTop: '12px', borderTop: '1px dashed #334155', paddingTop: '10px' }}>
+          <button
+            onClick={() => {
+              const randomIndex = Math.floor(Math.random() * GOLD_STANDARD_DUNGEON_EVENTS.length);
+              setActiveNarrativeEvent(GOLD_STANDARD_DUNGEON_EVENTS[randomIndex]);
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #78350f',
+              background: 'linear-gradient(180deg, #1c1917 0%, #0c0a09 100%)',
+              color: '#fbbf24',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>📜</span>
+            <span>调查深渊残迹 (触发冷峻叙事事件)</span>
+          </button>
+        </div>
       </div>
 
       {/* 战利品库与装备穿戴区 */}
@@ -382,6 +422,18 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
             })}
           </div>
         </div>
+      )}
+
+      {/* 暗黑地牢事件模态弹窗 */}
+      {activeNarrativeEvent && (
+        <DungeonEventModal
+          event={activeNarrativeEvent}
+          squad={squad}
+          onClose={() => setActiveNarrativeEvent(null)}
+          onResolve={(consequence) => {
+            onApplyNarrativeConsequence?.(consequence);
+          }}
+        />
       )}
     </div>
   );

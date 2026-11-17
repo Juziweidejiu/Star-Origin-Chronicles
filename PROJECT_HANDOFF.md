@@ -93,3 +93,22 @@
 - [x] 适配 iOS PWA Manifest、安全区域与独立全屏运行模式 (`standalone`)。
 - [x] 公网连通性与静态资源透传验证完毕（HTTP 200，全套 JS/CSS/Manifest 正常运行）。
 - [ ] 真机 Safari 测试，验证添加到 iPhone 主屏幕后的手感、离线存储与触控响应。
+
+### Milestone 5: 去网文味暗黑叙事系统、生成管线与 Ink.js DSL 互动物语引擎 (已完成交付 ✅)
+- [x] **暗黑低魔叙事数据层与质检拦截 (`mobile-pwa/src/types/narrative.ts`)**:
+  - 严谨定义 `DungeonEvent`, `EventChoice`, `ChoiceRequirement`, `ChoiceConsequence`, `CampDialogue` 数据结构。
+  - 建立包含 40+ 网文套路词、无谓血浆描写的负面词库 `PURPLE_PROSE_BLACKLIST`（严格拦截“瞳孔骤缩、血雾、脑浆、桀桀、倒吸一口凉气”等）。
+  - 实现 `validateNarrativeQuality` 质量校验器，强制限制字数顶格与白描冷峻风格。
+- [x] **金标样本库 (`mobile-pwa/src/data/mockNarratives.ts`)**:
+  - 提供倾覆补给车、无脸神龛、坐化巡林客等高沉浸感暗黑抉择样本，以及基于性格与压力的 7 种营地短台词。
+- [x] **AI 批量生成与自动化质检验收流水线 (`scripts/generate_narrative_pipeline.mjs`)**:
+  - 构建符合叙事策划规范的结构化 Prompt，支持接入大模型 API，自动过滤网文词并产出 `generated_narratives.json`。
+- [x] **前端暗黑地牢 / 战场兄弟风格 UI 组件**:
+  - `DungeonEventModal.tsx`: 暗黑羊皮纸/黑铁质感事件模态框，支持队伍属性与职业检定及数值惩罚代偿。
+  - `CampBarkBubble.tsx`: 营地冷峻短台词气泡，直观反映佣兵性格与压力变化。
+  - `DungeonView.tsx`: 在扎营阶段直显角色台词，并提供探查深渊残迹的抉择交互。
+- [x] **游戏剧本 DSL（Ink.js）引擎接入与物语运行器**:
+  - 引入 `inkjs/full` 编译器与运行器，支持浏览器端即时编译与运行 Ink 分支文本。
+  - 编写《古墓无头骑士的信物》与《绞架林与盲眼斥候》两个多分支、含内部状态变量（`squad_stress`, `gold_gained`, `morale` 等）的高质量剧本 (`src/data/sampleInkStories.ts`)。
+  - 实现 `InkStoryRunner.tsx`，支持实时查看/在线修改 Ink 源码与即时编译。
+  - `App.tsx` 扩展第 5 个 Tab「📜 物语」，将分支推进结果双向同步至当前小队与据点后勤。
