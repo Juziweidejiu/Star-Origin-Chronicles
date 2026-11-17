@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { DungeonInstance, DungeonRoom, CampRole } from '../types/dungeon';
 import type { Hero, Equipment } from '../types/hero';
+import { describeBase } from '../engine/statResolver';
 import type { DungeonEvent, ChoiceConsequence } from '../types/narrative';
 import { executeCampRest } from '../engine/dungeonEngine';
 import { CampBarkBubble } from './CampBarkBubble';
@@ -394,14 +395,10 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
                 >
                   <div>
                     <span style={{ fontWeight: 'bold', color: rarityColor }}>{item.name}</span>
-                    <span style={{ color: '#94a3b8', marginLeft: '6px' }}>[{item.slot}]</span>
-                    {item.affixText && (
-                      <span style={{ color: '#e2e8f0', marginLeft: '6px' }}>({item.affixText})</span>
-                    )}
-                    <div style={{ color: '#64748b', fontSize: '10px' }}>
-                      {item.bonusDamage ? `攻+${item.bonusDamage} ` : ''}
-                      {item.bonusHp ? `血+${item.bonusHp} ` : ''}
-                      {item.bonusArmor ? `甲+${item.bonusArmor} ` : ''}
+                    <span style={{ color: '#94a3b8', marginLeft: '6px' }}>[{item.slot}] T{item.tier}</span>
+                    <div style={{ color: '#94a3b8', fontSize: '10px' }}>
+                      {describeBase(item)}
+                      {item.affixText ? ` · ${item.affixText}` : ''}
                     </div>
                   </div>
                   <button

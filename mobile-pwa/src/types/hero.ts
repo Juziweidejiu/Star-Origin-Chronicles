@@ -63,15 +63,54 @@ export interface GambitRule {
   action: 'attack' | 'skill' | 'taunt' | 'heal' | 'defend';
 }
 
+/**
+ * 九项核心属性（LoL 式扁平面板）
+ * 人物由 30 维属性推导得出基础值，装备以「基础值 + 词条」叠加在其上。
+ */
+export type CoreStatKey =
+  | 'ad'            // 物理攻击
+  | 'ap'            // 法术攻击
+  | 'armor'         // 物理防御
+  | 'magicResist'   // 法术防御
+  | 'attackSpeed'   // 攻击速度（换算为攻击间隔）
+  | 'critChance'    // 暴击率
+  | 'critDamage'    // 暴击伤害倍率
+  | 'penetration'   // 穿透（削减敌方护甲/法防）
+  | 'maxHp'         // 生命上限
+  | 'healingPower'  // 治疗强度
+  | 'tenacity';     // 韧性（控制减免，v1 预留）
+
+export interface Affix {
+  stat: CoreStatKey;
+  kind: 'flat' | 'percent';
+  value: number;      // flat: 绝对值；percent: 0.12 表示 +12%
+  label: string;      // 展示名，如「物攻」
+}
+
 export interface Equipment {
   id: string;
   name: string;
   slot: 'weapon' | 'armor' | 'trinket';
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  bonusDamage?: number;
-  bonusHp?: number;
-  bonusArmor?: number;
+  tier: number;       // 装等（跟随契约星级）
+  base: Partial<Record<CoreStatKey, number>>;
+  affixes: Affix[];
   affixText?: string;
+}
+
+/** 战斗时实际生效的最终属性（基础值 + 装备，不写回 hero） */
+export interface ResolvedStats {
+  maxHp: number;
+  ad: number;
+  ap: number;
+  armor: number;
+  magicResist: number;
+  attackInterval: number;
+  critChance: number;
+  critDamage: number;
+  penetration: number;
+  healingPower: number;
+  tenacity: number;
 }
 
 export interface Hero {

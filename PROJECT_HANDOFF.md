@@ -164,3 +164,30 @@
 - [x] 重申开发重点：**地下城探索 + 战斗循环打磨**（房间推进、事件抉择、战斗数值与反馈）。
 - [x] 验证：`npm run build` 0 报错；浏览器实测顶栏下直接进入 Tab 区，无「世界异动」横幅，控制台无报错。
 
+### Milestone 9: 战斗数值体系真实化与 PoE/LoL 混合装备系统重构 (已完成交付 ✅)
+- [x] **九项核心属性面板 (LoL 扁平化，`types/hero.ts` & `engine/statResolver.ts`)**:
+  - 定义 `CoreStatKey`: 物攻(ad)、法攻(ap)、物防(armor)、法防(magicResist)、攻速(attackSpeed)、暴击率(critChance)、暴击伤害(critDamage)、穿透(penetration)、生命上限(maxHp)、治疗强度(healingPower)、韧性(tenacity)。
+  - `statResolver.ts` 纯函数推导：`baseStats(hero)` 从 30 项底层基础属性推导 9 维基础值；`resolveStats(hero)` 叠加装备基础值与词条加成（绝对值 flat 与百分比 percent）。
+  - **绝不篡改英雄本体属性**：穿脱装备只替换引用，不累加污染英雄底层属性。
+  - 护甲减伤公式：`mitigation = effectiveDef / (effectiveDef + 80)`（上限 75%），有效防御 = `max(0, defense - penetration)`。
+- [x] **PoE 风格装备系统 (`types/hero.ts` & `engine/dungeonEngine.ts`)**:
+  - 装备结构：装等(tier) + 12 种装备基础模板 + 0~4 条词条（粗制 0、精良 1、稀有 2、史诗 3、传奇 4）。
+  - 部位专属词缀池：武器（物攻%/法攻%/攻速%/暴击/穿透）、防具（生命%/物防/法防/韧性）、饰品（暴伤/治疗/法攻/暴击/物攻）。
+- [x] **真实战斗引擎升级 (`engine/combatEngine.ts`)**:
+  - 战斗单位绑定 `ResolvedStats`。
+  - 伤害机制：物理/魔法判定、±8% 伤害浮动、护甲与抗性减伤、护甲穿透、暴击率与暴击伤害乘区。
+  - 治疗与大招全面接入实际战斗属性；大招与击杀触发对应战斗日志。
+- [x] **敌方队伍生成与星级数值梯度 (`engine/enemyFactory.ts`)**:
+  - 解决 1★ 4v5 必死问题：1★~4★ 普通房固定 3 名敌人；5★ 进阶 4 名敌人；Boss 专注于单体强化（2.05x HP）而非盲目加人数。
+  - 星级属性倍率与血量曲线集中于 `ENEMY_TUNING`，便于调优。
+- [x] **地牢节奏与战后包扎 (`engine/dungeonEngine.ts` & `App.tsx`)**:
+  - 5~7 房节奏；6 房及以上深度地牢配置 2 处营地，遏止损耗雪球。
+  - 战斗胜利：队伍全员获得 8% 生命上限包扎恢复；倒地英雄保留 15% 残命（附带「重伤」伤残与压力增加），不再原地暴毙。
+  - 溃退惩罚：保留 20% 生命、+30 压力、-15 士气，给玩家重整旗鼓的机会。
+  - 队伍公共背包系统：支持地牢战利品回收、名册界面点击槽位卸下装备、从背包一键穿戴。
+- [x] **自动化平衡测试框架与通关率验证 (`scripts/sim_balance.mjs`)**:
+  - 基于 Vite SSR 运行千次蒙特卡洛地牢推演。
+  - 实测通关率曲线达到预期：**1★ 78%（新手友好且终局 Boss 有压迫感）/ 2★ 90% / 3★ 80% / 4★ 80% / 5★ 28%（需要配装与精细操作的终局挑战）**。
+- [x] 验证：`npm run build`（tsc -b && vite build）0 报错。
+
+

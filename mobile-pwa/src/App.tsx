@@ -4,6 +4,8 @@ import { CombatEngine, type CombatUnit } from './engine/combatEngine';
 import { TownEngine } from './engine/townEngine';
 import { CrisisEngine } from './engine/crisisEngine';
 import { generateDungeonFromContract } from './engine/dungeonEngine';
+import { createEnemyParty } from './engine/enemyFactory';
+import { resolveStats, STAT_LABEL, describeBase } from './engine/statResolver';
 import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
 import { CrisisAlert } from './components/CrisisAlert';
@@ -40,6 +42,9 @@ export function App() {
   const [currentContract, setCurrentContract] = useState<GuildContract | null>(null);
   const [currentDungeon, setCurrentDungeon] = useState<DungeonInstance | null>(null);
   const [activeDungeonRoom, setActiveDungeonRoom] = useState<DungeonRoom | null>(null);
+  // 队伍公共背包（未装备的战利品）
+  const [inventory, setInventory] = useState<Equipment[]>([]);
+  const [inventoryTarget, setInventoryTarget] = useState<string>('');
 
   // 战斗状态机
   const [engine, setEngine] = useState<CombatEngine | null>(null);
@@ -113,18 +118,8 @@ export function App() {
     }
 
     const enemyClasses = room.enemyClasses || ['guardian', 'blademaster'];
-    const enemyLevel = room.enemyLevel || 1;
-
-    const enemies = enemyClasses.map(cId => {
-      const e = generateHero(cId, false);
-      return {
-        ...e,
-        name: room.isBoss ? `👑首领·${e.name}` : `敌·${e.name}`,
-        currentAbility: Math.round(e.currentAbility * (0.8 + enemyLevel * 0.2)),
-        maxHp: room.isBoss ? Math.round(e.maxHp * 1.5) : e.maxHp,
-        currentHp: room.isBoss ? Math.round(e.maxHp * 1.5) : e.maxHp,
-      };
-    });
+    const stars = room.enemyLevel || currentContract?.stars || 1;
+    const enemies = createEnemyParty(enemyClasses, stars, Boolean(room.isBoss));
 
     const eng = new CombatEngine(deploySquad, enemies);
     eng.units.forEach(u => {
@@ -203,31 +198,60 @@ export function App() {
         setSystemNotice(res.message);
       }
     }
+    // 未穿戴的战利品回收进背包
+    if (currentDungeon && currentDungeon.lootItems.length > 0) {
+      setInventory(prev => [...prev, ...currentDungeon.lootItems]);
+    }
     setCurrentDungeon(null);
     setCurrentContract(null);
     setActiveTab('town');
     triggerUpdate();
   };
 
-  // 装备穿戴
+  // 装备变更后同步显示用的生命上限（真实战斗值由 resolveStats 推导）
+  const syncHeroMaxHp = (hero: Hero) => {
+    const stats = resolveStats(hero);
+    const ratio = hero.maxHp > 0 ? hero.currentHp / hero.maxHp : 1;
+    hero.maxHp = stats.maxHp;
+    hero.currentHp = Math.max(1, Math.min(stats.maxHp, Math.round(stats.maxHp * ratio)));
+  };
+
+  // 装备穿戴（只替换引用，不写回基础属性）
   const handleEquipItem = (heroId: string, item: Equipment) => {
     const hero = roster.find(h => h.id === heroId);
     if (!hero) return;
+
+    const previous =
+      item.slot === 'weapon' ? hero.equipment.weapon
+      : item.slot === 'armor' ? hero.equipment.armor
+      : hero.equipment.trinket;
 
     if (item.slot === 'weapon') hero.equipment.weapon = item;
     else if (item.slot === 'armor') hero.equipment.armor = item;
     else hero.equipment.trinket = item;
 
-    // 属性加成
-    if (item.bonusHp) hero.maxHp += item.bonusHp;
-    if (item.bonusArmor) hero.attributes.armorUse += item.bonusArmor;
-    if (item.bonusDamage) hero.attributes.weaponSkill += Math.round(item.bonusDamage / 2);
+    syncHeroMaxHp(hero);
 
-    // 从战利品列表移出
+    // 卸下的旧装备回到背包
+    setInventory(prev => [...prev.filter(i => i.id !== item.id), ...(previous ? [previous] : [])]);
     if (currentDungeon) {
       currentDungeon.lootItems = currentDungeon.lootItems.filter(i => i.id !== item.id);
     }
-    setSystemNotice(`🛡️ ${hero.name} 穿戴了【${item.name}】！`);
+
+    const stats = resolveStats(hero);
+    setSystemNotice(`🛡️ ${hero.name} 穿戴【${item.name}】：物攻 ${stats.ad} / 物防 ${stats.armor} / 生命 ${stats.maxHp}`);
+    triggerUpdate();
+  };
+
+  // 卸下装备到背包
+  const handleUnequipItem = (heroId: string, slot: 'weapon' | 'armor' | 'trinket') => {
+    const hero = roster.find(h => h.id === heroId);
+    if (!hero || !hero.equipment[slot]) return;
+    const item = hero.equipment[slot]!;
+    hero.equipment[slot] = undefined;
+    syncHeroMaxHp(hero);
+    setInventory(prev => [...prev, item]);
+    setSystemNotice(`📦 ${hero.name} 卸下了【${item.name}】`);
     triggerUpdate();
   };
 
@@ -246,12 +270,24 @@ export function App() {
         const updatedRoster = [...roster];
         engine.units.filter(u => u.side === 'player').forEach(u => {
           const hero = updatedRoster.find(h => h.id === u.hero.id);
-          if (hero) {
-            hero.currentHp = Math.max(0, u.currentHp);
+          if (!hero) return;
+
+          if (engine.winner === 'player') {
             if (u.isDead) {
-              hero.injuries.push('战死创伤');
-              townEngine.recordFallenHero(hero);
+              // 胜利后倒地：保留残命，带回营地救治
+              hero.currentHp = Math.max(1, Math.round(u.maxHp * 0.15));
+              if (!hero.injuries.includes('重伤')) hero.injuries.push('重伤');
+              hero.stress = Math.min(100, hero.stress + 20);
+            } else {
+              // 战后包扎：恢复 8% 生命上限
+              const regen = Math.round(u.maxHp * 0.08);
+              hero.currentHp = Math.min(u.maxHp, u.currentHp + regen);
             }
+          } else {
+            // 溃退：全员保留 20% 生命，代价是压力与士气
+            hero.currentHp = Math.max(1, Math.round(u.maxHp * 0.2));
+            hero.stress = Math.min(100, hero.stress + 30);
+            hero.morale = Math.max(0, hero.morale - 15);
           }
         });
         setRoster(updatedRoster);
@@ -618,17 +654,28 @@ export function App() {
                   <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 'bold' }}>CA {hero.currentAbility} / PA {hero.potentialAbility}</span>
                 </div>
                 
-                {/* 装备栏 */}
+                {/* 装备栏（点击卸下） */}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '6px', fontSize: '10px' }}>
-                  <span style={{ background: '#0b1329', padding: '2px 6px', borderRadius: '4px', color: '#cbd5e1' }}>
-                    🗡️ {hero.equipment.weapon?.name || '无武器'}
-                  </span>
-                  <span style={{ background: '#0b1329', padding: '2px 6px', borderRadius: '4px', color: '#cbd5e1' }}>
-                    🛡️ {hero.equipment.armor?.name || '无防具'}
-                  </span>
-                  <span style={{ background: '#0b1329', padding: '2px 6px', borderRadius: '4px', color: '#cbd5e1' }}>
-                    💍 {hero.equipment.trinket?.name || '无饰品'}
-                  </span>
+                  {([
+                    ['weapon', '🗡️', hero.equipment.weapon],
+                    ['armor', '🛡️', hero.equipment.armor],
+                    ['trinket', '💍', hero.equipment.trinket],
+                  ] as const).map(([slot, icon, item]) => (
+                    <span
+                      key={slot}
+                      onClick={() => item && handleUnequipItem(hero.id, slot)}
+                      style={{
+                        background: '#0b1329',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        color: item ? '#cbd5e1' : '#475569',
+                        cursor: item ? 'pointer' : 'default',
+                      }}
+                      title={item ? `${describeBase(item)}${item.affixText ? ' | ' + item.affixText : ''}` : ''}
+                    >
+                      {icon} {item?.name || '无'}
+                    </span>
+                  ))}
                 </div>
 
                 {/* 状态与伤残 */}
@@ -641,7 +688,26 @@ export function App() {
                   </span>
                 </div>
 
-                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                {/* 九项核心属性面板 */}
+                {(() => {
+                  const st = resolveStats(hero);
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginTop: '8px', fontSize: '10px', color: '#cbd5e1', background: '#0b1329', padding: '8px', borderRadius: '6px' }}>
+                      <span>⚔️ {STAT_LABEL.ad} {st.ad}</span>
+                      <span>🔮 {STAT_LABEL.ap} {st.ap}</span>
+                      <span>❤️ {STAT_LABEL.maxHp} {st.maxHp}</span>
+                      <span>🛡️ {STAT_LABEL.armor} {st.armor}</span>
+                      <span>✨ {STAT_LABEL.magicResist} {st.magicResist}</span>
+                      <span>⚡ 攻速 {(1 / st.attackInterval).toFixed(2)}/s</span>
+                      <span>💢 {STAT_LABEL.critChance} {Math.round(st.critChance * 100)}%</span>
+                      <span>🔥 {STAT_LABEL.critDamage} {Math.round(st.critDamage * 100)}%</span>
+                      <span>🗡️ {STAT_LABEL.penetration} {st.penetration}</span>
+                    </div>
+                  );
+                })()}
+
+                {/* 原始属性（装备不写回这里） */}
+                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
                   力量 {hero.attributes.strength} | 武器 {hero.attributes.weaponSkill} | 坚毅 {hero.attributes.resolve} | 抗压 {hero.hidden.pressure}
                 </div>
 
@@ -657,9 +723,62 @@ export function App() {
                 </div>
               </div>
             ))}
+
+            {/* 公共背包 */}
+            <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#f59e0b' }}>
+                  🎒 队伍背包 ({inventory.length})
+                </span>
+                <select
+                  value={inventoryTarget || roster[0]?.id || ''}
+                  onChange={e => setInventoryTarget(e.target.value)}
+                  style={{ background: '#0f172a', color: '#38bdf8', border: '1px solid #475569', borderRadius: '4px', padding: '3px 6px', fontSize: '11px' }}
+                >
+                  {roster.map(h => (
+                    <option key={h.id} value={h.id}>穿戴至: {h.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {inventory.length === 0 ? (
+                <div style={{ fontSize: '11px', color: '#64748b' }}>背包空空如也，去地牢里翻箱倒柜吧。</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {inventory.map(item => {
+                    const rarityColor =
+                      item.rarity === 'legendary' ? '#f97316'
+                      : item.rarity === 'epic' ? '#a855f7'
+                      : item.rarity === 'rare' ? '#38bdf8'
+                      : item.rarity === 'uncommon' ? '#10b981'
+                      : '#cbd5e1';
+                    return (
+                      <div
+                        key={item.id}
+                        style={{ background: '#0f172a', padding: '6px 10px', borderRadius: '6px', borderLeft: `4px solid ${rarityColor}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 'bold', color: rarityColor }}>{item.name}</span>
+                          <span style={{ color: '#94a3b8', marginLeft: '6px' }}>[{item.slot}] T{item.tier}</span>
+                          <div style={{ color: '#94a3b8', fontSize: '10px' }}>
+                            {describeBase(item)}
+                            {item.affixText ? ` · ${item.affixText}` : ''}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleEquipItem(inventoryTarget || roster[0]?.id || '', item)}
+                          style={{ padding: '4px 8px', background: '#38bdf8', color: '#0f172a', borderRadius: '4px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                          装备
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
-
         {/* Tab 5: 暗黑叙事与 DSL 剧本系统 */}
         {activeTab === 'story' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
