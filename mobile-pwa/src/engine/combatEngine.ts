@@ -14,7 +14,7 @@ import type { CombatFxEvent } from '../types/combatVisual';
 export interface CombatUnit {
   hero: Hero;
   side: 'player' | 'enemy';
-  slotId?: GridSlotId;    // 所在 3x3 网格槽位
+  slotId: GridSlotId;     // 所在 3x3 网格槽位
   col: GridColumn;        // 前排 / 中排 / 后排
   threatMult: number;     // 仇恨倍率 (前排 4.5, 中排 1.2, 后排 0.55)
   stats: ResolvedStats;
@@ -39,6 +39,8 @@ export function mitigationRate(defense: number, penetration: number): number {
   return Math.min(0.75, effective / (effective + 80));
 }
 
+import { assignEnemyFormation } from '../types/enemyFormation';
+
 export class CombatEngine {
   units: CombatUnit[] = [];
   logs: CombatLog[] = [];
@@ -50,8 +52,11 @@ export class CombatEngine {
   constructor(
     playerParty: Hero[],
     enemyParty: Hero[],
-    playerSlotMap: Record<string, GridSlotId> = {}
+    playerSlotMap: Record<string, GridSlotId> = {},
+    enemySlotMap?: Record<string, GridSlotId>
   ) {
+    const finalEnemySlotMap = enemySlotMap || assignEnemyFormation(enemyParty);
+
     // 玩家方：根据阵型槽位设定列与修正
     const makePlayer = (h: Hero): CombatUnit => {
       const stats = resolveStats(h);
@@ -83,20 +88,18 @@ export class CombatEngine {
       };
     };
 
-    // 敌方：自然生成前后排布局
-    const makeEnemy = (h: Hero, idx: number, total: number): CombatUnit => {
+    // 敌方：基于 3x3 网格槽位生成真实站位
+    const makeEnemy = (h: Hero, idx: number): CombatUnit => {
       const stats = resolveStats(h);
-      let col: GridColumn = 'mid';
-      if (h.role === 'tank' || idx === 0) {
-        col = 'front';
-      } else if (h.role === 'healer' || h.classId === 'arcanist' || idx === total - 1) {
-        col = 'back';
-      }
+      const slotId = finalEnemySlotMap[h.id] || (idx === 0 ? 'front_center' : 'mid_center');
+      const slotMeta = GRID_SLOTS.find(s => s.id === slotId);
+      const col = slotMeta ? slotMeta.col : 'mid';
       const mod = getPositionCombatModifier(col);
 
       return {
         hero: h,
         side: 'enemy',
+        slotId,
         col,
         threatMult: mod.threatMultiplier,
         stats,
@@ -111,7 +114,7 @@ export class CombatEngine {
 
     this.units = [
       ...playerParty.map(h => makePlayer(h)),
-      ...enemyParty.map((h, idx) => makeEnemy(h, idx, enemyParty.length)),
+      ...enemyParty.map((h, idx) => makeEnemy(h, idx)),
     ];
   }
 

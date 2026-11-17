@@ -18,6 +18,7 @@ import { DungeonEventModal } from './components/DungeonEventModal';
 import { CampBarkBubble } from './components/CampBarkBubble';
 import { FormationModal } from './components/FormationModal';
 import { CombatStage } from './components/CombatStage';
+import type { Projectile } from './components/CombatProjectiles';
 import type { FloatingTextItem, UnitVisualState, UltCinematicEvent } from './types/combatVisual';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
 import { ENABLE_WORLD_CRISIS } from './config/features';
@@ -81,6 +82,7 @@ export function App() {
   // Milestone 13 战斗视觉动效状态
   const [floatingTexts, setFloatingTexts] = useState<FloatingTextItem[]>([]);
   const [visualStates, setVisualStates] = useState<Record<string, UnitVisualState>>({});
+  const [projectiles, setProjectiles] = useState<Projectile[]>([]);
   const [ultEvent, setUltEvent] = useState<UltCinematicEvent | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
 
@@ -175,14 +177,18 @@ export function App() {
         setFloatingTexts(prev => [...prev.slice(-12), textItem]);
       }
 
-      // 2. 角色打击与受击瞬态微动效
+      // 2. 角色打击与受击瞬态微动效 + 远程飞弹弹道
       if (fx.sourceId) {
+        const sourceUnit = eng.units.find(u => u.hero.id === fx.sourceId);
+        const targetUnit = fx.targetId ? eng.units.find(u => u.hero.id === fx.targetId) : null;
+        const isRanged = sourceUnit?.hero.classId === 'ranger' || sourceUnit?.hero.classId === 'arcanist' || sourceUnit?.hero.classId === 'cleric';
+
         setVisualStates(prev => ({
           ...prev,
           [fx.sourceId!]: {
             ...prev[fx.sourceId!],
             isAttacking: true,
-            attackMotion: 'lunge',
+            attackMotion: isRanged ? 'cast' : 'lunge',
             isHit: false,
             isCritHit: false,
             isHealing: false,
@@ -195,6 +201,56 @@ export function App() {
             [fx.sourceId!]: { ...prev[fx.sourceId!], isAttacking: false },
           }));
         }, 220);
+
+        // 如果是远程或治疗，产生飞弹弹道动画
+        if (isRanged && sourceUnit && targetUnit && sourceUnit.slotId && targetUnit.slotId) {
+          const pId = `${Date.now()}_proj_${Math.random().toString(36).slice(2, 6)}`;
+          const projType = fx.type === 'heal' ? 'holy' : sourceUnit.hero.classId === 'ranger' ? 'arrow' : 'magic';
+
+          // 估算起点与终点百分比位置 (以 3x3 网格比例估算)
+          const isPlayerSource = sourceUnit.side === 'player';
+          const sColIdx = sourceUnit.col === 'back' ? 0 : sourceUnit.col === 'mid' ? 1 : 2;
+          const sRowIdx = sourceUnit.slotId.endsWith('top') ? 0 : sourceUnit.slotId.endsWith('center') ? 1 : 2;
+
+          const tColIdx = targetUnit.col === 'front' ? 0 : targetUnit.col === 'mid' ? 1 : 2;
+          const tRowIdx = targetUnit.slotId.endsWith('top') ? 0 : targetUnit.slotId.endsWith('center') ? 1 : 2;
+
+          const startX = isPlayerSource ? 40 + sColIdx * 80 : 340 - sColIdx * 80;
+          const startY = 40 + sRowIdx * 84;
+          const targetX = targetUnit.side === 'enemy' ? 360 + tColIdx * 80 : 40 + (2 - tColIdx) * 80;
+          const targetY = 40 + tRowIdx * 84;
+
+          const newProj: Projectile = {
+            id: pId,
+            sourceSlotId: sourceUnit.slotId,
+            targetSlotId: targetUnit.slotId,
+            type: projType,
+            progress: 0,
+            startX,
+            startY,
+            targetX,
+            targetY,
+          };
+
+          setProjectiles(prev => [...prev, newProj]);
+
+          // 弹道动画步进 (250ms 完成飞行)
+          const startTime = performance.now();
+          const duration = 240;
+          const animFrame = () => {
+            const elapsed = performance.now() - startTime;
+            const progress = Math.min(1, elapsed / duration);
+            setProjectiles(prev =>
+              prev.map(p => (p.id === pId ? { ...p, progress } : p))
+            );
+            if (progress < 1) {
+              requestAnimationFrame(animFrame);
+            } else {
+              setProjectiles(prev => prev.filter(p => p.id !== pId));
+            }
+          };
+          requestAnimationFrame(animFrame);
+        }
       }
 
       if (fx.targetId) {
@@ -665,13 +721,14 @@ export function App() {
               </div>
             )}
 
-            {/* Milestone 13: 沉浸式战术战斗舞台 (可继承当前地牢 theme，含浮动跳字、打击微动效与大招演出) */}
+            {/* Milestone 13: 沉浸式战术战斗舞台 (双向 3x3 自走棋微缩战场，含棋子对撞、弹道与浮动跳字) */}
             <CombatStage
               theme={currentDungeon?.theme || 'catacomb'}
               playerUnits={playerUnits}
               enemyUnits={enemyUnits}
               visualStates={visualStates}
               floatingTexts={floatingTexts}
+              projectiles={projectiles}
               ultEvent={ultEvent}
               focusedTargetId={focusedTargetId}
               isAutoUlt={isAutoUlt}

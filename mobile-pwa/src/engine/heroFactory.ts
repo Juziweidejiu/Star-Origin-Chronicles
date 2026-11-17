@@ -1,6 +1,18 @@
 import type { ClassId, Hero, HeroAttributes, HiddenAttributes, Role } from '../types/hero';
 import { HERO_PROFILES } from '../data/characterNamePool';
 
+export const CLASS_ICONS: Record<ClassId, string> = {
+  guardian: '🛡️',
+  warden: '🪓',
+  paladin: '⚔️',
+  blademaster: '🗡️',
+  arcanist: '🔮',
+  ranger: '🏹',
+  cleric: '✨',
+  druid: '🌿',
+  bard: '🎵'
+};
+
 export const CLASS_CONFIG: Record<ClassId, { name: string; role: Role; hpMod: number; dmgMod: number; resourceType: string }> = {
   guardian:    { name: '护卫', role: 'tank',   hpMod: 1.70, dmgMod: 0.70, resourceType: '耐力' },
   warden:      { name: '守望者', role: 'tank', hpMod: 1.70, dmgMod: 0.85, resourceType: '怒气' },
