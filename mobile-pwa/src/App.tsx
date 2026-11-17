@@ -15,6 +15,7 @@ import { InkStoryRunner } from './components/InkStoryRunner';
 import { DungeonEventModal } from './components/DungeonEventModal';
 import { CampBarkBubble } from './components/CampBarkBubble';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
+import { ENABLE_WORLD_CRISIS } from './config/features';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town' | 'story'>('town');
@@ -189,13 +190,17 @@ export function App() {
   const handleFinishDungeon = (victory: boolean) => {
     if (victory && currentContract) {
       const res = townEngine.completeContract(currentContract, roster);
-      // 推进天灾时间
-      const crisisRes = crisisEngine.advanceDay();
-      if (currentContract.id.startsWith('crisis_')) {
-        const victoryMsg = crisisEngine.resolveCrisisVictory();
-        setSystemNotice(`${res.message} | ${victoryMsg}`);
+      if (ENABLE_WORLD_CRISIS) {
+        // 推进天灾时间
+        const crisisRes = crisisEngine.advanceDay();
+        if (currentContract.id.startsWith('crisis_')) {
+          const victoryMsg = crisisEngine.resolveCrisisVictory();
+          setSystemNotice(`${res.message} | ${victoryMsg}`);
+        } else {
+          setSystemNotice(res.message + (crisisRes.message ? ` | ${crisisRes.message}` : ''));
+        }
       } else {
-        setSystemNotice(res.message + (crisisRes.message ? ` | ${crisisRes.message}` : ''));
+        setSystemNotice(res.message);
       }
     }
     setCurrentDungeon(null);
@@ -363,11 +368,13 @@ export function App() {
       {/* 核心展示区 */}
       <main style={{ flex: 1, padding: '12px', overflowY: 'auto' }}>
         
-        {/* 天灾大事件告警栏 (Milestone 3) */}
-        <CrisisAlert
-          crisis={crisisEngine.crisis}
-          onAcceptCrisisBattle={handleAcceptCrisisBattle}
-        />
+        {/* 天灾大事件告警栏 (Milestone 3) — 通过 ENABLE_WORLD_CRISIS 开关控制 */}
+        {ENABLE_WORLD_CRISIS && (
+          <CrisisAlert
+            crisis={crisisEngine.crisis}
+            onAcceptCrisisBattle={handleAcceptCrisisBattle}
+          />
+        )}
 
         {/* 顶部五 Tab 切换 */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>

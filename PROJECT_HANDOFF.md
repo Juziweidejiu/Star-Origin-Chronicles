@@ -157,3 +157,10 @@
   - `npm run build`（tsc + vite）0 报错。
   - 浏览器实测：页头「第 1 天 · 霜月城」、异动栏「星原异动 · 极夜狂暴兽潮」、名册 2 男 2 女（团长·韩素问 / 洛破军 / 白苏 / 陆怀瑾）、公会契约与 Ink 剧本均为东方风。
 
+### Milestone 8: 聚焦地下城探索与战斗 — 世界天灾暂时下线 (已完成交付 ✅)
+- [x] 新增功能开关 `mobile-pwa/src/config/features.ts`，导出 `ENABLE_WORLD_CRISIS = false`。
+- [x] `App.tsx` 中 `<CrisisAlert />` 与 `crisisEngine.advanceDay()` / `resolveCrisisVictory()` 全部收进开关分支；关闭时不渲染异动横幅、不推进天灾计时，正常结算契约收益。
+- [x] `crisisEngine.ts` 与 `CrisisAlert.tsx` 代码完整保留，改为 `ENABLE_WORLD_CRISIS = true` 即可原样恢复。
+- [x] 重申开发重点：**地下城探索 + 战斗循环打磨**（房间推进、事件抉择、战斗数值与反馈）。
+- [x] 验证：`npm run build` 0 报错；浏览器实测顶栏下直接进入 Tab 区，无「世界异动」横幅，控制台无报错。
+
