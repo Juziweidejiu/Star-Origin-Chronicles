@@ -14,13 +14,13 @@ export const ENEMY_TUNING = {
   /** 各星级 Boss 房额外人数（保持 Boss 专注于精锐，不盲目堆人数） */
   bossExtraByStars: [0, 0, 0, 0, 0],
   /** 各星级属性倍率 (1★~5★) */
-  attrByStars: [1.0, 1.15, 1.25, 1.34, 1.38],
+  attrByStars: [0.98, 1.10, 1.20, 1.30, 1.36],
   /** 各星级生命倍率（作用在体力/力量上，由 resolveStats 推导 maxHp） */
-  hpByStars: [1.0, 1.20, 1.33, 1.45, 1.54],
+  hpByStars: [0.98, 1.14, 1.28, 1.40, 1.50],
   /** Boss 本体额外生命倍率 */
-  bossHpMult: 2.05,
+  bossHpMult: 1.95,
   /** Boss 本体额外属性倍率 */
-  bossAttrMult: 1.15,
+  bossAttrMult: 1.14,
 };
 
 function starIndex(stars: number) {

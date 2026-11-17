@@ -86,7 +86,14 @@ function makeContract(stars) {
 
 function runBattle(squad, room, stars) {
   const enemies = createEnemyParty(room.enemyClasses || ['guardian'], room.enemyLevel || stars, Boolean(room.isBoss));
-  const engine = new CombatEngine(squad, enemies);
+  // 模拟实战中玩家采用【盾墙】阵型布阵 (护卫前排、剑圣/游侠中排、医官后排)
+  const slotMap = {};
+  for (const h of squad) {
+    if (h.role === 'tank') slotMap[h.id] = 'front_center';
+    else if (h.role === 'healer') slotMap[h.id] = 'back_center';
+    else slotMap[h.id] = 'mid_center';
+  }
+  const engine = new CombatEngine(squad, enemies, slotMap);
   let elapsed = 0;
   while (!engine.isFinished && elapsed < 240) {
     engine.tick(0.05);

@@ -16,8 +16,11 @@ import type { DungeonEvent, ChoiceConsequence } from './types/narrative';
 import { InkStoryRunner } from './components/InkStoryRunner';
 import { DungeonEventModal } from './components/DungeonEventModal';
 import { CampBarkBubble } from './components/CampBarkBubble';
+import { FormationModal } from './components/FormationModal';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
 import { ENABLE_WORLD_CRISIS } from './config/features';
+import type { FormationPresetId, FormationSlotAssignment, GridSlotId } from './types/formation';
+import { FORMATION_PRESETS, applyPresetToParty } from './engine/formationEngine';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town' | 'story'>('town');
@@ -37,6 +40,22 @@ export function App() {
     generateHero('cleric', false, 'female'),     // 战地医官
     generateHero('ranger', false, 'male')        // 远程猎手
   ]);
+
+  // 阵型系统状态：当前预设 + 4 人槽位分配 + 阵型弹窗
+  const [currentFormationPreset, setCurrentFormationPreset] = useState<FormationPresetId>('shield_wall');
+  const [formationAssignments, setFormationAssignments] = useState<FormationSlotAssignment[]>(() => []);
+  const [showFormationModal, setShowFormationModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (roster.length > 0 && formationAssignments.length === 0) {
+      setFormationAssignments(applyPresetToParty('shield_wall', roster.slice(0, 4)));
+    }
+  }, [roster]);
+
+  const handleApplyFormationPreset = (presetId: FormationPresetId) => {
+    setCurrentFormationPreset(presetId);
+    setFormationAssignments(applyPresetToParty(presetId, roster.slice(0, 4)));
+  };
 
   // 当前进行中的任务契约与地牢探索实例
   const [currentContract, setCurrentContract] = useState<GuildContract | null>(null);
@@ -121,7 +140,12 @@ export function App() {
     const stars = room.enemyLevel || currentContract?.stars || 1;
     const enemies = createEnemyParty(enemyClasses, stars, Boolean(room.isBoss));
 
-    const eng = new CombatEngine(deploySquad, enemies);
+    const playerSlotMap: Record<string, GridSlotId> = {};
+    for (const a of formationAssignments) {
+      playerSlotMap[a.heroId] = a.slotId;
+    }
+
+    const eng = new CombatEngine(deploySquad, enemies, playerSlotMap);
     eng.units.forEach(u => {
       if (u.side === 'player') u.autoUlt = isAutoUlt;
     });
@@ -514,10 +538,20 @@ export function App() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
               {/* 我方先遣队 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold' }}>我方佣兵先遣队</div>
+                <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>我方先遣队 ({FORMATION_PRESETS[currentFormationPreset]?.name || '阵型'})</span>
+                  <button
+                    onClick={() => setShowFormationModal(true)}
+                    style={{ fontSize: '10px', padding: '2px 6px', background: '#334155', border: '1px solid #475569', borderRadius: '4px', color: '#fde047', cursor: 'pointer' }}
+                  >
+                    📐 调阵
+                  </button>
+                </div>
                 {playerUnits.map(unit => {
                   const hpPct = Math.round((unit.currentHp / unit.maxHp) * 100);
                   const canUlt = unit.resource >= 100 && !unit.isDead;
+                  const posBadge = unit.col === 'front' ? '前' : unit.col === 'mid' ? '中' : '后';
+                  const posColor = unit.col === 'front' ? '#f59e0b' : unit.col === 'mid' ? '#38bdf8' : '#10b981';
                   return (
                     <div 
                       key={unit.hero.id} 
@@ -533,7 +567,12 @@ export function App() {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
-                        <span>{unit.hero.isLeader ? '👑 ' : ''}{unit.hero.name.slice(0, 5)}</span>
+                        <span>
+                          <span style={{ fontSize: '9px', padding: '1px 3px', borderRadius: '2px', background: `${posColor}22`, color: posColor, border: `1px solid ${posColor}44`, marginRight: '4px' }}>
+                            {posBadge}
+                          </span>
+                          {unit.hero.isLeader ? '👑 ' : ''}{unit.hero.name.slice(0, 5)}
+                        </span>
                         <span style={{ color: '#38bdf8' }}>{heroRoleLabel(unit.hero)}</span>
                       </div>
                       <div style={{ background: '#334155', height: '6px', borderRadius: '3px', margin: '4px 0', overflow: 'hidden' }}>
@@ -638,9 +677,17 @@ export function App() {
         {/* Tab 4: 佣兵名册 */}
         {activeTab === 'roster' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
-              <span>现役成员 {roster.length}/8 人</span>
-              <span>每日口粮消耗: {roster.length} / 周薪总额: {roster.reduce((s, h) => s + h.wage, 0)} G</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', padding: '8px 12px', borderRadius: '8px', border: '1px solid #334155' }}>
+              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                <span style={{ color: '#f8fafc', fontWeight: 'bold' }}>现役名册 {roster.length}/8 人</span>
+                <span style={{ marginLeft: '8px', color: '#eab308' }}>当前阵型：【{FORMATION_PRESETS[currentFormationPreset]?.name}】</span>
+              </div>
+              <button
+                onClick={() => setShowFormationModal(true)}
+                style={{ padding: '4px 10px', background: '#d97706', border: 'none', borderRadius: '6px', color: '#0f172a', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer' }}
+              >
+                📐 调整 3×3 阵型
+              </button>
             </div>
             {roster.map(hero => (
               <div key={hero.id} style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
@@ -936,6 +983,21 @@ export function App() {
         )}
 
       </main>
+
+      {/* 阵型调整弹窗 */}
+      {showFormationModal && (
+        <FormationModal
+          party={roster.slice(0, 4)}
+          assignments={formationAssignments}
+          currentPreset={currentFormationPreset}
+          onApplyPreset={handleApplyFormationPreset}
+          onUpdateAssignments={(next) => {
+            setFormationAssignments(next);
+            setCurrentFormationPreset('custom');
+          }}
+          onClose={() => setShowFormationModal(false)}
+        />
+      )}
 
       {/* 独立互动检定事件模态框 */}
       {interactiveEvent && (
