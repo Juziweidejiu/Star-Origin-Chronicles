@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CrisisState } from '../engine/crisisEngine';
+import { TOWNS_CONFIG } from '../engine/townEngine';
 
 interface CrisisAlertProps {
   crisis: CrisisState;
@@ -26,7 +27,7 @@ export const CrisisAlert: React.FC<CrisisAlertProps> = ({ crisis, onAcceptCrisis
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ fontSize: '16px' }}>{isHighDanger ? '🚨' : '⚠️'}</span>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: isHighDanger ? '#fca5a5' : '#fcd34d' }}>
-            天灾大事件：{crisis.name}
+            世界异动：{crisis.name}
           </span>
         </div>
         <span
@@ -49,7 +50,7 @@ export const CrisisAlert: React.FC<CrisisAlertProps> = ({ crisis, onAcceptCrisis
 
       {crisis.fallenTowns.length > 0 && (
         <div style={{ fontSize: '10px', color: '#f87171', marginTop: '4px', fontWeight: 'bold' }}>
-          💀 陷落/围困前线：{crisis.fallenTowns.join('、')}
+          🛡️ 受袭前线：{crisis.fallenTowns.map(t => TOWNS_CONFIG[t]?.name ?? t).join('、')}
         </div>
       )}
 
@@ -67,7 +68,7 @@ export const CrisisAlert: React.FC<CrisisAlertProps> = ({ crisis, onAcceptCrisis
             cursor: 'pointer',
           }}
         >
-          ⚔️ 接取天灾特别阻击令
+          ⚔️ 接取兽潮特别阻击令
         </button>
       </div>
     </div>

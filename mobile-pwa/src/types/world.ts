@@ -6,7 +6,7 @@
 import type { Hero, ClassId } from './hero';
 
 // 据点 ID
-export type TownId = 'ash_stronghold' | 'pine_town' | 'wrath_port' | 'forgotten_abbey';
+export type TownId = 'frostmoon_keep' | 'breeze_bastion' | 'azure_wharf' | 'vermilion_corridor';
 
 // 好感度/声望级别
 export type ReputationLevel = 'hostile' | 'neutral' | 'friendly' | 'revered';
@@ -23,7 +23,7 @@ export interface TownNode {
   buildings: BuildingType[];
   reputation: number; // -100 ~ 100
   reputationLevel: ReputationLevel;
-  distanceFromCapital: number; // 距离灰烬堡垒的天数距离
+  distanceFromCapital: number; // 距离霜月城的天数距离
   supplyCostMod: number;       // 物价倍率 (如 0.9 = 9折)
   rewardMod: number;           // 任务赏金加成
 }
@@ -32,7 +32,7 @@ export interface TownNode {
 export type ContractDifficulty = 1 | 2 | 3 | 4 | 5;
 
 // 契约类型
-export type ContractType = 'bandit_camp' | 'beast_hunt' | 'ruins_cleansing' | 'caravan_escort' | 'undead_crypt';
+export type ContractType = 'bandit_camp' | 'beast_hunt' | 'ruins_cleansing' | 'caravan_escort' | 'goblin_mine';
 
 // 契约状态
 export type ContractStatus = 'available' | 'accepted' | 'completed' | 'failed';

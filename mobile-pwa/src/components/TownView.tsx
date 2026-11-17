@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { TownEngine } from '../engine/townEngine';
 import type { TownId, BuildingType, GuildContract, TavernRecruit } from '../types/world';
 import type { Hero } from '../types/hero';
+import { heroRoleLabel } from '../engine/heroFactory';
 
 interface TownViewProps {
   townEngine: TownEngine;
@@ -229,7 +230,7 @@ export const TownView: React.FC<TownViewProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#f8fafc' }}>{rec.hero.name}</span>
-                    <span style={{ fontSize: '11px', color: '#38bdf8', marginLeft: '6px' }}>Lv.{rec.hero.level} {rec.hero.role}</span>
+                    <span style={{ fontSize: '11px', color: '#38bdf8', marginLeft: '6px' }}>Lv.{rec.hero.level} {heroRoleLabel(rec.hero)}</span>
                   </div>
                   <span style={{ fontSize: '11px', color: '#eab308', fontWeight: 'bold' }}>
                     潜力: {rec.starRatingRange}
@@ -372,7 +373,7 @@ export const TownView: React.FC<TownViewProps> = ({
       {activeBuilding === 'sanctuary' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-            远古英灵祭坛 (消耗金币与稀有魂晶，召回阵亡勇士之魂魄)
+            星原引魂坛 (消耗金币与稀有魂晶，引渡阵亡勇士之英魂)
           </div>
 
           <div style={{ background: 'rgba(168, 85, 247, 0.1)', border: '1px dashed #a855f7', padding: '10px', borderRadius: '8px', fontSize: '11px', color: '#d8b4fe' }}>
@@ -381,7 +382,7 @@ export const TownView: React.FC<TownViewProps> = ({
 
           {townEngine.fallenSouls.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
-              英灵名册空空如也，佣兵团至今尚无兄弟长眠。
+              英灵名册空空如也，佣兵团至今尚无同伴长眠。
             </div>
           ) : (
             townEngine.fallenSouls.map((soul, idx) => (
@@ -389,7 +390,7 @@ export const TownView: React.FC<TownViewProps> = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#f87171' }}>✝️ {soul.hero.name}</span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>Lv.{soul.hero.level} {soul.hero.role}</span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>Lv.{soul.hero.level} {heroRoleLabel(soul.hero)}</span>
                   </div>
                   <span style={{ fontSize: '11px', color: '#a855f7', fontWeight: 'bold' }}>
                     需要: {soul.revivalSoulCrystals} 魂晶 + {soul.revivalCostGold} G

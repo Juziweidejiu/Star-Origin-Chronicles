@@ -44,7 +44,7 @@ export interface DungeonRoom {
 export interface DungeonInstance {
   id: string;
   name: string;
-  theme: 'catacomb' | 'ruins' | 'forest' | 'crypt' | 'citadel';
+  theme: 'catacomb' | 'ruins' | 'forest' | 'crypt' | 'citadel' | 'wilds';
   stars: number;
   totalRooms: number;
   currentRoomIndex: number;

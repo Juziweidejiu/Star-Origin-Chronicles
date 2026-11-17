@@ -6,6 +6,7 @@ import { executeCampRest } from '../engine/dungeonEngine';
 import { CampBarkBubble } from './CampBarkBubble';
 import { DungeonEventModal } from './DungeonEventModal';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from '../data/mockNarratives';
+import { CLASS_CONFIG } from '../engine/heroFactory';
 
 interface DungeonViewProps {
   dungeon: DungeonInstance;
@@ -148,7 +149,7 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
         {currentRoom.type === 'battle' && (
           <div>
             <div style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '10px' }}>
-              敌对前锋编制: {currentRoom.enemyClasses?.join(', ')} (Lv.{currentRoom.enemyLevel})
+              敌对前锋编制: {currentRoom.enemyClasses?.map(c => CLASS_CONFIG[c]?.name ?? c).join('、')} (Lv.{currentRoom.enemyLevel})
             </div>
             <button
               onClick={() => onEnterBattle(currentRoom)}

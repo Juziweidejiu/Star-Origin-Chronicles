@@ -17,37 +17,37 @@ import type {
 } from '../types/world';
 import { generateHero } from './heroFactory';
 
-// 四大核心据点初始配置
+// 四大核心据点初始配置 (东亚/星原战纪设定，繁华且富有探索感)
 export const TOWNS_CONFIG: Record<TownId, Omit<TownNode, 'reputation' | 'reputationLevel' | 'supplyCostMod' | 'rewardMod'>> = {
-  ash_stronghold: {
-    id: 'ash_stronghold',
-    name: '灰烬堡垒',
-    subtitle: '钢铁与火炮之都 · 帝国中央卫戍',
-    description: '佣兵公会总部与最高统帅部所在地，军械充足，骑士与雇佣重装步兵聚集。',
+  frostmoon_keep: {
+    id: 'frostmoon_keep',
+    name: '霜月城',
+    subtitle: '雪峰温泉之都 · 北境商盟中枢',
+    description: '极北雪峰与地底温泉交汇处的繁华石构城邦，炉火常温，商旅云集，公会总舵与精锐冒险者驻扎地。',
     buildings: ['tavern', 'guild', 'market', 'infirmary', 'sanctuary'],
     distanceFromCapital: 0
   },
-  pine_town: {
-    id: 'pine_town',
-    name: '松木镇',
-    subtitle: '边陲林场 · 伐木工与猎人之乡',
-    description: '靠近迷雾森林与暗影山脉，盛产优质硬木与强弓手，物产丰盛但常遭野兽袭击。',
+  breeze_bastion: {
+    id: 'breeze_bastion',
+    name: '听风关',
+    subtitle: '峡谷咽喉 · 游侠与行商集散地',
+    description: '扼守崇山峻岭要道的大型关隘，盛产良弓与飞刀，茶肆酒坊热闹非凡，常有外围异动情报。',
     buildings: ['tavern', 'guild', 'market', 'infirmary'],
     distanceFromCapital: 1
   },
-  wrath_port: {
-    id: 'wrath_port',
-    name: '怒水港',
-    subtitle: '风暴商埠 · 远洋私掠与黑市',
-    description: '帝国最大的自由贸易港，各路亡命之徒、水手与异邦学者在此落脚，金币流动频繁。',
+  azure_wharf: {
+    id: 'azure_wharf',
+    name: '碧落行坞',
+    subtitle: '水上行坞 · 云舟与奇珍港口',
+    description: '依傍碧落大湖而建的宏伟水寨行坞，机巧工坊林立，四海奇珍与机关火器在此汇聚交易。',
     buildings: ['tavern', 'guild', 'market'],
     distanceFromCapital: 2
   },
-  forgotten_abbey: {
-    id: 'forgotten_abbey',
-    name: '遗忘修道院',
-    subtitle: '古圣所圣地 · 灵魂引渡之所',
-    description: '建立在远古神迹遗址之上的宁静圣所，圣职者能在此感知已故英灵的灵魂回响。',
+  vermilion_corridor: {
+    id: 'vermilion_corridor',
+    name: '朱雀回廊',
+    subtitle: '红枫幽径 · 灵脉圣所与古祭台',
+    description: '红枫漫山的幽静官道驿站，坐落着古朴温润的星原引魂圣所，能调理气脉并引渡阵亡英灵。',
     buildings: ['sanctuary', 'infirmary', 'tavern'],
     distanceFromCapital: 2
   }
@@ -70,41 +70,41 @@ export function calculateReputationDetails(score: number): {
   }
 }
 
-// 契约模板配置
+// 契约模板配置 (丰富生态：矿洞哥布林、荒原兽群、前朝关隘、商队押运、山林盗匪)
 const CONTRACT_TITLES: Record<ContractType, { titles: string[]; desc: string; baseEnemy: ClassId[] }> = {
   bandit_camp: {
-    titles: ['围剿黑火盗贼团营寨', '清缴林地伏击哨点', '捕杀逃亡雇佣兵叛党'],
-    desc: '一群残忍的劫掠者封锁了商道，公会悬赏佣兵将其头目与喽啰尽数斩杀。',
+    titles: ['清剿黑煞寨沿途哨卡', '拔除断龙崖流寇盘踞点', '追缉截道巨寇残党'],
+    desc: '一群残忍的凶悍劫匪封锁了商道咽喉，公会悬赏佣兵将其头目与喽啰尽数肃清。',
     baseEnemy: ['warden', 'blademaster', 'ranger', 'druid']
   },
   beast_hunt: {
-    titles: ['狂暴凶狼群驱逐', '暗影林地潜伏巨兽', '深沼毒蜥清扫'],
-    desc: '嗜血的凶兽频繁侵扰外围农场与牧民，请深入荒野彻底斩草除根。',
+    titles: ['霜爪雪猿窟领地驱逐', '暗夜赤焰狼群围堵', '深沼毒鳞巨蜥清扫'],
+    desc: '野性凶兽频繁侵扰官道与近郊农庄，请深入荒原险境斩除兽群首领。',
     baseEnemy: ['guardian', 'blademaster', 'ranger', 'druid']
   },
-  undead_crypt: {
-    titles: ['古墓穴死者暴动', '夜幕骸骨卫士清算', '荒芜墓地尸巫拔除'],
-    desc: '黑魔法从古代墓穴深处蔓延，死者重新从棺木爬起，需要勇士带队净化。',
-    baseEnemy: ['warden', 'arcanist', 'blademaster', 'cleric']
+  goblin_mine: {
+    titles: ['赤耳哥布林矿洞扫荡', '夺回被侵占的铜铁矿坑', '拆毁哥布林地底陷阱阵'],
+    desc: '狡诈凶暴的赤耳哥布林占据了富矿坑道，遍设暗箭毒刺，急需实战小队深入清剿。',
+    baseEnemy: ['warden', 'arcanist', 'blademaster', 'ranger']
   },
   caravan_escort: {
-    titles: ['贵族珍宝车队保卫', '跨国香料商队护送', '军备军火押送巡礼'],
-    desc: '穿越险恶边境的大型车队需要经验老道的佣兵充当前哨防卫，击溃沿途匪徒。',
+    titles: ['北境雪莲珍药商队护送', '碧落奇珍机巧货船保卫', '霜月城军备物资押送'],
+    desc: '穿越险峻峡谷的商贾车队需要经验老道的高手随行护卫，击退沿途袭扰。',
     baseEnemy: ['guardian', 'blademaster', 'ranger', 'arcanist']
   },
   ruins_cleansing: {
-    titles: ['堕落法师残垣净化', '上古石塔遗迹清扫', '迷失神殿妖异肃清'],
-    desc: '废墟中残留着失控的元素与失落的魔法构造体，公会要求肃清所有威胁。',
+    titles: ['前朝沉陷关隘妖异拔除', '探明古烽燧妖兽巢穴', '肃清荒山旧校场暴走傀儡'],
+    desc: '三十年前边塞战役废弃的沉陷工事中盘踞着危险生物，公会悬赏探明虚实并彻底肃清。',
     baseEnemy: ['arcanist', 'paladin', 'blademaster', 'bard']
   }
 };
 
 const RECRUIT_STORIES = [
-  '退役帝国边防重步兵，曾参加过铁崖阻击战，渴望在佣兵团重拾荣誉与黄金。',
-  '被神庙逐出的异端修士，虽然言行狂傲，但手中的治愈与战锤技艺毫无争议。',
-  '来自深林幽谷的游侠流浪者，善于匿踪刺探，射术精湛，只需口粮与银币。',
-  '破产落魄贵族次子，怀揣祖传短剑与不羁骄傲，渴望建立属于自己的佣兵功勋。',
-  '流浪角斗场冠军，历经数十次生死死斗幸存，浑身刀疤是其最可靠的护甲。'
+  '霜月边关退役的直剑士，剑招沉稳如松，渴望在精锐佣兵团一展胸中韬略。',
+  '红枫驿走出的游方医者，行囊常备银针与甘草，近身短打拳脚亦不容小觑。',
+  '崇山幽谷出身的矫捷猎手，百步穿杨，深谙山野追踪与机关暗道。',
+  '碧落工坞的机关热衷者，怀揣自制短铳与飞爪，立志游历天下名城。',
+  '游历江湖的刀客，豪爽仗义，在多次硬仗中战功卓著，视伙伴为手足。'
 ];
 
 export class TownEngine {
@@ -117,23 +117,23 @@ export class TownEngine {
   constructor() {
     // 初始化据点及声望
     this.towns = {
-      ash_stronghold: {
-        ...TOWNS_CONFIG.ash_stronghold,
+      frostmoon_keep: {
+        ...TOWNS_CONFIG.frostmoon_keep,
         reputation: 25,
         ...calculateReputationDetails(25)
       },
-      pine_town: {
-        ...TOWNS_CONFIG.pine_town,
+      breeze_bastion: {
+        ...TOWNS_CONFIG.breeze_bastion,
         reputation: 10,
         ...calculateReputationDetails(10)
       },
-      wrath_port: {
-        ...TOWNS_CONFIG.wrath_port,
+      azure_wharf: {
+        ...TOWNS_CONFIG.azure_wharf,
         reputation: 0,
         ...calculateReputationDetails(0)
       },
-      forgotten_abbey: {
-        ...TOWNS_CONFIG.forgotten_abbey,
+      vermilion_corridor: {
+        ...TOWNS_CONFIG.vermilion_corridor,
         reputation: 5,
         ...calculateReputationDetails(5)
       }
@@ -142,7 +142,7 @@ export class TownEngine {
     // 初始后勤数据
     this.logistics = {
       day: 1,
-      currentTownId: 'ash_stronghold',
+      currentTownId: 'frostmoon_keep',
       gold: 1200,
       rations: 35,
       soulCrystals: 2,
@@ -152,17 +152,17 @@ export class TownEngine {
     };
 
     this.contracts = {
-      ash_stronghold: [],
-      pine_town: [],
-      wrath_port: [],
-      forgotten_abbey: []
+      frostmoon_keep: [],
+      breeze_bastion: [],
+      azure_wharf: [],
+      vermilion_corridor: []
     };
 
     this.tavernRecruits = {
-      ash_stronghold: [],
-      pine_town: [],
-      wrath_port: [],
-      forgotten_abbey: []
+      frostmoon_keep: [],
+      breeze_bastion: [],
+      azure_wharf: [],
+      vermilion_corridor: []
     };
 
     this.fallenSouls = [];
@@ -185,7 +185,7 @@ export class TownEngine {
   refreshContractsForTown(townId: TownId): void {
     const town = this.towns[townId];
     const contractTypes: ContractType[] = [
-      'bandit_camp', 'beast_hunt', 'undead_crypt', 'caravan_escort', 'ruins_cleansing'
+      'bandit_camp', 'beast_hunt', 'goblin_mine', 'caravan_escort', 'ruins_cleansing'
     ];
 
     const newContracts: GuildContract[] = [];
@@ -362,7 +362,7 @@ export class TownEngine {
   reviveSoul(fallenIndex: number, roster: Hero[]): { success: boolean; message: string; revivedHero?: Hero } {
     const town = this.towns[this.logistics.currentTownId];
     if (!town.buildings.includes('sanctuary')) {
-      return { success: false, message: '只有在配有圣所的据点（如灰烬堡垒、遗忘修道院）才能进行灵魂引渡仪式！' };
+      return { success: false, message: '只有在配有圣所的据点（如霜月城、朱雀回廊）才能进行灵魂引渡仪式！' };
     }
 
     const soul = this.fallenSouls[fallenIndex];
@@ -393,7 +393,7 @@ export class TownEngine {
 
     return { 
       success: true, 
-      message: `圣光降临！【${revived.name}】的英魂破界归来，重获新生！`,
+      message: `星辉引渡！【${revived.name}】的英魂循脉归位，重获新生！`,
       revivedHero: revived
     };
   }

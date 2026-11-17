@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { generateHero } from './engine/heroFactory';
+import { generateHero, heroRoleLabel } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
 import { TownEngine } from './engine/townEngine';
 import { CrisisEngine } from './engine/crisisEngine';
@@ -27,12 +27,12 @@ export function App() {
   const [townEngine] = useState<TownEngine>(() => new TownEngine());
   const [crisisEngine] = useState<CrisisEngine>(() => new CrisisEngine());
 
-  // 佣兵团名册 (主角 + 3名初始战友)
+  // 佣兵团名册 (主角 + 3名初始战友) — 男女比例 2:2，全员实力均衡
   const [roster, setRoster] = useState<Hero[]>(() => [
-    generateHero('blademaster', true), // 主角团长
-    generateHero('guardian', false),   // 坦克
-    generateHero('cleric', false),     // 牧师
-    generateHero('ranger', false)      // 射手
+    generateHero('blademaster', true, 'female'), // 主角团长
+    generateHero('guardian', false, 'male'),     // 重装前锋
+    generateHero('cleric', false, 'female'),     // 战地医官
+    generateHero('ranger', false, 'male')        // 远程猎手
   ]);
 
   // 当前进行中的任务契约与地牢探索实例
@@ -118,7 +118,7 @@ export function App() {
       const e = generateHero(cId, false);
       return {
         ...e,
-        name: room.isBoss ? `👑首领·${e.name.split(' ')[0]}` : `敌·${e.name.split(' ')[0]}`,
+        name: room.isBoss ? `👑首领·${e.name}` : `敌·${e.name}`,
         currentAbility: Math.round(e.currentAbility * (0.8 + enemyLevel * 0.2)),
         maxHp: room.isBoss ? Math.round(e.maxHp * 1.5) : e.maxHp,
         currentHp: room.isBoss ? Math.round(e.maxHp * 1.5) : e.maxHp,
@@ -146,7 +146,7 @@ export function App() {
     const isSuccess = (vanguard?.attributes.agility || 10) >= 12;
 
     if (isSuccess) {
-      setSystemNotice(`🛠️ ${vanguard.name} 身手矫健，成功解除古代陷阱机关！`);
+      setSystemNotice(`🛠️ ${vanguard.name} 身手矫健，成功解除暗器机关！`);
     } else {
       vanguard.currentHp = Math.max(1, vanguard.currentHp - trapDmg);
       vanguard.stress = Math.min(100, vanguard.stress + 15);
@@ -491,7 +491,7 @@ export function App() {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
                         <span>{unit.hero.isLeader ? '👑 ' : ''}{unit.hero.name.slice(0, 5)}</span>
-                        <span style={{ color: '#38bdf8' }}>{unit.hero.role}</span>
+                        <span style={{ color: '#38bdf8' }}>{heroRoleLabel(unit.hero)}</span>
                       </div>
                       <div style={{ background: '#334155', height: '6px', borderRadius: '3px', margin: '4px 0', overflow: 'hidden' }}>
                         <div style={{ background: hpPct > 30 ? '#10b981' : '#ef4444', height: '100%', width: `${hpPct}%`, transition: 'width 0.2s' }} />
@@ -518,7 +518,7 @@ export function App() {
                     <div key={unit.hero.id} style={{ background: '#1e293b', padding: '8px', borderRadius: '8px', border: '1px solid #334155', opacity: unit.isDead ? 0.35 : 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold' }}>
                         <span>{unit.hero.name.slice(0, 5)}</span>
-                        <span style={{ color: '#ef4444' }}>{unit.hero.role}</span>
+                        <span style={{ color: '#ef4444' }}>{heroRoleLabel(unit.hero)}</span>
                       </div>
                       <div style={{ background: '#334155', height: '6px', borderRadius: '3px', margin: '4px 0', overflow: 'hidden' }}>
                         <div style={{ background: '#ef4444', height: '100%', width: `${hpPct}%`, transition: 'width 0.2s' }} />
@@ -606,7 +606,7 @@ export function App() {
                     <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#f8fafc' }}>
                       {hero.isLeader ? '👑 ' : ''}{hero.name}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#38bdf8', marginLeft: '6px' }}>Lv.{hero.level} {hero.role}</span>
+                    <span style={{ fontSize: '11px', color: '#38bdf8', marginLeft: '6px' }}>Lv.{hero.level} {heroRoleLabel(hero)}</span>
                   </div>
                   <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 'bold' }}>CA {hero.currentAbility} / PA {hero.potentialAbility}</span>
                 </div>
@@ -695,7 +695,7 @@ export function App() {
                       h.stress = Math.min(100, Math.max(0, h.stress + stressDelta));
                     });
                   }
-                  setSystemNotice(message || '物语分支推进完成，影响已作用至军团！');
+                  setSystemNotice(message || '物语分支推进完成，影响已作用至佣兵团！');
                   triggerUpdate();
                 }}
               />
@@ -778,7 +778,7 @@ export function App() {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
                         <span style={{ fontWeight: 'bold', color: '#f8fafc' }}>
-                          {hero.name} ({hero.role})
+                          {hero.name} ({heroRoleLabel(hero)})
                         </span>
                         <span style={{ fontSize: '11px', color: hero.stress > 60 ? '#f87171' : '#38bdf8' }}>
                           压力: {hero.stress}/100

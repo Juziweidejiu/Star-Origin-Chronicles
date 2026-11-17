@@ -78,6 +78,7 @@ export interface Hero {
   id: string;
   name: string;
   title?: string;
+  gender: 'male' | 'female';
   isLeader?: boolean;
   race: string;
   classId: ClassId;

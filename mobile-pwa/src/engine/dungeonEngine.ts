@@ -163,7 +163,7 @@ export function generateDungeonFromContract(contract: GuildContract): DungeonIns
       rooms.push({
         index: i,
         type: 'trap',
-        title: '古代机关陷阱',
+        title: '山道暗器埋伏',
         description: '地面遍布落石与毒刺机关，考验前锋的敏捷与战术直觉！',
         status: 'hidden',
         cleared: false,
@@ -199,7 +199,7 @@ export function generateDungeonFromContract(contract: GuildContract): DungeonIns
   rooms.push({
     index: roomCount - 1,
     type: 'boss',
-    title: `深渊王座 · 最终首领`,
+    title: `幽谷险隘 · 最终首领`,
     description: `契约的核心目标！首领统率精锐部队在此踞守。击破即可完成委托！`,
     status: 'hidden',
     cleared: false,
@@ -211,7 +211,7 @@ export function generateDungeonFromContract(contract: GuildContract): DungeonIns
   return {
     id: `dungeon_${Date.now()}`,
     name: contract.title,
-    theme: contract.type === 'undead_crypt' ? 'crypt' : contract.type === 'ruins_cleansing' ? 'ruins' : 'catacomb',
+    theme: contract.type === 'goblin_mine' ? 'catacomb' : contract.type === 'ruins_cleansing' ? 'ruins' : 'wilds',
     stars: contract.stars,
     totalRooms: rooms.length,
     currentRoomIndex: 0,
