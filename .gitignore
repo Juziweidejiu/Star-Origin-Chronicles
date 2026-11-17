@@ -19,3 +19,9 @@ test_*.js
 Thumbs.db
 .vscode/
 .idea/
+
+# Local Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+

@@ -1,86 +1,76 @@
 {
-  "generatedAt": "2026-11-17T02:08:44.544Z",
+  "generatedAt": "2026-11-17T02:32:32.718Z",
   "stats": {
     "totalGenerated": 2,
     "passed": 2
   },
   "events": [
     {
-      "id": "synth_event_1794881324543_1",
-      "title": "被遗弃的溃兵木桩",
-      "theme": "forest",
-      "category": "dilemma",
-      "hook": "林间小径旁立着三根削尖的原木，上面绑着风干的领主军溃兵皮甲。一具残缺的布袋还吊在枝头，底下滴落着浑浊的雨水。",
+      "id": "ev_llm_1",
+      "title": "墓穴失主",
+      "theme": "crypt",
+      "category": "curio",
+      "hook": "掘开的泥土散发着尸蜡与雨水的腥气。一具披着破烂锁子甲的骸骨半陷在泥潭里，枯瘦的手指紧紧抠着一只黄铜密闭罐。罐口没有上锁，但边缘沾满了暗绿色的铜锈与不明粘液，空气中漂浮着刺鼻的酸臭味。",
       "choices": [
         {
-          "id": "c_1_1",
-          "label": "割断绳索取下布袋",
-          "flavor": "溃兵往往藏匿着劫掠来的贵重细软。",
-          "successRate": 0.8,
+          "id": "c_1",
+          "label": "伸手强行抠出黄铜罐",
+          "flavor": "冒险从死人怀里抢夺财物，小心腐蚀性的尸水。",
+          "successRate": 0.65,
           "successConsequence": {
-            "stressChange": -5,
-            "moraleChange": 5,
-            "goldChange": 85,
-            "resultNarrative": "袋里除了一双磨平的旧军靴，还有两只金耳坠与三枚受潮火石。"
+            "stressChange": 10,
+            "goldChange": 120,
+            "resultNarrative": "你用匕首撬开枯骨的手指，扯下沉甸甸的黄铜罐。里面的银币粘满油脂，散发着一股令人作呕的陈腐恶臭。"
           },
           "failureConsequence": {
-            "stressChange": 12,
-            "moraleChange": -5,
-            "resultNarrative": "绳索扯断了腐烂的蜂巢，蛰咬使得探路哨兵满面红肿。"
+            "stressChange": 20,
+            "hpPercentChange": -15,
+            "resultNarrative": "罐子底部突然破裂，刺鼻的剧毒尸水溅在手背上，皮肉瞬间溃烂发黑，剧烈的痛楚直钻脑髓。"
           }
         },
         {
-          "id": "c_1_2",
-          "label": "拔起木桩劈作营火柴木",
-          "flavor": "行军需要干燥的柴薪，死人的晦气不必理会。",
+          "id": "c_2",
+          "label": "用长矛拨开骸骨走过",
+          "flavor": "死人的东西留给死人，别为几枚脏钱折损人手。",
           "successRate": 1,
           "successConsequence": {
-            "stressChange": 5,
-            "moraleChange": 5,
-            "rationChange": 1,
-            "resultNarrative": "硬木被砍成适手的柴块，今晚的营火有了着落。"
+            "stressChange": -5,
+            "resultNarrative": "你没有理会那具骸骨，绕过泥潭继续前行。保存体力比什么都重要，阴沟里不差这一罐财宝。"
           }
         }
       ]
     },
     {
-      "id": "synth_event_1794881324543_2",
-      "title": "封死的地窖铁门",
+      "id": "ev_llm_2",
+      "title": "废弃营灶",
       "theme": "ruins",
       "category": "curio",
-      "hook": "塌陷的石阶尽头横着一扇灌了铅的铸铁门，门栓上插着半柄断裂的宽刃剑。缝隙里渗出潮湿的酒糟气与发馊的油脂味。",
+      "hook": "墙角堆着半人高的湿柴，上面散落着几块生锈的铁质炊具。这里曾有人生火取暖，但黑色的灰烬里露出一截烧焦的断肢。一口黑铁锅架在冷掉的灶台边，里面正咕嘟咕嘟冒着灰白的泡沫，不知煮着什么.",
       "choices": [
         {
-          "id": "c_2_1",
-          "label": "合力砸开锁扣",
-          "flavor": "可能会破坏里面的藏品，并发出巨响。",
-          "successRate": 0.75,
+          "id": "c_1",
+          "label": "捞出锅底发霉干粮",
+          "flavor": "虽然泡在污水里，但勉强还能填饱空空如也的肚子。",
+          "successRate": 0.7,
           "successConsequence": {
-            "stressChange": 5,
-            "moraleChange": 10,
-            "goldChange": 120,
-            "resultNarrative": "铁闩崩裂。几坛尚未挥发的麦酒和一小袋行商银币滚落出来。"
+            "stressChange": -10,
+            "goldChange": 45,
+            "resultNarrative": "你从浑浊的汤水里捞出一块硬得像石头的黑麦面包，刮掉表面的霉斑后，总算压住了胃里的翻江倒海。"
           },
           "failureConsequence": {
             "stressChange": 15,
-            "moraleChange": -5,
-            "hpPercentChange": -5,
-            "resultNarrative": "飞溅的铁屑划破了手背，刺耳的撞击声引来了远处的徘徊者。"
+            "hpPercentChange": -10,
+            "resultNarrative": "这根本不是食物，滚烫的污水引发了剧烈腹泻，肠子绞痛得让你几乎直不起腰来。"
           }
         },
         {
-          "id": "c_2_2",
-          "label": "在门缝塞入细油绳探路",
-          "flavor": "观察内部是否有可燃毒气或盘踞毒虫。",
-          "requirement": {
-            "attribute": "anticipation",
-            "minAttrValue": 12
-          },
-          "successRate": 0.9,
+          "id": "c_2",
+          "label": "踢翻铁锅清理营地",
+          "flavor": "晦气的东西必须砸碎，免得引来更多死人或野兽。",
+          "successRate": 1,
           "successConsequence": {
-            "stressChange": -5,
-            "moraleChange": 5,
-            "resultNarrative": "油绳没有变色，地窖里没有毒瘴，佣兵们松了一口气。"
+            "stressChange": 0,
+            "resultNarrative": "你一脚踢翻黑铁锅，污水渗入泥土。火堆旁没有留下任何有价值的东西，只有满地散落的焦黑木炭。"
           }
         }
       ]
@@ -88,22 +78,16 @@
   ],
   "dialogues": [
     {
-      "id": "camp_gen_1794881324543_1",
+      "id": "camp_llm_2",
       "personality": "weary",
       "condition": "idle",
-      "text": "把潮湿的裹脚布烤干。生冻疮比被箭射中还折磨人。"
+      "text": "把这柄豁口的短剑再磨薄一寸，它就只能当餐刀用了。真希望今晚别遇上披甲的活死人。"
     },
     {
-      "id": "camp_gen_1794881324543_2",
-      "personality": "cynical",
-      "condition": "high_stress",
-      "text": "老爷们坐在城堡里数金币，我们在烂泥里替他捞祖坟。"
-    },
-    {
-      "id": "camp_gen_1794881324543_3",
-      "personality": "stoic",
-      "condition": "injured",
-      "text": "肋骨没断，还能挥剑。把绷带再勒紧一圈。"
+      "id": "camp_llm_3",
+      "personality": "weary",
+      "condition": "idle",
+      "text": "干粮袋里只剩半块发硬的黑面包，还沾着同伴的血。凑合嚼吧，明天还得靠它卖命。"
     }
   ]
 }

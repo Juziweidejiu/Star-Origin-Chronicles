@@ -18,6 +18,30 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 自动加载根目录 .env 与 .env.local（若存在）
+function loadEnv() {
+  const projectRoot = path.resolve(__dirname, '..');
+  for (const file of ['.env', '.env.local']) {
+    const fullPath = path.join(projectRoot, file);
+    if (fs.existsSync(fullPath)) {
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      }
+    }
+  }
+}
+loadEnv();
+
 // 违禁词库：网文常见词、过度血腥夸张词、日漫轻小说感叹词
 const PURPLE_PROSE_BLACKLIST = [
   '瞳孔骤缩', '瞳孔微缩', '倒吸一口凉气', '嘴角泛起冷笑', '嘴角勾起一抹',
@@ -105,6 +129,7 @@ function validateEvent(event) {
  */
 async function callLlmApi(prompt, apiKey, baseUrl) {
   const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+  const modelName = process.env.LLM_MODEL || (baseUrl.includes('8317') ? 'gemini-3-flash' : 'gpt-4o-mini');
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -112,7 +137,7 @@ async function callLlmApi(prompt, apiKey, baseUrl) {
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: process.env.LLM_MODEL || 'gpt-4o-mini',
+      model: modelName,
       messages: [
         { role: 'system', content: NARRATIVE_DESIGNER_SYSTEM_PROMPT },
         { role: 'user', content: prompt }
@@ -128,8 +153,13 @@ async function callLlmApi(prompt, apiKey, baseUrl) {
   }
 
   const json = await response.json();
-  const content = json.choices[0].message.content;
-  return JSON.parse(content);
+  const rawContent = json.choices?.[0]?.message?.content || '{}';
+  const cleanJson = rawContent
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+  return JSON.parse(cleanJson);
 }
 
 /**
@@ -263,7 +293,55 @@ async function main() {
 
   if (apiKey) {
     console.log(`📡 检测到 API 密钥，开始通过远程 LLM (${baseUrl}) 批量生成...`);
-    const prompt = `生成 2 个地下城奇遇事件（JSON 数组格式在 "events" 字段下）和 3 条营地台词（在 "dialogues" 字段下）。严格遵循叙事白描与UI字数规则。`;
+    const prompt = `请生成 2 个地下城奇遇事件和 3 条营地台词。严格遵循冷峻克制白描军规与UI字数硬约束。
+必须严格输出满足以下格式的 JSON 对象：
+{
+  "events": [
+    {
+      "id": "ev_llm_1",
+      "title": "标题(6-10字)",
+      "theme": "crypt",
+      "category": "curio",
+      "hook": "80-130字冷硬现场白描",
+      "choices": [
+        {
+          "id": "c_1",
+          "label": "动词开头(6-12字)",
+          "flavor": "15-28字选项代价考量",
+          "successRate": 0.75,
+          "successConsequence": {
+            "stressChange": 5,
+            "goldChange": 100,
+            "resultNarrative": "40-75字成功结算描述"
+          },
+          "failureConsequence": {
+            "stressChange": 15,
+            "hpPercentChange": -10,
+            "resultNarrative": "40-75字失败结算描述"
+          }
+        },
+        {
+          "id": "c_2",
+          "label": "保守抉择(6-12字)",
+          "flavor": "15-28字稳妥观察考量",
+          "successRate": 1.0,
+          "successConsequence": {
+            "stressChange": -5,
+            "resultNarrative": "40-75字稳妥结算描述"
+          }
+        }
+      ]
+    }
+  ],
+  "dialogues": [
+    {
+      "id": "camp_llm_1",
+      "personality": "weary",
+      "condition": "idle",
+      "text": "极简短佣兵台词(必须控制在15~30字之间，严禁超长，如鞋袜、干粮、生锈铁剑、伤口发炎)"
+    }
+  ]
+}`;
     try {
       const result = await callLlmApi(prompt, apiKey, baseUrl);
       if (result.events) generatedEvents = result.events;
