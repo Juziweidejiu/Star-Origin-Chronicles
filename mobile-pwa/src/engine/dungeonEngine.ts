@@ -242,11 +242,21 @@ export function generateDungeonFromContract(contract: GuildContract): DungeonIns
     const mainRoom = createSingleRoom(i, primaryType, contract);
     const altRoom = createSingleRoom(i, alternateType, contract);
 
-    // 将前一个房间的二选一出口指向下一层的两个候选房间
-    rooms[i - 1].branchOptions = [
-      { ...mainRoom },
-      { ...altRoom, title: `分岔·${altRoom.title}` },
-    ];
+    // 并非每一关都是岔路：仅在关键节点（例如中间层或特定探索层）出现岔路分支（约 35%~40% 概率）
+    // 其余绝大多数为单一路线直行推进，避免玩家产生无意义的频繁抉择疲劳
+    const shouldBranch = i > 1 && i !== campIndex && (i % 2 === 1 || Math.random() < 0.35);
+
+    if (shouldBranch) {
+      rooms[i - 1].branchOptions = [
+        { ...mainRoom },
+        { ...altRoom, title: `分岔·${altRoom.title}` },
+      ];
+    } else {
+      // 单一路线直行
+      rooms[i - 1].branchOptions = [
+        { ...mainRoom },
+      ];
+    }
 
     rooms.push(mainRoom);
   }

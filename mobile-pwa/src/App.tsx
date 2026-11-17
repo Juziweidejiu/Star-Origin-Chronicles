@@ -809,46 +809,69 @@ export function App() {
               isScreenShaking={isScreenShaking}
               onSelectTarget={handleSelectFocusedTarget}
               onTriggerUlt={handleManualUlt}
-            />
-
-            {/* 战役结果通知 */}
-            {engine?.isFinished && (
-              <div style={{ 
-                padding: '12px', 
-                borderRadius: '8px', 
-                background: engine.winner === 'player' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', 
-                border: engine.winner === 'player' ? '1px solid #10b981' : '1px solid #ef4444',
-                marginBottom: '10px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontWeight: 'bold', fontSize: '14px', color: engine.winner === 'player' ? '#34d399' : '#f87171' }}>
-                  {engine.winner === 'player' ? '🎉 房间肃清！斩杀所有强敌！' : '💀 战役惨败，先遣队溃退！'}
+              resultOverlay={engine?.isFinished ? (
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: engine.winner === 'player' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(30, 15, 20, 0.95)',
+                  border: engine.winner === 'player' ? '2px solid #10b981' : '2px solid #ef4444',
+                  boxShadow: engine.winner === 'player' ? '0 10px 25px -5px rgba(16, 185, 129, 0.4)' : '0 10px 25px -5px rgba(239, 68, 68, 0.4)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '15px', color: engine.winner === 'player' ? '#34d399' : '#f87171', marginBottom: '6px' }}>
+                    {engine.winner === 'player' ? '🎉 房间肃清！斩杀所有强敌！' : '💀 战役惨败，先遣队溃退！'}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>
+                    {engine.winner === 'player' ? '战术阵地已清除，可整队推进至下一节点。' : '全队士气动荡，需紧急撤回城邦修整治疗。'}
+                  </div>
+                  {engine.winner === 'player' ? (
+                    <button
+                      onClick={() => {
+                        if (activeDungeonRoom?.isBoss) {
+                          advanceDungeonRoom();
+                        } else {
+                          handleReturnToDungeonAfterBattle();
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        background: '#38bdf8',
+                        color: '#0f172a',
+                        fontWeight: 'bold',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        boxShadow: '0 4px 12px rgba(56, 189, 248, 0.35)'
+                      }}
+                    >
+                      {activeDungeonRoom?.isBoss ? '夺得最终胜利 · 离开地牢 🏆' : '返回探险沙盘 · 推进路线 🧭'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        handleFinishDungeon(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontWeight: 'bold',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)'
+                      }}
+                    >
+                      撤回城邦医馆 🏥
+                    </button>
+                  )}
                 </div>
-                {engine.winner === 'player' ? (
-                  <button
-                    onClick={() => {
-                      if (activeDungeonRoom?.isBoss) {
-                        advanceDungeonRoom();
-                      } else {
-                        handleReturnToDungeonAfterBattle();
-                      }
-                    }}
-                    style={{ marginTop: '8px', padding: '6px 16px', background: '#38bdf8', color: '#0f172a', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
-                  >
-                    {activeDungeonRoom?.isBoss ? '夺得最终胜利 · 离开地牢 🏆' : '返回探险沙盘 · 选择前进路线 🧭'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      handleFinishDungeon(false);
-                    }}
-                    style={{ marginTop: '8px', padding: '6px 16px', background: '#ef4444', color: '#fff', fontWeight: 'bold', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
-                  >
-                    撤回城邦医馆 🏥
-                  </button>
-                )}
-              </div>
-            )}
+              ) : null}
+            />
 
             {/* 战斗快捷控制台：暂停/继续 + 1x/2x 倍速 + 自动/手动大招 */}
             <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>

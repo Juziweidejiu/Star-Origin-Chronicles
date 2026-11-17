@@ -396,65 +396,71 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
           </div>
         )}
 
-        {/* 6. 当前房间已通关时：二选一选路推进 (方式 A) */}
+        {/* 6. 当前房间已通关时：路线推进 (间歇性岔路 / 单向直行深入) */}
         {currentRoom.cleared && dungeon.currentRoomIndex < dungeon.totalRooms - 1 && (
           <div style={{ marginTop: '16px', borderTop: '1px dashed #475569', paddingTop: '12px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f59e0b', marginBottom: '8px' }}>
-              🧭 前方出现两条通路，请选择行进方向：
-            </div>
             {currentRoom.branchOptions && currentRoom.branchOptions.length >= 2 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {currentRoom.branchOptions.map((opt, bIdx) => (
-                  <button
-                    key={bIdx}
-                    onClick={() => {
-                      if (onSelectBranchRoom) onSelectBranchRoom(opt);
-                    }}
-                    style={{
-                      padding: '10px',
-                      background: '#0f172a',
-                      border: '1px solid #f59e0b',
-                      borderRadius: '6px',
-                      color: '#fff',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#fbbf24' }}>
-                      {bIdx === 0 ? '👈 左侧干道' : '👉 右侧隘口'}
-                    </div>
-                    <div style={{ fontSize: '11px', marginTop: '4px', color: '#e2e8f0' }}>
-                      {opt.title}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
-                      {opt.type === 'battle' && '⚔️ 哨探拦截'}
-                      {opt.type === 'event' && '❓ 秘境奇遇'}
-                      {opt.type === 'trap' && '🪤 暗器机关'}
-                      {opt.type === 'chest' && '📦 储物宝箱'}
-                      {opt.type === 'camp' && '🏕️ 避风宿营'}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#f59e0b', marginBottom: '8px' }}>
+                  🧭 前方出现两条通路，请选择行进方向：
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {currentRoom.branchOptions.map((opt, bIdx) => (
+                    <button
+                      key={bIdx}
+                      onClick={() => {
+                        if (onSelectBranchRoom) onSelectBranchRoom(opt);
+                      }}
+                      style={{
+                        padding: '10px',
+                        background: '#0f172a',
+                        border: '1px solid #f59e0b',
+                        borderRadius: '6px',
+                        color: '#fff',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#fbbf24' }}>
+                        {bIdx === 0 ? '👈 左侧干道' : '👉 右侧隘口'}
+                      </div>
+                      <div style={{ fontSize: '11px', marginTop: '4px', color: '#e2e8f0' }}>
+                        {opt.title}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                        {opt.type === 'battle' && '⚔️ 哨探拦截'}
+                        {opt.type === 'event' && '❓ 秘境奇遇'}
+                        {opt.type === 'trap' && '🪤 暗器机关'}
+                        {opt.type === 'chest' && '📦 储物宝箱'}
+                        {opt.type === 'camp' && '🏕️ 避风宿营'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
             ) : (
               <button
                 onClick={() => {
                   if (onSelectBranchRoom) {
-                    onSelectBranchRoom(dungeon.rooms[dungeon.currentRoomIndex + 1]);
+                    onSelectBranchRoom(
+                      (currentRoom.branchOptions && currentRoom.branchOptions[0]) ||
+                      dungeon.rooms[dungeon.currentRoomIndex + 1]
+                    );
                   }
                 }}
                 style={{
                   width: '100%',
                   padding: '10px',
-                  background: '#3b82f6',
+                  background: '#0284c7',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '6px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
+                  fontSize: '13px'
                 }}
               >
-                ⏩ 深入下一区域
+                ⏩ 路径明晰 · 深入下一区域
               </button>
             )}
           </div>

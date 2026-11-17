@@ -24,6 +24,7 @@ interface CombatStageProps {
   onSelectTarget: (unit: CombatUnit) => void;
   onTriggerUlt: (unit: CombatUnit) => void;
   onSwapPlayerSlot?: (heroIdA: string, heroIdB: string) => void;
+  resultOverlay?: React.ReactNode;
 }
 
 // 棋盘格行定义：上 (top) / 中 (center) / 下 (bottom)
@@ -41,7 +42,8 @@ export const CombatStage: React.FC<CombatStageProps> = ({
   isAutoUlt,
   isScreenShaking = false,
   onSelectTarget,
-  onTriggerUlt
+  onTriggerUlt,
+  resultOverlay
 }) => {
   const currentTheme = useMemo(() => STAGE_THEMES[theme] || STAGE_THEMES.catacomb, [theme]);
 
@@ -169,6 +171,31 @@ export const CombatStage: React.FC<CombatStageProps> = ({
 
       {/* 4. 终极大招黑幕与特写 */}
       {ultEvent && <UltCinematicOverlay event={ultEvent} />}
+
+      {/* 战役结束中央结算卡片 (居中浮层悬浮于战场棋盘正中央) */}
+      {resultOverlay && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(5, 10, 20, 0.72)',
+            backdropFilter: 'blur(3px)',
+            padding: '16px',
+            animation: 'fadeIn 0.25s ease-out'
+          }}
+        >
+          <div style={{ width: '100%', maxWidth: '320px' }}>
+            {resultOverlay}
+          </div>
+        </div>
+      )}
 
       {/* 5. 战场头部信息栏：红方据守阵 */}
       <div
