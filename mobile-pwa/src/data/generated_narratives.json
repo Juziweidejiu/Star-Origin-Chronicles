@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T02:32:32.718Z",
+  "generatedAt": "2026-11-17T02:41:36.433Z",
   "stats": {
     "totalGenerated": 2,
     "passed": 2
@@ -7,70 +7,70 @@
   "events": [
     {
       "id": "ev_llm_1",
-      "title": "墓穴失主",
+      "title": "坍塌石槽中的残甲",
       "theme": "crypt",
       "category": "curio",
-      "hook": "掘开的泥土散发着尸蜡与雨水的腥气。一具披着破烂锁子甲的骸骨半陷在泥潭里，枯瘦的手指紧紧抠着一只黄铜密闭罐。罐口没有上锁，但边缘沾满了暗绿色的铜锈与不明粘液，空气中漂浮着刺鼻的酸臭味。",
+      "hook": "一匹战马摔烂在积水泥洼里，肋骨刺破烂肉支在外面。死骑兵被压在鞍桥下，锁子甲缝隙结满灰绿色霉斑。马鞍侧面的皮囊还扎着粗麻绳，底下的水面浮着一层混浊的黄褐色油脂，散发着酸腐味。",
       "choices": [
         {
           "id": "c_1",
-          "label": "伸手强行抠出黄铜罐",
-          "flavor": "冒险从死人怀里抢夺财物，小心腐蚀性的尸水。",
-          "successRate": 0.65,
+          "label": "割断皮带拖出鞍囊",
+          "flavor": "霉烂的马皮湿滑难抓，稍有不慎就会被断骨刺伤手掌。",
+          "successRate": 0.7,
           "successConsequence": {
-            "stressChange": 10,
-            "goldChange": 120,
-            "resultNarrative": "你用匕首撬开枯骨的手指，扯下沉甸甸的黄铜罐。里面的银币粘满油脂，散发着一股令人作呕的陈腐恶臭。"
+            "stressChange": 5,
+            "goldChange": 110,
+            "resultNarrative": "粗麻绳被匕首挑断。鞍囊里除了生锈的马蹄钉，还有半袋浸湿的银第纳尔，以及几块尚未完全发霉的硬盐。"
           },
           "failureConsequence": {
-            "stressChange": 20,
-            "hpPercentChange": -15,
-            "resultNarrative": "罐子底部突然破裂，刺鼻的剧毒尸水溅在手背上，皮肉瞬间溃烂发黑，剧烈的痛楚直钻脑髓。"
+            "stressChange": 15,
+            "hpPercentChange": -10,
+            "resultNarrative": "烂肉在发力时崩裂，一截断裂的马肋骨扎透了牛皮手套。腥臭的黑水渗进伤口，带来刺骨的剧痛。"
           }
         },
         {
           "id": "c_2",
-          "label": "用长矛拨开骸骨走过",
-          "flavor": "死人的东西留给死人，别为几枚脏钱折损人手。",
+          "label": "绕过积水继续前行",
+          "flavor": "烂肉里的尸毒不值得冒险，冷泥只会泡烂靴子。",
           "successRate": 1,
           "successConsequence": {
             "stressChange": -5,
-            "resultNarrative": "你没有理会那具骸骨，绕过泥潭继续前行。保存体力比什么都重要，阴沟里不差这一罐财宝。"
+            "resultNarrative": "队伍贴着干硬的石壁走过。火把映出脚下散落的碎骨，没人停下脚步，寒冷稍稍退去了一些。"
           }
         }
       ]
     },
     {
       "id": "ev_llm_2",
-      "title": "废弃营灶",
-      "theme": "ruins",
-      "category": "curio",
-      "hook": "墙角堆着半人高的湿柴，上面散落着几块生锈的铁质炊具。这里曾有人生火取暖，但黑色的灰烬里露出一截烧焦的断肢。一口黑铁锅架在冷掉的灶台边，里面正咕嘟咕嘟冒着灰白的泡沫，不知煮着什么.",
+      "title": "渗油的黑铁行刑柱",
+      "theme": "crypt",
+      "category": "hazard",
+      "hook": "石梁上垂下一根挂肉铁钩，吊着具风干的半截躯干。胸甲被重锤砸瘪，凹坑里结着厚厚的硬血痂。死者的腰带上挂着一把带鞘的短火铳，下方地面插着两根淬火的截指铁签，锈迹斑斑。",
       "choices": [
         {
-          "id": "c_1",
-          "label": "捞出锅底发霉干粮",
-          "flavor": "虽然泡在污水里，但勉强还能填饱空空如也的肚子。",
-          "successRate": 0.7,
+          "id": "c_3",
+          "label": "用长矛挑落那柄火铳",
+          "flavor": "铁钩已经严重锈蚀，震动可能引落上方松动的碎石。",
+          "successRate": 0.65,
           "successConsequence": {
-            "stressChange": -10,
-            "goldChange": 45,
-            "resultNarrative": "你从浑浊的汤水里捞出一块硬得像石头的黑麦面包，刮掉表面的霉斑后，总算压住了胃里的翻江倒海。"
+            "stressChange": 8,
+            "goldChange": 140,
+            "resultNarrative": "枪套随皮带断裂坠落。火药早已受潮结块，但击铁和黄铜构件完好无损，在黑市能换笔好价钱。"
           },
           "failureConsequence": {
-            "stressChange": 15,
-            "hpPercentChange": -10,
-            "resultNarrative": "这根本不是食物，滚烫的污水引发了剧烈腹泻，肠子绞痛得让你几乎直不起腰来。"
+            "stressChange": 20,
+            "hpPercentChange": -15,
+            "resultNarrative": "铁钩崩断砸下，连带顶部的尖锐落石砸中前排佣兵的肩胛，重甲甲片被生生砸变形，碎石割裂了皮肉。"
           }
         },
         {
-          "id": "c_2",
-          "label": "踢翻铁锅清理营地",
-          "flavor": "晦气的东西必须砸碎，免得引来更多死人或野兽。",
+          "id": "c_4",
+          "label": "砍断绳索让残骸坠落",
+          "flavor": "迅速处理悬挂物，避免金属碰撞发出异响引来麻烦。",
           "successRate": 1,
           "successConsequence": {
-            "stressChange": 0,
-            "resultNarrative": "你一脚踢翻黑铁锅，污水渗入泥土。火堆旁没有留下任何有价值的东西，只有满地散落的焦黑木炭。"
+            "stressChange": -5,
+            "resultNarrative": "腐烂的躯干沉闷地摔在泥地里，扬起一阵呛鼻的石灰粉尘。四周重新归于死寂，警戒没有引来异动。"
           }
         }
       ]
@@ -78,16 +78,22 @@
   ],
   "dialogues": [
     {
-      "id": "camp_llm_2",
+      "id": "camp_llm_1",
       "personality": "weary",
       "condition": "idle",
-      "text": "把这柄豁口的短剑再磨薄一寸，它就只能当餐刀用了。真希望今晚别遇上披甲的活死人。"
+      "text": "靴底磨穿了，踩在冷泥里像有碎骨头一直扎进脚心。"
+    },
+    {
+      "id": "camp_llm_2",
+      "personality": "cynical",
+      "condition": "eating",
+      "text": "硬麦饼里全是砂子和木屑，嚼得牙床生疼，但总比啃死人强。"
     },
     {
       "id": "camp_llm_3",
-      "personality": "weary",
-      "condition": "idle",
-      "text": "干粮袋里只剩半块发硬的黑面包，还沾着同伴的血。凑合嚼吧，明天还得靠它卖命。"
+      "personality": "pragmatic",
+      "condition": "repairing",
+      "text": "这柄剑刃卷了三个缺口，再砍两次骨头，铁片就得彻底崩断。"
     }
   ]
 }

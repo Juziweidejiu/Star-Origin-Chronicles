@@ -129,7 +129,7 @@ function validateEvent(event) {
  */
 async function callLlmApi(prompt, apiKey, baseUrl) {
   const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
-  const modelName = process.env.LLM_MODEL || (baseUrl.includes('8317') ? 'gemini-3-flash' : 'gpt-4o-mini');
+  const modelName = process.env.LLM_MODEL || (baseUrl.includes('8317') ? 'gemini-3.8-flash-tiered' : 'gpt-4o-mini');
   const response = await fetch(url, {
     method: 'POST',
     headers: {
