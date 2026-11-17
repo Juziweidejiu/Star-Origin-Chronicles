@@ -750,6 +750,7 @@ export function App() {
           <TownView 
             townEngine={townEngine}
             roster={roster}
+            deployedHeroIds={deployedHeroIds}
             onRosterChange={setRoster}
             onSelectContract={handleSelectContract}
             onLogMessage={msg => setSystemNotice(msg)}

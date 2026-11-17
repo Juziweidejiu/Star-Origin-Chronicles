@@ -3,10 +3,13 @@ import type { TownEngine } from '../engine/townEngine';
 import type { TownId, BuildingType, GuildContract, TavernRecruit } from '../types/world';
 import type { Hero } from '../types/hero';
 import { heroRoleLabel } from '../engine/heroFactory';
+import { estimateContractOdds } from '../engine/guildEngine';
+import { starsToRank } from '../types/guild';
 
 interface TownViewProps {
   townEngine: TownEngine;
   roster: Hero[];
+  deployedHeroIds: string[];
   onRosterChange: (newRoster: Hero[]) => void;
   onSelectContract: (contract: GuildContract) => void;
   onLogMessage: (msg: string) => void;
@@ -16,6 +19,7 @@ interface TownViewProps {
 export const TownView: React.FC<TownViewProps> = ({
   townEngine,
   roster,
+  deployedHeroIds,
   onRosterChange,
   onSelectContract,
   onLogMessage,
@@ -25,6 +29,8 @@ export const TownView: React.FC<TownViewProps> = ({
   const currentTown = townEngine.towns[currentTownId];
   const [activeBuilding, setActiveBuilding] = useState<BuildingType>('guild');
   const [isTravelModalOpen, setIsTravelModalOpen] = useState(false);
+
+  const deployedSquad = roster.filter(h => deployedHeroIds.includes(h.id));
 
   // 切换据点旅行
   const handleTravel = (targetTownId: TownId) => {
@@ -87,6 +93,19 @@ export const TownView: React.FC<TownViewProps> = ({
   const repBadge = getReputationBadge(currentTown.reputation);
   const contracts = townEngine.contracts[currentTownId] || [];
   const recruits = townEngine.tavernRecruits[currentTownId] || [];
+
+  // 50G 打探刷新契约
+  const handleScoutRefresh = () => {
+    const cost = 50;
+    if (townEngine.logistics.gold < cost) {
+      onLogMessage(`⚠️ 金币不足！打探情报需要 ${cost}G，当前仅有 ${townEngine.logistics.gold}G`);
+      return;
+    }
+    townEngine.logistics.gold -= cost;
+    townEngine.refreshContractsForTown(currentTownId);
+    onLogMessage(`🔍 花费 ${cost}G 打探情报，公会榜单已刷新！`);
+    triggerUpdate();
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -153,64 +172,166 @@ export const TownView: React.FC<TownViewProps> = ({
       {/* 建筑 1: 冒险公会 (委托契约) */}
       {activeBuilding === 'guild' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
-            <span>在榜悬赏契约 (完成提升城邦声望)</span>
-            <span style={{ color: '#38bdf8' }}>赏金加成: +{Math.round((currentTown.rewardMod - 1) * 100)}%</span>
+          <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>📋 在榜悬赏契约 (完成提升城邦声望)</span>
+            <button
+              onClick={handleScoutRefresh}
+              disabled={townEngine.logistics.gold < 50}
+              style={{
+                padding: '4px 10px',
+                background: townEngine.logistics.gold >= 50 ? '#eab308' : '#475569',
+                color: '#0f172a',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                cursor: townEngine.logistics.gold >= 50 ? 'pointer' : 'not-allowed'
+              }}
+            >
+              🔍 打探刷新 (50G)
+            </button>
+          </div>
+          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '-4px' }}>
+            赏金加成: +{Math.round((currentTown.rewardMod - 1) * 100)}% | 当前出战队伍: {deployedSquad.length}/4 人
           </div>
 
           {contracts.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>当前暂无可用悬赏，下周公会将发布新任务。</div>
           ) : (
-            contracts.map(contract => (
-              <div 
-                key={contract.id} 
-                style={{ 
-                  background: '#1e293b', 
-                  padding: '12px', 
-                  borderRadius: '8px', 
-                  border: '1px solid #334155',
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '6px' 
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#f8fafc' }}>
-                    {'★'.repeat(contract.stars)}{'☆'.repeat(5 - contract.stars)} {contract.title}
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#eab308', fontWeight: 'bold' }}>
-                    💰 {contract.goldReward} G
-                  </span>
-                </div>
+            contracts.map(contract => {
+              const rank = starsToRank(contract.stars);
+              const odds = deployedSquad.length >= 2 ? estimateContractOdds(deployedSquad, contract) : null;
+              
+              // 等级印章样式
+              const rankStyles: Record<string, { bg: string; border: string; color: string }> = {
+                S: { bg: '#7c3aed22', border: '#7c3aed', color: '#a78bfa' },
+                A: { bg: '#dc262622', border: '#dc2626', color: '#f87171' },
+                B: { bg: '#ea580c22', border: '#ea580c', color: '#fb923c' },
+                C: { bg: '#eab30822', border: '#eab308', color: '#fde047' },
+                D: { bg: '#10b98122', border: '#10b981', color: '#6ee7b7' },
+              };
+              const rankStyle = rankStyles[rank] || rankStyles.D;
 
-                <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
-                  {contract.description}
-                </div>
+              return (
+                <div 
+                  key={contract.id} 
+                  style={{ 
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    border: '1px solid #334155',
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px',
+                    position: 'relative'
+                  }}
+                >
+                  {/* 顶部：等级印章 + 标题 + 赏金 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                      {/* S-D 等级印章 */}
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        background: rankStyle.bg,
+                        border: `2px solid ${rankStyle.border}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        color: rankStyle.color,
+                        flexShrink: 0
+                      }}>
+                        {rank}
+                      </div>
+                      
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>{'★'.repeat(contract.stars)}{'☆'.repeat(5 - contract.stars)}</span>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contract.title}</span>
+                        </div>
+                        {contract.targetMonster && (
+                          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                            讨伐目标: {contract.targetMonster}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', fontSize: '10px', color: '#64748b' }}>
-                  <div>
-                    <span>耗时: {contract.durationDays} 天</span> | 
-                    <span style={{ color: '#34d399', marginLeft: '4px' }}>声望 +{contract.reputationReward}</span>
-                    {contract.soulCrystalReward ? <span style={{ color: '#c084fc', marginLeft: '4px' }}>| 魂晶 +{contract.soulCrystalReward}</span> : null}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
+                      <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 'bold' }}>
+                        💰 {contract.goldReward}G
+                      </span>
+                      {contract.specialLootDesc && (
+                        <span style={{ fontSize: '9px', color: '#c084fc' }}>
+                          {contract.specialLootDesc}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => onSelectContract(contract)}
-                    style={{
-                      padding: '4px 12px',
-                      background: '#10b981',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      fontSize: '11px'
-                    }}
-                  >
-                    接取并讨伐 ⚔️
-                  </button>
+
+                  {/* 描述文案 */}
+                  <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.4', paddingLeft: '40px' }}>
+                    {contract.description}
+                  </div>
+
+                  {/* 胜率评估与战术建议 */}
+                  {odds && (
+                    <div style={{
+                      marginLeft: '40px',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      background: '#0f172a',
+                      border: `1px solid ${odds.dangerColor}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 'bold' }}>
+                          预估胜率: {odds.winRate}%
+                        </span>
+                        <span style={{ fontSize: '10px', color: odds.dangerColor, fontWeight: 'bold' }}>
+                          {odds.dangerLabel}
+                        </span>
+                      </div>
+                      {odds.tacticTip && (
+                        <div style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic', lineHeight: '1.3' }}>
+                          💡 {odds.tacticTip}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 底部：耗时、声望、魂晶 + 接取按钮 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px', fontSize: '10px', color: '#64748b', paddingLeft: '40px' }}>
+                    <div>
+                      <span>耗时: {contract.durationDays} 天</span> | 
+                      <span style={{ color: '#34d399', marginLeft: '4px' }}>声望 +{contract.reputationReward}</span>
+                      {contract.soulCrystalReward ? <span style={{ color: '#c084fc', marginLeft: '4px' }}>| 魂晶 +{contract.soulCrystalReward}</span> : null}
+                    </div>
+                    <button
+                      onClick={() => onSelectContract(contract)}
+                      disabled={deployedSquad.length < 2}
+                      style={{
+                        padding: '5px 14px',
+                        background: deployedSquad.length >= 2 ? '#10b981' : '#475569',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '5px',
+                        fontWeight: 'bold',
+                        cursor: deployedSquad.length >= 2 ? 'pointer' : 'not-allowed',
+                        fontSize: '11px'
+                      }}
+                    >
+                      接取并讨伐 ⚔️
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

@@ -36,6 +36,17 @@ export function enemyCountForStars(stars: number, isBoss = false): number {
 
 /** 按职业与生态生成的兵种名库，克制、洗练、无冗余形容词 */
 const ENEMY_ROLE_NAMES: Record<string, Record<ClassId, string[]>> = {
+  slime_infestation: {
+    guardian: ['石盾史莱姆', '岩壳胶质'],
+    blademaster: ['利刃黏液怪', '酸液跳跳'],
+    ranger: ['毒刺射胶怪', '弹射史莱姆'],
+    arcanist: ['电浆史莱姆王', '炽焰胶质'],
+    cleric: ['再生黏液核心', '治愈胶质'],
+    paladin: ['铁壳巨型史莱姆'],
+    warden: ['重锤岩浆怪'],
+    druid: ['孢子史莱姆', '寄生胶质'],
+    bard: ['共鸣水母胶'],
+  },
   goblin_mine: {
     guardian: ['赤耳盾手', '矿坑大盾哥布林', '岩盔哥布林'],
     blademaster: ['赤耳劈砍者', '矿坑刺客', '双刃哥布林'],
@@ -59,9 +70,9 @@ const ENEMY_ROLE_NAMES: Record<string, Record<ClassId, string[]>> = {
     bard: ['擂鼓山匪', '喝彩寨卒'],
   },
   beast_hunt: {
-    guardian: ['铁甲山猪', '岩皮厚甲兽', '披甲熊'],
+    guardian: ['穴居公枭熊', '铁甲山猪', '岩皮厚甲兽'],
     blademaster: ['雪原白额狼', '撕裂利爪豹', '裂喉赤狐'],
-    ranger: ['飞羽角雕', '喷毒飞蜥', '林间刺鼠'],
+    ranger: ['双足翼手飞龙', '飞羽角雕', '喷毒飞蜥'],
     arcanist: ['雷鸣幼龙', '幽焰火狐', '唤霜灵鹿'],
     cleric: ['林地伴生灵', '生息鹿', '岩髓晶灵'],
     paladin: ['巨角犀兽', '岩甲巨犀'],
@@ -70,15 +81,15 @@ const ENEMY_ROLE_NAMES: Record<string, Record<ClassId, string[]>> = {
     bard: ['啼鸣怪鸟', '唤兽山雀'],
   },
   ruins_cleansing: {
-    guardian: ['前朝步卒盾卫', '关隘重甲卒', '断戟阵首'],
-    blademaster: ['前朝折冲刀手', '沉陷关哨兵', '断阵戟手'],
-    ranger: ['前朝强弩手', '角楼射手', '残关游哨'],
-    arcanist: ['前朝钦天术官', '残阵阵法师', '引雷术士'],
-    cleric: ['前朝军中医官', '祝祷司祝', '引魂司卫'],
-    paladin: ['前朝镇关铁卫', '中军宿卫'],
-    warden: ['前朝先锋锐卒', '陷阵甲士'],
-    druid: ['前朝御兽吏', '驯禽守卒'],
-    bard: ['前朝号角手', '行军金鼓手'],
+    guardian: ['拟态宝箱怪', '弹簧发条铁卫', '前朝步卒盾卫'],
+    blademaster: ['食人魔蛮力士', '双头食人魔', '前朝折冲刀手'],
+    ranger: ['巨型洞穴捕鸟蛛', '结网毒蛛', '前朝强弩手'],
+    arcanist: ['失控发条术士', '前朝钦天术官', '残阵阵法师'],
+    cleric: ['拟态圣遗物箱', '前朝军中医官', '祝祷司祝'],
+    paladin: ['发条重装步兵', '前朝镇关铁卫', '中军宿卫'],
+    warden: ['单眼食人魔', '前朝先锋锐卒', '陷阵甲士'],
+    druid: ['蛛网守护灵', '前朝御兽吏', '驯禽守卒'],
+    bard: ['拟态音乐盒', '前朝号角手', '行军金鼓手'],
   },
   caravan_escort: {
     guardian: ['护卫叛卒', '劫道盾手'],
@@ -95,10 +106,11 @@ const ENEMY_ROLE_NAMES: Record<string, Record<ClassId, string[]>> = {
 
 /** 首领名录，杜绝人名，直奔兵种头目地位 */
 const BOSS_NAMES: Record<string, string[]> = {
+  slime_infestation: ['巨型胶质王', '水井暗渠史莱姆巢主', '电浆核心巨怪'],
   goblin_mine: ['赤耳巨怪统领', '矿脉大头目', '穴居巨萨满'],
   bandit_camp: ['黑煞寨大当家', '断龙崖寨主', '血手当家'],
-  beast_hunt: ['霜甲巨猿王', '雷霆裂地龙', '白额狼王'],
-  ruins_cleansing: ['前朝折冲都尉', '沉陷关守将', '破军统领'],
+  beast_hunt: ['狂暴穴居枭熊王', '霜甲巨猿王', '雷霆裂地龙', '苍空翼龙霸主'],
+  ruins_cleansing: ['巨口拟态宝箱王', '暴怒双头食人魔酋长', '发条重装统领', '前朝折冲都尉'],
   caravan_escort: ['黑市大当家', '截道巨枭'],
 };
 
