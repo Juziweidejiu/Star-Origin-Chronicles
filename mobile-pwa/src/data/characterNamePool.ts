@@ -104,22 +104,21 @@ export const HERO_PROFILES: CharacterProfile[] = [
   }
 ];
 
-// 繁华城邦与安全据点
+// 繁华城邦与安全据点 (日漫奇幻生活风四大城镇，依山傍水、充满烟火气与地方特产)
 export const REGIONAL_HUBS = [
-  { id: 'frostmoon_keep', name: '霜月城', desc: '极北雪峰与温泉交汇处的石构城邦，炉火常温，热酒飘香。' },
-  { id: 'breeze_bastion', name: '听风关', desc: '峡谷咽喉处的宏伟要塞，行商、游侠与探险家的集散枢纽。' },
-  { id: 'azure_wharf', name: '碧落行坞', desc: '内陆大湖上的水上船坞，探险飞舟穿梭如织。' },
-  { id: 'vermilion_corridor', name: '朱雀回廊', desc: '漫山红枫的官道驿站，各方势力委托与公会驻地。' },
-  { id: 'maple_post', name: '枫桥驿', desc: '林海边缘的宁静驿站，猎户与采药人的补给歇脚所。' }
+  { id: 'ambermill_town', name: '麦浪与风车镇', desc: '金黄麦田与风车掩映的平原城集，麦芽酒与黑麦烤面包香气四溢，新手冒险者的启程地。' },
+  { id: 'verdant_spring', name: '翡翠泉与铃兰宿', desc: '暖雾蒸腾的山谷温泉宿坊，草药架排布整齐，以泉水疗伤养神与静心修养闻名。' },
+  { id: 'hammerdeep_hold', name: '黑铁与汽锤堡', desc: '依山开凿的蒸汽锻炉重镇，高炉烟囱昼夜不息，精钢锻甲与机巧工坊的圣地。' },
+  { id: 'tidesong_haven', name: '潮鸣与灯塔港', desc: '石砌滨海灯塔港口，咸湿海风与海珍烧烤交织，远洋船队与深海奇兽赏金集散地。' }
 ];
 
-// 多元生态探索场景 (无任何远古科技，均为自然地貌、异族据点与前朝遗址)
+// 多元生态探索场景 (无任何远古科技，均为自然地貌、魔物生态与前朝工坊遗存)
 export const EXPLORATION_ZONES = [
-  { id: 'goblin_red_mine', name: '赤耳哥布林矿洞', type: 'goblin_cave', desc: '盘踞在废弃铜矿里的哥布林聚落，布满捕兽夹与毒箭暗索。' },
-  { id: 'thunder_wyvern_cliff', name: '雷鸣飞龙崖', type: 'dragon_roost', desc: '陡峭万仞的雷暴悬崖，狂暴双足飞龙筑巢的高风险狩猎区。' },
-  { id: 'frost_ape_cave', name: '霜爪雪猿窟', type: 'beast_den', desc: '暴风雪原深处的冰川溶洞，凶悍巨猿与雪狼盘踞的猛兽巢穴。' },
-  { id: 'sunken_star_cavern', name: '沉星晶石窟', type: 'subterranean_cavern', desc: '地底深处布满发光晶石与暗河的天然地质溶洞。' },
-  { id: 'mist_labyrinth', name: '幻林迷宫', type: 'labyrinth', desc: '常年浓雾弥漫、树冠遮天的盘根迷津，极易迷失方向。' },
-  { id: 'fallen_border_fort', name: '前朝沉陷关隘', type: 'frontier_fort', desc: '三十年前边塞战役废弃的沉陷要塞，留存着封尘的旧军械库。' },
-  { id: 'nine_stars_trial', name: '天枢九曜校场', type: 'trial_grounds', desc: '守备军团用于考核精英佣兵与游侠的实战战术演武场。' }
+  { id: 'orchard_slime_grove', name: '暖阳果园与水渠', type: 'beast_den', desc: '甜汁浆果丰茂的农庄外围，常有偷吃果实的跳跳草莓史莱姆群落出没。' },
+  { id: 'spider_aqueduct', name: '旧水井阴冷暗渠', type: 'subterranean_cavern', desc: '湿润滴水的镇郊老砖石水渠，盘踞着结网捕食的巨型捕鸟蛛。' },
+  { id: 'goblin_red_mine', name: '赤耳哥布林矿洞', type: 'goblin_cave', desc: '停产的铜矿深处被狡诈哥布林侵占，布满捕兽夹与暗弩。' },
+  { id: 'mimic_mist_forest', name: '青苔古树与假箱林', type: 'labyrinth', desc: '常年弥漫湿气的厚密针叶林，传闻有伪装成旅行宝箱的拟态怪潜伏。' },
+  { id: 'thunder_wyvern_cliff', name: '雷鸣断崖翼手巢', type: 'dragon_roost', desc: '陡峭万仞的海崖岩缝，凶暴双足飞龙捕食过往海兽的巢穴。' },
+  { id: 'owlbear_hollow', name: '黑松针叶林熊洞', type: 'beast_den', desc: '粗壮松木盘根错节的山坳，厚绒皮毛的狂躁成年穴居公枭熊盘踞其中。' },
+  { id: 'clockwork_arsenal', name: '沉陷边关旧武库', type: 'frontier_fort', desc: '三十年前边塞战役的地下工事，依然有上足发条自主巡视的铁甲重装步兵。' }
 ];

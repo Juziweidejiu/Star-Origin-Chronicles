@@ -51,17 +51,17 @@ export class CrisisEngine {
         this.crisis.phase = 'outbreak';
         this.crisis.daysRemainingInPhase = 14;
         this.crisis.threatLevel = 50;
-        this.crisis.fallenTowns = ['vermilion_corridor']; // 朱雀回廊前线驿站告急
-        message = '🚨【兽潮爆发】狂暴兽群突破红枫山防线，前线【朱雀回廊】陷入重围！各大城邦紧急发布联合救援赏金！';
+        this.crisis.fallenTowns = ['tidesong_haven']; // 潮鸣港外围灯塔前哨告急
+        message = '🚨【兽潮爆发】狂暴海兽与峭壁飞龙突破海岸防线，前线【潮鸣与灯塔港】陷入重围！各大城邦紧急发布联合救援赏金！';
       } else if (this.crisis.phase === 'outbreak') {
         this.crisis.phase = 'climax';
         this.crisis.daysRemainingInPhase = 10;
         this.crisis.threatLevel = 85;
-        this.crisis.fallenTowns = ['vermilion_corridor', 'breeze_bastion'];
-        message = '⚔️【决战时刻】狂暴首领“霜甲巨猿王”率群兽兵临【听风关】！若不能斩断兽王中枢，全境防线将全线崩溃！';
+        this.crisis.fallenTowns = ['tidesong_haven', 'hammerdeep_hold'];
+        message = '⚔️【决战时刻】狂暴首领“霜甲巨猿王”率群兽兵临【黑铁与汽锤堡】！若不能斩断兽王中枢，全境防线将全线崩溃！';
       } else if (this.crisis.phase === 'climax') {
         this.crisis.threatLevel = 100;
-        message = '💥【危机失控】极夜兽潮冲垮了边境商道，城邦物价飞涨，霜月城公会发出最后总动员令！';
+        message = '💥【危机失控】极夜兽潮冲垮了平原商道，城邦物价飞涨，麦浪与风车镇公会发出最后总动员令！';
       }
     } else {
       // 狂潮爆发期的每日恶化
@@ -76,7 +76,7 @@ export class CrisisEngine {
   }
 
   /**
-   * 生成天灾专属战役契约 (听风关防御战 / 讨伐霜甲巨猿王)
+   * 生成天灾专属战役契约 (汽锤堡要塞阻击战 / 讨伐霜甲巨猿王)
    */
   public generateCrisisContract(): GuildContract {
     if (this.crisis.phase === 'climax') {
@@ -84,7 +84,7 @@ export class CrisisEngine {
         id: `crisis_climax_${Date.now()}`,
         title: '【决战兽王】突入雷鸣崖 · 讨伐霜甲巨猿王',
         type: 'beast_hunt',
-        townId: 'frostmoon_keep',
+        townId: 'ambermill_town',
         stars: 5,
         durationDays: 3,
         goldReward: 2500,
@@ -98,9 +98,9 @@ export class CrisisEngine {
     } else {
       return {
         id: `crisis_defense_${Date.now()}`,
-        title: '【要塞阻击】听风关守卫战 · 遏止兽潮前锋',
+        title: '【要塞阻击】黑铁汽锤堡守卫战 · 遏止兽潮前锋',
         type: 'beast_hunt',
-        townId: 'frostmoon_keep',
+        townId: 'ambermill_town',
         stars: 4,
         durationDays: 2,
         goldReward: 1200,

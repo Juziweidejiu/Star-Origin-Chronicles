@@ -5,8 +5,8 @@
 
 import type { Hero, ClassId } from './hero';
 
-// 据点 ID
-export type TownId = 'frostmoon_keep' | 'breeze_bastion' | 'azure_wharf' | 'vermilion_corridor';
+// 据点 ID (日漫奇幻生活风四大城镇)
+export type TownId = 'ambermill_town' | 'verdant_spring' | 'hammerdeep_hold' | 'tidesong_haven';
 
 // 好感度/声望级别
 export type ReputationLevel = 'hostile' | 'neutral' | 'friendly' | 'revered';
@@ -28,11 +28,11 @@ export interface TownNode {
   rewardMod: number;           // 任务赏金加成
 }
 
-// 契约任务难级 (1-5星)
+// 契约任务难级 (1-5星，对应 D/C/B/A/S 阶)
 export type ContractDifficulty = 1 | 2 | 3 | 4 | 5;
 
-// 契约类型
-export type ContractType = 'bandit_camp' | 'beast_hunt' | 'ruins_cleansing' | 'caravan_escort' | 'goblin_mine';
+// 契约类型 (丰富生态：果园/农庄除害、矿坑地道、密林深处捕猎、商队押运、山隘发条武库)
+export type ContractType = 'slime_infestation' | 'bandit_camp' | 'beast_hunt' | 'ruins_cleansing' | 'caravan_escort' | 'goblin_mine';
 
 // 契约状态
 export type ContractStatus = 'available' | 'accepted' | 'completed' | 'failed';
@@ -41,6 +41,9 @@ export type ContractStatus = 'available' | 'accepted' | 'completed' | 'failed';
 export interface GuildContract {
   id: string;
   title: string;
+  rank?: 'S' | 'A' | 'B' | 'C' | 'D'; // S/A/B/C/D 对应 5/4/3/2/1 星
+  targetMonster?: string;     // 目标魔物名（如 "拟态宝箱怪 (Mimic)"）
+  specialLootDesc?: string;   // 特色战利品/食材说明
   type: ContractType;
   townId: TownId;
   stars: ContractDifficulty;

@@ -17,38 +17,38 @@ import type {
 } from '../types/world';
 import { generateHero } from './heroFactory';
 
-// 四大核心据点初始配置 (东亚/星原战纪设定，繁华且富有探索感)
+// 四大核心据点初始配置 (日漫奇幻生活风城镇，充满烟火气与地方特色)
 export const TOWNS_CONFIG: Record<TownId, Omit<TownNode, 'reputation' | 'reputationLevel' | 'supplyCostMod' | 'rewardMod'>> = {
-  frostmoon_keep: {
-    id: 'frostmoon_keep',
-    name: '霜月城',
-    subtitle: '雪峰温泉之都 · 北境商盟中枢',
-    description: '极北雪峰与地底温泉交汇处的繁华石构城邦，炉火常温，商旅云集，公会总舵与精锐冒险者驻扎地。',
-    buildings: ['tavern', 'guild', 'market', 'infirmary', 'sanctuary'],
+  ambermill_town: {
+    id: 'ambermill_town',
+    name: '麦浪与风车镇',
+    subtitle: '平原粮仓 · 烤面包与麦芽酒香',
+    description: '金黄麦田与转动木风车掩映的平原小镇，刚出炉的黑麦面包香气四溢，冒险者公会的启程之地。',
+    buildings: ['tavern', 'guild', 'market', 'infirmary'],
     distanceFromCapital: 0
   },
-  breeze_bastion: {
-    id: 'breeze_bastion',
-    name: '听风关',
-    subtitle: '峡谷咽喉 · 游侠与行商集散地',
-    description: '扼守崇山峻岭要道的大型关隘，盛产良弓与飞刀，茶肆酒坊热闹非凡，常有外围异动情报。',
-    buildings: ['tavern', 'guild', 'market', 'infirmary'],
+  verdant_spring: {
+    id: 'verdant_spring',
+    name: '翡翠泉与铃兰宿',
+    subtitle: '温泉地热 · 药草采集与伤病疗养',
+    description: '暖雾缭绕的山谷温泉宿坊，木质回廊与满架晒干的洋甘菊，佣兵们身心归宿的疗愈圣地。',
+    buildings: ['tavern', 'infirmary', 'sanctuary', 'market'],
     distanceFromCapital: 1
   },
-  azure_wharf: {
-    id: 'azure_wharf',
-    name: '碧落行坞',
-    subtitle: '水上行坞 · 云舟与奇珍港口',
-    description: '依傍碧落大湖而建的宏伟水寨行坞，机巧工坊林立，四海奇珍与机关火器在此汇聚交易。',
+  hammerdeep_hold: {
+    id: 'hammerdeep_hold',
+    name: '黑铁与汽锤堡',
+    subtitle: '矮人锻炉 · 蒸汽钻机与精钢打造',
+    description: '依玄铁矿山而建的坚实山城,高耸的红砖烟囱与水压蒸汽锻锤轰鸣不息，冒险武具锻造之都。',
     buildings: ['tavern', 'guild', 'market'],
     distanceFromCapital: 2
   },
-  vermilion_corridor: {
-    id: 'vermilion_corridor',
-    name: '朱雀回廊',
-    subtitle: '红枫幽径 · 灵脉圣所与古祭台',
-    description: '红枫漫山的幽静官道驿站，坐落着古朴温润的星原引魂圣所，能调理气脉并引渡阵亡英灵。',
-    buildings: ['sanctuary', 'infirmary', 'tavern'],
+  tidesong_haven: {
+    id: 'tidesong_haven',
+    name: '潮鸣与灯塔港',
+    subtitle: '咸鱼海风 · 飞空艇码头与远洋海珍',
+    description: '石砌的滨海海堤，空气中弥漫着咸海风、焦糖朗姆酒与烤海鱼气味，猎奇异兽赏金聚集地。',
+    buildings: ['tavern', 'guild', 'market', 'sanctuary'],
     distanceFromCapital: 2
   }
 };
@@ -70,41 +70,53 @@ export function calculateReputationDetails(score: number): {
   }
 }
 
-// 契约模板配置 (丰富生态：矿洞哥布林、荒原兽群、前朝关隘、商队押运、山林盗匪)
-const CONTRACT_TITLES: Record<ContractType, { titles: string[]; desc: string; baseEnemy: ClassId[] }> = {
+// 契约模板配置 (日漫生态丰富：史莱姆、拟态怪、捕鸟蛛、枭熊、食人魔、飞龙、发条守卫)
+const CONTRACT_TITLES: Record<ContractType, { titles: string[]; desc: string; baseEnemy: ClassId[]; monster: string }> = {
+  slime_infestation: {
+    titles: ['暖阳果园跳跳史莱姆除害', '旧水车磨坊地窖清理', '镇郊水渠弹力胶质清扫'],
+    desc: '啃咬作物根茎的草莓史莱姆与水渠胶质史莱姆泛滥成灾，农户请求冒险者清剿。',
+    baseEnemy: ['ranger', 'arcanist', 'blademaster'],
+    monster: '草莓史莱姆群落'
+  },
   bandit_camp: {
-    titles: ['清剿黑煞寨沿途哨卡', '拔除断龙崖流寇盘踞点', '追缉截道巨寇残党'],
-    desc: '一群残忍的凶悍劫匪封锁了商道咽喉，公会悬赏佣兵将其头目与喽啰尽数肃清。',
-    baseEnemy: ['warden', 'blademaster', 'ranger', 'druid']
+    titles: ['铜鸣山道截道山贼肃清', '断崖石寨流寇盘踞点拔除', '黑林伏击劫匪追缉'],
+    desc: '封锁商道咽喉的凶悍劫匪团伙，需要经验老道的冒险者将其头目与喽啰尽数肃清。',
+    baseEnemy: ['warden', 'blademaster', 'ranger', 'druid'],
+    monster: '山林劫匪团伙'
   },
   beast_hunt: {
-    titles: ['霜爪雪猿窟领地驱逐', '暗夜赤焰狼群围堵', '深沼毒鳞巨蜥清扫'],
-    desc: '野性凶兽频繁侵扰官道与近郊农庄，请深入荒原险境斩除兽群首领。',
-    baseEnemy: ['guardian', 'blademaster', 'ranger', 'druid']
+    titles: ['黑松针叶林狂躁枭熊制伏', '雷鸣断崖双足飞龙狩猎', '冰川熊洞雪猿群驱逐'],
+    desc: '野性凶兽频繁侵扰官道与近郊农庄，请深入荒原险境斩除兽群或巢穴霸主。',
+    baseEnemy: ['guardian', 'blademaster', 'ranger', 'druid'],
+    monster: '穴居枭熊 / 双足飞龙'
   },
   goblin_mine: {
-    titles: ['赤耳哥布林矿洞扫荡', '夺回被侵占的铜铁矿坑', '拆毁哥布林地底陷阱阵'],
-    desc: '狡诈凶暴的赤耳哥布林占据了富矿坑道，遍设暗箭毒刺，急需实战小队深入清剿。',
-    baseEnemy: ['warden', 'arcanist', 'blademaster', 'ranger']
+    titles: ['赤耳哥布林矿洞扫荡', '夺回被侵占的铜铁坑道', '拆毁哥布林暗弩陷阱阵'],
+    desc: '狡诈凶暴的赤耳哥布林占据了废弃矿坑，遍设暗箭毒刺机关，急需实战小队深入清剿。',
+    baseEnemy: ['warden', 'arcanist', 'blademaster', 'ranger'],
+    monster: '赤耳哥布林小队'
   },
   caravan_escort: {
-    titles: ['北境雪莲珍药商队护送', '碧落奇珍机巧货船保卫', '霜月城军备物资押送'],
-    desc: '穿越险峻峡谷的商贾车队需要经验老道的高手随行护卫，击退沿途袭扰。',
-    baseEnemy: ['guardian', 'blademaster', 'ranger', 'arcanist']
+    titles: ['草药商队峡谷护送', '机巧货船水道保卫', '军备物资山道押运'],
+    desc: '穿越险峻峡谷的商贾车队需要经验老道的高手随行护卫，击退沿途袭扰的盗匪与野兽。',
+    baseEnemy: ['guardian', 'blademaster', 'ranger', 'arcanist'],
+    monster: '拦路盗匪与野兽'
   },
   ruins_cleansing: {
-    titles: ['前朝沉陷关隘异动拔除', '探明古烽燧妖兽巢穴', '清缴荒山旧校场聚集猛兽'],
-    desc: '三十年前边塞战役废弃的沉陷工事中盘踞着危险生物，公会悬赏探明虚实并彻底肃清。',
-    baseEnemy: ['arcanist', 'paladin', 'blademaster', 'bard']
+    titles: ['沉陷边关旧武库探查', '青苔古树假宝箱怪讨伐', '食人魔山谷岩穴清剿'],
+    desc: '三十年前沉陷工事或密林深处盘踞着拟态宝箱怪、发条守卫与食人魔，公会悬赏彻底肃清。',
+    baseEnemy: ['arcanist', 'paladin', 'blademaster', 'bard'],
+    monster: '拟态怪 / 发条守卫 / 食人魔'
   }
 };
 
 const RECRUIT_STORIES = [
-  '霜月边关退役的直剑士，剑招沉稳如松，渴望在精锐佣兵团一展胸中韬略。',
-  '红枫驿走出的游方医者，行囊常备银针与甘草，近身短打拳脚亦不容小觑。',
-  '崇山幽谷出身的矫捷猎手，百步穿杨，深谙山野追踪与机关暗道。',
-  '碧落工坞的机关热衷者，怀揣自制短铳与飞爪，立志游历天下名城。',
-  '游历江湖的刀客，豪爽仗义，在多次硬仗中战功卓著，视伙伴为手足。'
+  '麦浪镇民兵队退役的直剑士，剑招沉稳如松，渴望在精锐佣兵团一展胸中韬略。',
+  '翡翠泉走出的游方医者，行囊常备银针与甘草，近身短打拳脚亦不容小觑。',
+  '黑松林出身的矫捷猎手，百步穿杨，深谙山野追踪与机关暗道。',
+  '黑铁工坞的机巧学徒，怀揣自制短铳与飞爪，立志游历天下铸炉名城。',
+  '游历江湖的刀客，豪爽仗义，在多次硬仗中战功卓著，视伙伴为手足。',
+  '潮鸣港船坞的水手剑士，擅长贴身短刃与绳索飞爪，经验丰富。'
 ];
 
 export class TownEngine {
@@ -117,23 +129,23 @@ export class TownEngine {
   constructor() {
     // 初始化据点及声望
     this.towns = {
-      frostmoon_keep: {
-        ...TOWNS_CONFIG.frostmoon_keep,
+      ambermill_town: {
+        ...TOWNS_CONFIG.ambermill_town,
         reputation: 25,
         ...calculateReputationDetails(25)
       },
-      breeze_bastion: {
-        ...TOWNS_CONFIG.breeze_bastion,
+      verdant_spring: {
+        ...TOWNS_CONFIG.verdant_spring,
         reputation: 10,
         ...calculateReputationDetails(10)
       },
-      azure_wharf: {
-        ...TOWNS_CONFIG.azure_wharf,
+      hammerdeep_hold: {
+        ...TOWNS_CONFIG.hammerdeep_hold,
         reputation: 0,
         ...calculateReputationDetails(0)
       },
-      vermilion_corridor: {
-        ...TOWNS_CONFIG.vermilion_corridor,
+      tidesong_haven: {
+        ...TOWNS_CONFIG.tidesong_haven,
         reputation: 5,
         ...calculateReputationDetails(5)
       }
@@ -142,7 +154,7 @@ export class TownEngine {
     // 初始后勤数据
     this.logistics = {
       day: 1,
-      currentTownId: 'frostmoon_keep',
+      currentTownId: 'ambermill_town',
       gold: 1200,
       rations: 35,
       soulCrystals: 2,
@@ -152,17 +164,17 @@ export class TownEngine {
     };
 
     this.contracts = {
-      frostmoon_keep: [],
-      breeze_bastion: [],
-      azure_wharf: [],
-      vermilion_corridor: []
+      ambermill_town: [],
+      verdant_spring: [],
+      hammerdeep_hold: [],
+      tidesong_haven: []
     };
 
     this.tavernRecruits = {
-      frostmoon_keep: [],
-      breeze_bastion: [],
-      azure_wharf: [],
-      vermilion_corridor: []
+      ambermill_town: [],
+      verdant_spring: [],
+      hammerdeep_hold: [],
+      tidesong_haven: []
     };
 
     this.fallenSouls = [];
@@ -185,7 +197,7 @@ export class TownEngine {
   refreshContractsForTown(townId: TownId): void {
     const town = this.towns[townId];
     const contractTypes: ContractType[] = [
-      'bandit_camp', 'beast_hunt', 'goblin_mine', 'caravan_escort', 'ruins_cleansing'
+      'slime_infestation', 'bandit_camp', 'beast_hunt', 'goblin_mine', 'caravan_escort', 'ruins_cleansing'
     ];
 
     const newContracts: GuildContract[] = [];
@@ -201,9 +213,15 @@ export class TownEngine {
       const finalGold = Math.round(baseGold * town.rewardMod);
       const rep = stars * 15;
 
+      // 计算 rank 并附加 targetMonster
+      const rank = stars === 5 ? 'S' : stars === 4 ? 'A' : stars === 3 ? 'B' : stars === 2 ? 'C' : 'D';
+
       newContracts.push({
         id: `c_${townId}_${Date.now()}_${i}`,
         title,
+        rank,
+        targetMonster: cfg.monster,
+        specialLootDesc: this.generateSpecialLoot(type),
         type,
         townId,
         stars,
@@ -219,6 +237,20 @@ export class TownEngine {
     }
 
     this.contracts[townId] = newContracts;
+  }
+
+  // 生成特色战利品/食材说明
+  private generateSpecialLoot(type: ContractType): string {
+    const lootMap: Record<ContractType, string[]> = {
+      slime_infestation: ['甜味史莱姆凝胶（可食用）', '弹力胶质（炼金原料）'],
+      bandit_camp: ['劫匪藏匿的银币袋', '精钢匕首与皮甲'],
+      beast_hunt: ['雪花野猪五花肉（极佳营地食材）', '枭熊厚绒皮（保暖披风）', '飞龙胸脯肉与龙鳞片'],
+      goblin_mine: ['哥布林藏匿的宝石碎片', '精铜矿石'],
+      caravan_escort: ['商队感谢赠礼', '远洋香料与奇珍'],
+      ruins_cleansing: ['拟态怪坚韧硬壳（盾牌好料）', '发条齿轮（机巧原料）', '食人魔大骨棒']
+    };
+    const pool = lootMap[type];
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   // 刷新指定城邦酒馆招募名单
