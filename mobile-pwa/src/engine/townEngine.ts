@@ -219,7 +219,7 @@ export class TownEngine {
       const rank = stars === 5 ? 'S' : stars === 4 ? 'A' : stars === 3 ? 'B' : stars === 2 ? 'C' : 'D';
 
       newContracts.push({
-        id: `c_${townId}_${Date.now()}_${i}`,
+        id: `c_${townId}_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
         title,
         rank,
         targetMonster: cfg.monster,
@@ -271,7 +271,7 @@ export class TownEngine {
       const paStars = candidate.potentialAbility > 150 ? '★★★★★' : candidate.potentialAbility > 120 ? '★★★★☆' : '★★★☆☆';
 
       recruits.push({
-        id: `rec_${townId}_${Date.now()}_${i}`,
+        id: `rec_${townId}_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
         hero: candidate,
         hireCost,
         backgroundStory: RECRUIT_STORIES[Math.floor(Math.random() * RECRUIT_STORIES.length)],

@@ -5,8 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
     "lint": "oxlint",
+    "check": "tsc -b && oxlint",
+    "build": "tsc -b && vite build",
+    "verify": "tsc -b && oxlint && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "setup:hooks": "node scripts/install-hooks.mjs",
+    "prepare": "node scripts/install-hooks.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -24,6 +31,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.90.0",
     "typescript": "~7.0.2",
-    "vite": "^8.3.6"
+    "vite": "^8.3.6",
+    "vitest": "^5.1.1"
   }
 }
