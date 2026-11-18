@@ -1,0 +1,1533 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>军械工坊 · 打造 Demo</title>
+<link rel="stylesheet" href="../mobile-pwa/src/index.css" />
+<style>
+  /* ============================================================
+     铁匠铺打造 Demo —— 独立单页，不接入构建
+     复用 src/index.css 的 pz- token 与公共类
+     ============================================================ */
+
+  html, body { overflow: hidden; }
+
+  .demo-stage {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background:
+      radial-gradient(70% 50% at 50% 0%, #E8DABD 0%, #DCCDAE 55%, #CDBB99 100%);
+  }
+
+  .demo-phone {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 22px;
+    border: 1px solid rgba(42, 36, 24, .28);
+    box-shadow: 0 24px 60px rgba(42, 36, 24, .32), 0 2px 0 rgba(255, 255, 255, .5) inset;
+  }
+  @media (max-width: 470px) {
+    .demo-stage { padding: 0; }
+    .demo-phone { width: 100%; height: 100%; border-radius: 0; border: 0; }
+  }
+
+  /* ---------- 页眉 ---------- */
+  .cf-head { padding: 12px 14px 10px; flex: 0 0 auto; }
+  .cf-head-top { display: flex; align-items: center; gap: 8px; }
+  .cf-head-top .cf-demo-tag {
+    margin-left: auto;
+    font-size: 9px;
+    letter-spacing: .16em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid rgba(217, 164, 91, .5);
+    color: #D9A45B;
+  }
+  .cf-res {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px;
+    background: var(--pz-sunken);
+    border-bottom: 1px solid var(--pz-line);
+    flex: 0 0 auto;
+  }
+  .cf-res > span { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--pz-ink-2); }
+  .cf-res b { font-size: 12px; color: var(--pz-ink); }
+
+  /* ---------- 主体 ---------- */
+  .cf-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ---------- 底栏 ---------- */
+  .cf-tabs {
+    flex: 0 0 auto;
+    display: flex;
+    border-top: 1px solid var(--pz-line-2);
+    background: linear-gradient(180deg, #F4E9D2, #E7D8B8);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .cf-tab {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 9px 4px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    letter-spacing: .04em;
+    color: var(--pz-ink-3);
+    cursor: pointer;
+  }
+  .cf-tab.is-on { color: var(--pz-wine); font-weight: 700; }
+  .cf-tab.is-on svg { color: var(--pz-wine); }
+  .cf-tab:disabled { opacity: .42; }
+
+  /* ---------- 图纸册 ---------- */
+  .cf-bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .cf-bp {
+    position: relative;
+    text-align: left;
+    padding: 10px 10px 9px;
+    border-radius: var(--pz-r-card);
+    border: 1px solid var(--pz-line-2);
+    background: linear-gradient(180deg, #FBF4E4, #F2E7CE);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
+    cursor: pointer;
+    transition: transform .12s ease, border-color .12s ease;
+    overflow: hidden;
+  }
+  .cf-bp:active { transform: translateY(1px); }
+  .cf-bp.is-locked { cursor: default; background: linear-gradient(180deg, #E6D8BB, #DCCDAE); }
+  .cf-bp .cf-bp-art { height: 64px; display: flex; align-items: center; justify-content: center; color: var(--pz-ink-2); border-radius: 4px; overflow: hidden; }
+  .cf-bp .cf-bp-art .cf-bp-art-img { display: block; width: 100%; height: 64px; border-radius: 4px; background-size: contain; background-position: center; background-repeat: no-repeat; }
+  .cf-icon-box .cf-art-thumb { object-fit: contain; }
+  .cf-art-fb { display: inline-flex; align-items: center; justify-content: center; }
+  .cf-bp.is-locked .cf-bp-art { color: rgba(42, 36, 24, .3); }
+  .cf-bp .cf-bp-name { font-family: var(--pz-serif); font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+  .cf-bp.is-locked .cf-bp-name { color: var(--pz-ink-3); }
+  .cf-bp .cf-bp-meta { font-size: 10px; color: var(--pz-ink-3); margin-top: 2px; letter-spacing: .02em; }
+  .cf-bp .cf-bp-lock {
+    margin-top: 5px;
+    font-size: 9.5px;
+    line-height: 1.35;
+    color: var(--pz-ink-3);
+    border-top: 1px dashed var(--pz-line-2);
+    padding-top: 4px;
+  }
+  .cf-tier {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: var(--pz-mono);
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid var(--pz-line-2);
+    color: var(--pz-ink-2);
+    background: rgba(255, 255, 255, .4);
+  }
+  .cf-slotline {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--pz-brass);
+    opacity: .85;
+  }
+  .cf-bp[data-slot="armor"] .cf-slotline { background: #6B8FA8; }
+  .cf-bp[data-slot="trinket"] .cf-slotline { background: var(--pz-arcane); }
+
+  /* ---------- 打造台 ---------- */
+  .cf-steps { display: flex; gap: 6px; align-items: center; }
+  .cf-step { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--pz-ink-3); }
+  .cf-step b {
+    width: 15px; height: 15px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--pz-line-2); font-size: 9px; font-family: var(--pz-mono);
+  }
+  .cf-step.is-on { color: var(--pz-wine); font-weight: 700; }
+  .cf-step.is-on b { border-color: var(--pz-wine); color: var(--pz-wine); background: rgba(138, 59, 50, .08); }
+
+  .cf-bench-head {
+    display: flex; gap: 10px; align-items: center;
+    padding: 11px 12px;
+    border-radius: var(--pz-r-card);
+    border: 1px solid var(--pz-line-2);
+    background: linear-gradient(180deg, #FBF4E4, #F2E7CE);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
+  }
+  .cf-icon-box {
+    width: 54px; height: 54px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--pz-line-2);
+    background: radial-gradient(circle at 50% 30%, #FFF8E8, #EADCBF);
+    color: var(--pz-ink-2);
+  }
+
+  .cf-mat-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px dashed var(--pz-line);
+  }
+  .cf-mat-row:last-child { border-bottom: 0; }
+  .cf-mat-name { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--pz-ink); }
+  .cf-mat-own { font-size: 10px; color: var(--pz-ink-3); font-family: var(--pz-mono); }
+  .cf-seg { display: inline-flex; border: 1px solid var(--pz-line-2); border-radius: 6px; overflow: hidden; }
+  .cf-seg button {
+    border: 0; background: transparent; padding: 4px 8px; font-size: 11px;
+    color: var(--pz-ink-2); cursor: pointer; font-family: var(--pz-sans);
+  }
+  .cf-seg button + button { border-left: 1px solid var(--pz-line); }
+  .cf-seg button.is-on { background: var(--pz-brass); color: #2A2115; font-weight: 700; }
+  .cf-seg button:disabled { color: var(--pz-ink-3); opacity: .5; cursor: not-allowed; }
+  .cf-switch {
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    font-size: 11px; color: var(--pz-ink-2);
+    border: 1px solid var(--pz-line-2); border-radius: 6px; padding: 4px 8px; background: transparent;
+  }
+  .cf-switch.is-on { border-color: var(--pz-brass-deep); background: rgba(217, 164, 91, .16); color: var(--pz-ink); font-weight: 600; }
+  .cf-switch:disabled { opacity: .45; cursor: not-allowed; }
+  .cf-hint { font-size: 9.5px; color: var(--pz-ink-3); margin-top: 2px; }
+
+  /* ---------- 锻造全屏层 ---------- */
+  .cf-forge {
+    position: absolute; inset: 0; z-index: 80;
+    display: none;
+    flex-direction: column;
+    padding: 16px 16px 20px;
+    color: #F3E9D2;
+    background:
+      radial-gradient(120% 70% at 50% 92%, #A05A24 0%, #5E3316 38%, #2A1B10 74%, #1B1109 100%);
+    overflow: hidden;
+  }
+  .cf-forge.is-open { display: flex; animation: fadeIn .22s ease-out; }
+  .cf-forge::after {
+    content: "";
+    position: absolute; left: 50%; bottom: -40px; width: 320px; height: 200px;
+    transform: translateX(-50%);
+    background: radial-gradient(circle, rgba(255, 170, 80, .55), rgba(255, 140, 60, 0) 68%);
+    pointer-events: none;
+    animation: cfEmber 3.4s ease-in-out infinite;
+  }
+  @keyframes cfEmber {
+    0%, 100% { opacity: .55; transform: translateX(-50%) scale(1); }
+    50% { opacity: .85; transform: translateX(-50%) scale(1.06); }
+  }
+
+  .cf-forge-top { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; }
+  .cf-forge-top .cf-close {
+    margin-left: auto; width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid rgba(243, 233, 210, .28);
+    background: rgba(0, 0, 0, .18); color: #E8D9BB;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .cf-phase-title {
+    position: relative; z-index: 2;
+    margin-top: 14px;
+    font-family: var(--pz-serif);
+    font-size: 22px; font-weight: 700; letter-spacing: .12em;
+    text-align: center;
+  }
+  .cf-phase-sub {
+    position: relative; z-index: 2;
+    text-align: center; font-size: 11px; letter-spacing: .06em;
+    color: #C9B791; margin-top: 3px;
+  }
+
+  .cf-qbar-wrap { position: relative; z-index: 2; margin: 14px 2px 0; }
+  .cf-qbar-label { display: flex; justify-content: space-between; font-size: 9.5px; color: #C9B791; letter-spacing: .06em; margin-bottom: 4px; }
+  .cf-qbar {
+    height: 6px; border-radius: 4px; overflow: hidden;
+    background: rgba(0, 0, 0, .38);
+    border: 1px solid rgba(243, 233, 210, .18);
+  }
+  .cf-qbar > i {
+    display: block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, #8A3B32, #D9A45B 55%, #F3DFA8);
+    transition: width .28s ease-out;
+  }
+
+  .cf-stage-area {
+    position: relative; z-index: 2;
+    flex: 1 1 auto; min-height: 0;
+    margin: 16px 0 6px;
+    padding: 22px 14px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(243, 233, 210, .12);
+    background:
+      radial-gradient(70% 46% at 50% 74%, rgba(255, 168, 78, .20), rgba(255, 168, 78, 0) 72%),
+      linear-gradient(180deg, rgba(0, 0, 0, .30), rgba(0, 0, 0, .12));
+    box-shadow: inset 0 1px 0 rgba(255, 226, 168, .1), inset 0 -20px 40px rgba(0, 0, 0, .35);
+    display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+    overflow: hidden;
+  }
+  .cf-stage-area::before {
+    content: "";
+    position: absolute; left: 50%; top: 34%;
+    width: 240px; height: 240px; transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 170, 80, .18), rgba(255, 170, 80, 0) 66%);
+    pointer-events: none;
+  }
+
+  /* 火候 / 锻打 仪表 */
+  .cf-gauge {
+    position: relative;
+    height: 62px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, .42), rgba(0, 0, 0, .22));
+    border: 1px solid rgba(243, 233, 210, .22);
+    overflow: hidden;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, .5);
+  }
+  .cf-zone {
+    position: absolute; top: 6px; bottom: 6px;
+    border-radius: 5px;
+    background: linear-gradient(180deg, rgba(217, 164, 91, .5), rgba(217, 164, 91, .2));
+    border-left: 1px solid rgba(255, 226, 168, .55);
+    border-right: 1px solid rgba(255, 226, 168, .55);
+    box-shadow: 0 0 18px rgba(255, 180, 80, .38);
+  }
+  .cf-zone-core {
+    position: absolute; top: 0; bottom: 0; left: 34%; right: 34%;
+    background: rgba(255, 236, 190, .30);
+    border-radius: 4px;
+  }
+  .cf-zone.is-quench .cf-zone-core { display: none; }
+  .cf-zone.is-quench {
+    background: linear-gradient(180deg, rgba(217, 164, 91, .34), rgba(217, 164, 91, .14));
+  }
+  .cf-needle {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: #FFF3D6;
+    box-shadow: 0 0 10px 2px rgba(255, 226, 168, .8);
+    transform: translateX(-1px);
+  }
+  .cf-gauge-ticks {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, rgba(243, 233, 210, .16) 0 1px, transparent 1px 10%);
+    pointer-events: none;
+  }
+  .cf-gauge-wrap { display: flex; flex-direction: column; gap: 4px; }
+  .cf-gauge-meta {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    padding: 0 2px;
+    font-size: 9px; letter-spacing: .1em;
+    color: rgba(243, 233, 210, .55);
+  }
+  .cf-gauge-hint { letter-spacing: .04em; color: rgba(243, 233, 210, .34); }
+
+  /* 熟练度条 */
+  .cf-prof { padding: 6px 2px 0; }
+  .cf-prof-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 10px; letter-spacing: .08em; color: var(--pz-ink-3);
+    margin-bottom: 4px;
+  }
+  .cf-prof-bar {
+    height: 5px; border-radius: 3px; overflow: hidden;
+    background: rgba(0, 0, 0, .10);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18);
+  }
+  .cf-prof-bar > i {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, #C99C55, #A9761F);
+    box-shadow: 0 0 6px rgba(201, 156, 85, .5);
+    transition: width .3s ease;
+  }
+  .cf-dual { display: flex; gap: 6px; align-items: stretch; }
+  .cf-dual > .pz-btn { flex: 1 1 50%; justify-content: center; }
+  .cf-art-thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: block; }
+
+  .cf-anvil { display: flex; justify-content: center; color: #E8D9BB; opacity: .92; }
+  .cf-anvil svg { width: 104px; height: 80px; filter: drop-shadow(0 0 22px rgba(255, 160, 70, .45)); }
+  .cf-anvil.is-swing { animation: cfSwing .18s ease-out; }
+  .cf-stage-area.is-quench { justify-content: center; gap: 22px; }
+  .cf-stage-area.is-quench .cf-anvil svg { filter: drop-shadow(0 0 22px rgba(120, 190, 200, .45)); color: #BFE3E6; }
+  @keyframes cfSwing {
+    0% { transform: rotate(0) translateY(0); }
+    45% { transform: rotate(-9deg) translateY(-6px); }
+    100% { transform: rotate(0) translateY(0); }
+  }
+
+  .cf-feedback {
+    position: relative; z-index: 2;
+    flex: 0 0 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--pz-serif); font-size: 19px; letter-spacing: .1em;
+    color: #F3E9D2;
+  }
+  .cf-feedback.is-hit { color: #F5C36A; animation: cfPop .3s ease-out; }
+  .cf-feedback.is-miss { color: #E4573D; animation: cfPop .3s ease-out; }
+  @keyframes cfPop {
+    0% { transform: scale(.82); opacity: .4; }
+    60% { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+
+  .cf-dots { display: flex; justify-content: center; gap: 6px; }
+  .cf-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(243, 233, 210, .22); }
+  .cf-dot.is-done { background: #F5C36A; box-shadow: 0 0 6px rgba(245, 195, 106, .8); }
+
+  .cf-forge-btn {
+    position: relative; z-index: 2;
+    margin-top: 8px;
+    padding: 14px;
+    border: 0; border-radius: 10px;
+    background: linear-gradient(180deg, #E0AD63, #BF8442);
+    color: #2A2115;
+    font-size: 16px; font-weight: 800; letter-spacing: .18em;
+    font-family: var(--pz-serif);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, .38);
+    cursor: pointer;
+  }
+  .cf-forge-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, .38); }
+
+  /* 火花 */
+  .cf-spark {
+    position: absolute; width: 3px; height: 3px; border-radius: 50%;
+    background: #FFD37A; box-shadow: 0 0 8px 2px rgba(255, 190, 90, .8);
+    pointer-events: none; z-index: 5;
+    animation: cfSpark .62s ease-out forwards;
+  }
+  @keyframes cfSpark {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+  }
+
+  /* ---------- 成品 ---------- */
+  .cf-result {
+    position: absolute; inset: 0; z-index: 90;
+    display: none;
+    flex-direction: column;
+    background: rgba(24, 17, 10, .74);
+    backdrop-filter: blur(2px);
+  }
+  .cf-result.is-open { display: flex; animation: fadeIn .2s ease-out; }
+  .cf-result-body {
+    flex: 1 1 auto; min-height: 0;
+    padding: 18px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+    justify-content: center;
+  }
+  .cf-item-card {
+    position: relative;
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    border: 1px solid var(--pz-line-2);
+    background: linear-gradient(180deg, #FCF5E6, #EFE2C6);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .38);
+    animation: cfCardIn .34s cubic-bezier(.2, .9, .3, 1);
+  }
+  @keyframes cfCardIn {
+    0% { opacity: 0; transform: translateY(16px) scale(.96); }
+    100% { opacity: 1; transform: none; }
+  }
+  .cf-item-card.is-legendary { box-shadow: 0 0 0 1px rgba(217, 164, 91, .9), 0 0 34px rgba(217, 164, 91, .45), 0 18px 40px rgba(0, 0, 0, .38); }
+  .cf-item-top { display: flex; gap: 11px; align-items: center; }
+  .cf-item-name { font-family: var(--pz-serif); font-size: 19px; font-weight: 700; letter-spacing: .03em; }
+  .cf-item-sub { font-size: 10.5px; color: var(--pz-ink-3); margin-top: 3px; letter-spacing: .03em; }
+  .cf-quality {
+    display: inline-flex; align-items: baseline; gap: 4px;
+    font-family: var(--pz-mono); font-size: 12px; color: var(--pz-ink-2);
+  }
+  .cf-stat-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 3px 0; }
+  .cf-stat-row b { font-family: var(--pz-mono); }
+  .cf-affix-list { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+  .cf-affix {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px;
+    padding: 5px 7px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, .42);
+    border: 1px solid var(--pz-line);
+    opacity: 0; transform: translateX(-6px);
+    transition: opacity .28s ease, transform .28s ease;
+  }
+  .cf-affix.is-on { opacity: 1; transform: none; }
+  .cf-affix i { width: 3px; height: 14px; border-radius: 2px; background: currentColor; flex: none; }
+  .cf-affix .cf-affix-name { color: var(--pz-ink); }
+  .cf-affix .cf-affix-val { margin-left: auto; font-family: var(--pz-mono); font-weight: 700; color: currentColor; }
+  .cf-affix[data-tier="common"] { color: #6B6152; }
+  .cf-affix[data-tier="fine"] { color: #3C7A6A; }
+  .cf-affix[data-tier="rare"] { color: #6B4E9E; background: rgba(107, 78, 158, .07); }
+  .cf-affix[data-tier="legend"] { color: #A9761F; background: rgba(217, 164, 91, .14); border-color: rgba(169, 121, 58, .4); }
+  .cf-affix-empty { font-size: 11px; color: var(--pz-ink-3); padding: 6px 0; }
+  .cf-diff { font-size: 10.5px; font-family: var(--pz-mono); margin-left: 5px; }
+  .cf-diff.up { color: #3F6E52; }
+  .cf-diff.down { color: #A8412C; }
+  .cf-result-actions { display: flex; gap: 8px; margin-top: 2px; }
+
+  .cf-toast {
+    position: absolute; left: 50%; bottom: 92px; z-index: 120;
+    transform: translateX(-50%) translateY(8px);
+    padding: 8px 14px; border-radius: 20px;
+    background: rgba(42, 36, 24, .92); color: #F3E9D2;
+    font-size: 12px; letter-spacing: .04em;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+    white-space: nowrap;
+  }
+  .cf-toast.is-on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .cf-note {
+    font-size: 10px; line-height: 1.55; color: var(--pz-ink-3);
+    padding: 8px 2px 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-stage">
+  <div class="demo-phone pz pz-grain">
+
+    <!-- 页眉 -->
+    <header class="pz-masthead cf-head">
+      <div class="cf-head-top">
+        <span class="pz-title">军械工坊</span>
+        <span class="cf-demo-tag">DEMO</span>
+        <button id="soundBtn" title="音效" style="margin-left:2px;border:0;background:transparent;color:#C9B791;cursor:pointer;padding:2px;display:inline-flex;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+        </button>
+      </div>
+      <div class="pz-sub">汽锤堡 · 炉火常亮</div>
+    </header>
+
+    <!-- 资源条 -->
+    <div class="cf-res" id="resBar"></div>
+
+    <!-- 主体 -->
+    <div class="cf-body" id="body"></div>
+
+    <!-- 底栏 -->
+    <nav class="cf-tabs">
+      <button class="cf-tab is-on" data-tab="book">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        图纸册
+      </button>
+      <button class="cf-tab" data-tab="bench">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14 4 6 6-3 3-6-6z"/><path d="M11 7 4 14v6h6l7-7"/></svg>
+        打造台
+      </button>
+      <button class="cf-tab" disabled>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4"/><path d="M12 17v4"/><path d="M3 12h4"/><path d="M17 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+        重铸
+      </button>
+      <button class="cf-tab" disabled>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        分解
+      </button>
+    </nav>
+
+    <!-- 锻造层 -->
+    <div class="cf-forge" id="forge">
+      <div class="cf-forge-top">
+        <span style="font-size:11px;letter-spacing:.1em;color:#C9B791;" id="forgeItemName"></span>
+        <button class="cf-close" id="forgeClose" aria-label="退出">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="cf-qbar-wrap">
+        <div class="cf-qbar-label"><span>品质预估</span><span id="qVal">0.87</span></div>
+        <div class="cf-qbar"><i id="qFill"></i></div>
+      </div>
+
+      <div class="cf-phase-title" id="phaseTitle">火候</div>
+      <div class="cf-phase-sub" id="phaseSub">鼓风到黄铜区间内，连击越高，成色越好</div>
+
+      <div class="cf-stage-area">
+        <div class="cf-anvil" id="anvilWrap">
+          <svg width="52" height="40" viewBox="0 0 52 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+            <path d="M6 9h30l6 5-6 5H14l-8 5z"/>
+            <path d="M20 24v6h10v-6"/>
+            <path d="M16 34h18"/>
+          </svg>
+        </div>
+
+        <div class="cf-anvil" id="quenchWrap" style="display:none">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3s6 6.6 6 10a6 6 0 0 1-12 0c0-3.4 6-10 6-10z"/>
+            <path d="M9.5 14.5c.4 1.2 1.3 2 2.5 2"/>
+          </svg>
+        </div>
+
+        <div class="cf-gauge-wrap">
+          <div class="cf-gauge-meta">
+            <span id="gaugeTag">火候</span>
+            <span class="cf-gauge-hint" id="gaugeHint"></span>
+          </div>
+          <div class="cf-gauge" id="gauge">
+            <div class="cf-gauge-ticks"></div>
+            <div class="cf-zone" id="zone"><div class="cf-zone-core"></div></div>
+            <div class="cf-needle" id="needle" style="left:50%"></div>
+          </div>
+        </div>
+
+        <div class="cf-dots" id="dots"></div>
+      </div>
+
+      <div class="cf-feedback" id="feedback"></div>
+      <button class="cf-forge-btn" id="forgeBtn">鼓 风</button>
+    </div>
+
+    <!-- 成品层 -->
+    <div class="cf-result" id="result">
+      <div class="cf-result-body" id="resultBody"></div>
+    </div>
+
+    <div class="cf-toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   数据（示意用；接入引擎后由 blueprintData.ts 提供）
+   ============================================================ */
+
+const ICONS = {
+  weapon: '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/></svg>',
+  armor: '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/><path d="M12 3v18"/></svg>',
+  trinket: '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 3 4-3 4-3-4z"/><path d="M9 11h6l2 5-5 5-5-5z"/></svg>',
+  anvil: '<svg width="40" height="30" viewBox="0 0 52 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 9h30l6 5-6 5H14l-8 5z"/><path d="M20 24v6h10v-6"/><path d="M16 34h18"/></svg>',
+  hammer: '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m14 4 6 6-3 3-6-6z"/><path d="M11 7 4 14v6h6l7-7"/></svg>',
+  iron: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h16l-2 11H6z"/><path d="M4 8l3-4h10l3 4"/></svg>',
+  wood: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20 19 6"/><path d="M14 4h6v6"/><path d="M5 13v7h7"/></svg>',
+  leather: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 4h12l-2 7 2 9H6l2-9z"/></svg>',
+  jade: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3 3 4-3 4-3-4z"/><path d="M9 11h6l2 5-5 5-5-5z"/></svg>',
+  coal: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m5 15 4-8 4 5 3-4 3 9z"/><path d="M4 19h16"/></svg>',
+  oil: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3c3 4 5 6.5 5 9a5 5 0 0 1-10 0c0-2.5 2-5 5-9z"/></svg>',
+  sand: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3v18"/><path d="m12 7 4 3-4 3-4-3z"/><path d="m12 14 4 3-4 3-4-3z"/></svg>',
+};
+
+const MATERIALS = {
+  iron:    { name: '铁锭',   icon: 'iron' },
+  wood:    { name: '杉木',   icon: 'wood' },
+  leather: { name: '兽皮',   icon: 'leather' },
+  jade:    { name: '珠玉',   icon: 'jade' },
+  coal:    { name: '煤',     icon: 'coal' },
+  oil:     { name: '淬火油', icon: 'oil' },
+  sand:    { name: '星陨砂', icon: 'sand' },
+};
+
+const BPS = [
+  {
+    id: 'sword', name: '精钢长剑', slot: 'weapon', tier: 2, grade: '匠作',
+    base: [{ k: 'ad', label: '物攻', v: 14 }, { k: 'crit', label: '暴击', v: 0.05, pct: true }],
+    mat: { iron: 6 }, unlocked: true,
+  },
+  {
+    id: 'halberd', name: '破阵大戟', slot: 'weapon', tier: 3, grade: '名匠',
+    base: [{ k: 'ad', label: '物攻', v: 20 }, { k: 'pen', label: '穿透', v: 5 }],
+    mat: { iron: 9 }, unlocked: true,
+  },
+  {
+    id: 'staff', name: '青木法杖', slot: 'weapon', tier: 2, grade: '匠作',
+    base: [{ k: 'ap', label: '法攻', v: 18 }, { k: 'heal', label: '治疗', v: 10 }],
+    mat: { wood: 6 }, unlocked: true,
+  },
+  {
+    id: 'mail', name: '锁子甲', slot: 'armor', tier: 2, grade: '匠作',
+    base: [{ k: 'armor', label: '物防', v: 14 }, { k: 'hp', label: '生命', v: 35 }],
+    mat: { iron: 5, leather: 2 }, unlocked: true,
+  },
+  {
+    id: 'pendant', name: '狼牙吊坠', slot: 'trinket', tier: 3, grade: '名匠',
+    base: [{ k: 'crit', label: '暴击', v: 0.06, pct: true }, { k: 'ad', label: '物攻', v: 5 }],
+    mat: { jade: 4 }, unlocked: false, lock: '3★ 地牢 · 首领房必掉未拥有图纸',
+  },
+  {
+    id: 'duanyue', name: '断岳', slot: 'weapon', tier: 5, grade: '传说',
+    base: [{ k: 'ad', label: '物攻', v: 38 }, { k: 'pen', label: '穿透', v: 12 }],
+    mat: { iron: 15 }, unlocked: false, lock: '5★ 契约首通 · 或集齐 8 张图纸残页',
+  },
+];
+
+const AFFIX_POOL = {
+  weapon: [
+    { pre: '锋锐', label: '物攻', stat: 'ad', kind: 'percent', base: 0.09 },
+    { pre: '穿云', label: '穿透', stat: 'pen', kind: 'flat', base: 7 },
+    { pre: '疾风', label: '攻速', stat: 'aspd', kind: 'percent', base: 0.07 },
+    { pre: '裂甲', label: '暴击', stat: 'crit', kind: 'flat', base: 0.04 },
+    { pre: '狂澜', label: '暴伤', stat: 'critDmg', kind: 'flat', base: 0.22 },
+    { pre: '汲魂', label: '法攻', stat: 'ap', kind: 'percent', base: 0.10 },
+    { pre: '守夜', label: '生命', stat: 'hp', kind: 'percent', base: 0.08 },
+    { pre: '断岳', label: '物攻', stat: 'ad', kind: 'flat', base: 8 },
+  ],
+  armor: [
+    { pre: '磐石', label: '物防', stat: 'armor', kind: 'flat', base: 12 },
+    { pre: '静水', label: '法防', stat: 'mr', kind: 'flat', base: 12 },
+    { pre: '守夜', label: '生命', stat: 'hp', kind: 'percent', base: 0.10 },
+    { pre: '不移', label: '韧性', stat: 'ten', kind: 'flat', base: 0.06 },
+  ],
+  trinket: [
+    { pre: '通灵', label: '法攻', stat: 'ap', kind: 'flat', base: 10 },
+    { pre: '灼心', label: '暴伤', stat: 'critDmg', kind: 'flat', base: 0.18 },
+    { pre: '慈航', label: '治疗', stat: 'heal', kind: 'flat', base: 14 },
+    { pre: '鹰眼', label: '暴击', stat: 'crit', kind: 'flat', base: 0.04 },
+  ],
+};
+
+const TIER_LABEL = { common: '普通', fine: '精良', rare: '稀有', legend: '传说' };
+const TIER_MULT = { common: 0.85, fine: 1, rare: 1.22, legend: 1.55 };
+const RARITY_LABEL = { common: '粗制', uncommon: '精良', rare: '稀有', epic: '史诗', legendary: '传奇' };
+const RARITY_COLOR = {
+  common: '#7A6C55', uncommon: '#3F7E6B', rare: '#6B4E9E', epic: '#B4632A', legendary: '#A9761F',
+};
+
+/* ============================================================
+   状态
+   ============================================================ */
+
+const S = {
+  tab: 'book',
+  bp: BPS[0],
+  grade: 2,
+  coal: 1,
+  oil: false,
+  sand: false,
+  sound: true,
+  inv: { gold: 860, iron: 24, wood: 20, leather: 18, jade: 9, coal: 8, oil: 3, sand: 2 },
+  locked: { pendant: true, duanyue: true },
+  // 熟练度：按品阶分档，0–750 xp，每 150 一级（1–5）
+  prof: { 1: 0, 2: 380, 3: 0, 4: 0, 5: 0 },
+  craftCount: {},
+};
+
+let G = null;
+let rafId = 0;
+let lastTs = 0;
+
+const $ = (sel) => document.querySelector(sel);
+
+/* ============================================================
+   工具
+   ============================================================ */
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+function qualityLabel(q) {
+  if (q < 0.875) return '粗劣';
+  if (q < 1) return '普通';
+  if (q < 1.125) return '精良';
+  return '极品';
+}
+
+function fmtNum(v) {
+  return Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0$/, '');
+}
+
+function sfx(kind) {
+  if (!S.sound) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    window.__actx = window.__actx || new Ctx();
+    const ctx = window.__actx;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain).connect(ctx.destination);
+    if (kind === 'hammer') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(130, t);
+      osc.frequency.exponentialRampToValueAtTime(58, t + 0.16);
+      gain.gain.setValueAtTime(0.22, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      osc.start(t); osc.stop(t + 0.22);
+    } else if (kind === 'ding') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(1320, t + 0.1);
+      gain.gain.setValueAtTime(0.14, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+      osc.start(t); osc.stop(t + 0.34);
+    } else {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(170, t);
+      osc.frequency.exponentialRampToValueAtTime(96, t + 0.14);
+      gain.gain.setValueAtTime(0.10, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.start(t); osc.stop(t + 0.2);
+    }
+  } catch (e) { /* 静默 */ }
+}
+
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.add('is-on');
+  clearTimeout(el.__t);
+  el.__t = setTimeout(() => el.classList.remove('is-on'), 1600);
+}
+
+function sparks(x, y, n) {
+  const host = $('#forge');
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div');
+    s.className = 'cf-spark';
+    s.style.left = x + 'px';
+    s.style.top = y + 'px';
+    s.style.setProperty('--dx', rnd(-46, 46).toFixed(0) + 'px');
+    s.style.setProperty('--dy', rnd(-52, -8).toFixed(0) + 'px');
+    host.appendChild(s);
+    setTimeout(() => s.remove(), 700);
+  }
+}
+
+/* ============================================================
+   资源条 / 图纸册 / 打造台
+   ============================================================ */
+
+function renderRes() {
+  const i = S.inv;
+  $('#resBar').innerHTML = `
+    <span><b>${i.gold}</b> 金</span>
+    <span>${ICONS.iron}<b>${i.iron}</b></span>
+    <span>${ICONS.coal}<b>${i.coal}</b></span>
+    <span>${ICONS.sand}<b>${i.sand}</b></span>
+  `;
+}
+
+function costOf(bp, grade) {
+  const out = {};
+  for (const [k, v] of Object.entries(bp.mat)) out[k] = v * grade;
+  out.coal = S.coal;
+  if (S.oil) out.oil = 1;
+  if (S.sand) out.sand = 1;
+  return out;
+}
+
+function goldCost(bp) {
+  return 60 + 40 * bp.tier;
+}
+
+function canAfford() {
+  const c = costOf(S.bp, S.grade);
+  for (const [k, v] of Object.entries(c)) {
+    if (k === 'coal') continue;
+    if ((S.inv[k] || 0) < v) return false;
+  }
+  if (S.inv.coal < S.coal) return false;
+  return S.inv.gold >= goldCost(S.bp);
+}
+
+/* ---------- 熟练度（按品阶分档） ---------- */
+const PROF_STEP = 150;
+
+function profLv(tier) {
+  return Math.min(5, 1 + Math.floor((S.prof[tier] || 0) / PROF_STEP));
+}
+
+function profBar(tier) {
+  const xp = S.prof[tier] || 0;
+  const lv = profLv(tier);
+  if (lv >= 5) return { lv, pct: 100, cur: xp, need: 5 * PROF_STEP };
+  return { lv, pct: ((xp - (lv - 1) * PROF_STEP) / PROF_STEP) * 100, cur: xp - (lv - 1) * PROF_STEP, need: PROF_STEP };
+}
+
+// lv1 无加成；每级：指针慢 5%、窗口宽 6%、完美阈值 +3%（0.18 → 0.30）
+function profMods(tier) {
+  const k = profLv(tier) - 1;
+  return { speed: 1 - 0.05 * k, win: 1 + 0.06 * k, perfect: 0.18 + 0.03 * k, k };
+}
+
+function gainProf(tier, bpId, amount) {
+  const n = S.craftCount[bpId] || 0;
+  S.craftCount[bpId] = n + 1;
+  const decay = n >= 20 ? 0 : n >= 10 ? 0.5 : 1;
+  S.prof[tier] = Math.min(5 * PROF_STEP, (S.prof[tier] || 0) + Math.round(amount * decay));
+  return Math.round(amount * decay);
+}
+
+/* ---------- 资产槽：约定路径 + 回落 ---------- */
+// 真实工程里是 public/art/{icons|items}/{id}.webp，缺失则回落线性图标
+const ART = {
+  // 示例：给「精钢长剑」接一张插画；其余图纸没有图，自动回落线性图标
+  sword: { card: 'assets/items/sword.svg' },
+};
+
+function artFor(bp) {
+  return ART[bp.id] || {};
+}
+
+// 图片加载失败时回落到线性图标（error 不冒泡，用捕获阶段统一处理）
+document.addEventListener('error', (e) => {
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  const slot = img.dataset.fallback;
+  if (!slot) return;
+  const span = document.createElement('span');
+  span.className = 'cf-art-fb';
+  span.innerHTML = ICONS[slot] || '';
+  img.replaceWith(span);
+}, true);
+
+function renderBook() {
+  const cards = BPS.map((bp) => {
+    const locked = S.locked[bp.id];
+    return `
+      <button class="cf-bp ${locked ? 'is-locked' : ''}" data-slot="${bp.slot}" data-bp="${bp.id}" ${locked ? 'disabled' : ''}>
+        <span class="cf-slotline"></span>
+        <span class="cf-tier">T${bp.tier}</span>
+        <span class="cf-bp-art">${artFor(bp).card
+          ? `<i class="cf-bp-art-img" style="background-image:url('${artFor(bp).card}')"></i>`
+          : ICONS[bp.slot]}</span>
+        <div class="cf-bp-name">${bp.name}</div>
+        <div class="cf-bp-meta">${bp.grade} · ${bp.slot === 'weapon' ? '武器' : bp.slot === 'armor' ? '护甲' : '饰品'}</div>
+        ${locked ? `<div class="cf-bp-lock">未解锁 · ${bp.lock}</div>` : `<div class="cf-bp-meta" style="margin-top:5px;color:var(--pz-ink-2)">${bp.base.map(b => b.label + ' ' + (b.pct ? Math.round(b.v * 100) + '%' : b.v)).join(' · ')}</div>`}
+      </button>
+    `;
+  }).join('');
+
+  $('#body').innerHTML = `
+    <div class="pz-between" style="align-items:baseline">
+      <span class="pz-h3" style="font-family:var(--pz-serif)">图纸册</span>
+      <span class="pz-micro">已解锁 ${BPS.length - Object.keys(S.locked).length} / ${BPS.length}</span>
+    </div>
+    <div class="pz-micro" style="margin-top:-4px">图纸永久解锁。掉落的图纸只出未拥有的，集满后改掉「残页」。</div>
+    <div class="cf-bp-grid">${cards}</div>
+    <div class="cf-note">
+      改动说明：原先 12 个模板平铺成文字行；现在每张图纸是一张卡，带品阶、部位与解锁线索，未解锁的留成墨色剪影。
+    </div>
+  `;
+  document.querySelectorAll('.cf-bp').forEach((el) => {
+    el.addEventListener('click', () => {
+      const bp = BPS.find((b) => b.id === el.dataset.bp);
+      if (!bp || S.locked[bp.id]) return;
+      S.bp = bp;
+      S.grade = 2;
+      S.tab = 'bench';
+      render();
+    });
+  });
+}
+
+function renderBench() {
+  const bp = S.bp;
+  const cost = costOf(bp, S.grade);
+  const gold = goldCost(bp);
+  const afford = canAfford();
+  const goldBoss = Math.round(gold * 1.6);
+  const matOk = Object.entries(bp.mat).every(([k, v]) => (S.inv[k] || 0) >= v * S.grade);
+  const bossAfford = matOk && S.inv.gold >= goldBoss;
+  const prof = profBar(bp.tier);
+  const mods = profMods(bp.tier);
+
+  const baseStats = bp.base.map((b) => `
+    <div class="cf-stat-row"><span>${b.label}</span><b>${b.pct ? Math.round(b.v * 100) + '%' : b.v}</b></div>
+  `).join('');
+
+  const matRows = Object.entries(bp.mat).map(([k, base]) => {
+    const m = MATERIALS[k];
+    const need = base * S.grade;
+    const enough = S.inv[k] >= need;
+    return `
+      <div class="cf-mat-row">
+        <span class="cf-mat-name">${ICONS[m.icon]}${m.name}</span>
+        <span class="cf-mat-own" style="color:${enough ? 'var(--pz-ink-3)' : 'var(--pz-wine)'}">${S.inv[k]} 件</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+          <span class="cf-mat-own">×${need}</span>
+          <div class="cf-seg" data-grade>
+            ${[1, 2, 3].map((g) => `<button data-grade="${g}" class="${S.grade === g ? 'is-on' : ''}" ${S.inv[k] < base * g ? 'disabled' : ''}>${g === 1 ? '省料' : g === 2 ? '足料' : '豪掷'}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  $('#body').innerHTML = `
+    <div class="cf-steps">
+      <span class="cf-step is-on"><b>1</b>选图纸</span>
+      <span style="color:var(--pz-line-2)">›</span>
+      <span class="cf-step is-on"><b>2</b>备料</span>
+      <span style="color:var(--pz-line-2)">›</span>
+      <span class="cf-step is-on"><b>3</b>开炉</span>
+    </div>
+
+    <div class="cf-bench-head">
+      <div class="cf-icon-box">${artFor(bp).card
+        ? `<img class="cf-art-thumb" src="${artFor(bp).card}" data-fallback="${bp.slot}" alt="">`
+        : ICONS[bp.slot]}</div>
+      <div class="pz-grow" style="min-width:0">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="pz-h3" style="font-family:var(--pz-serif)">${bp.name}</span>
+          <span class="pz-tag pz-tag--brass" style="font-size:9px">T${bp.tier} ${bp.grade}</span>
+        </div>
+        <div class="pz-micro" style="margin-top:3px">图纸底板 · 品质区间 0.87–1.28</div>
+      </div>
+      <button class="cf-switch" data-act="book">换图纸</button>
+    </div>
+
+    <div class="pz-card" style="padding:5px 10px">
+      ${baseStats}
+    </div>
+
+    <div class="pz-card" style="padding:2px 10px">
+      ${matRows}
+    </div>
+
+    <div class="pz-card pz-card--sunken" style="padding:8px 10px">
+      <div class="cf-mat-row" style="border-bottom:0;padding:4px 0">
+        <span class="cf-mat-name">${ICONS.coal}煤</span>
+        <div class="cf-seg" data-coal style="margin-left:auto">
+          ${[0, 1, 2, 3].map((n) => `<button data-coal="${n}" class="${S.coal === n ? 'is-on' : ''}" ${S.inv.coal < n ? 'disabled' : ''}>${n === 0 ? '不用' : n + ' 份'}</button>`).join('')}
+        </div>
+      </div>
+      <div class="cf-hint" style="padding:0 0 6px">每份煤 +3% 火候窗口宽度，容错更高。</div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding:2px 0 6px">
+        <button class="cf-switch ${S.oil ? 'is-on' : ''}" data-act="oil" ${S.inv.oil < 1 ? 'disabled' : ''}>
+          ${ICONS.oil} 淬火油 ${S.inv.oil}
+        </button>
+        <button class="cf-switch ${S.sand ? 'is-on' : ''}" data-act="sand" ${S.inv.sand < 1 ? 'disabled' : ''}>
+          ${ICONS.sand} 星陨砂 ${S.inv.sand}
+        </button>
+      </div>
+      <div class="cf-hint">淬火油：品质下限提到 0.98 · 星陨砂：词条上限 +1</div>
+    </div>
+
+    <div class="pz-between" style="align-items:center;padding:0 2px">
+      <span class="pz-micro">工钱 ${gold} 金 · 煤 ${S.coal} 份</span>
+      <span class="pz-micro">成品品质由小游戏决定</span>
+    </div>
+
+    <div class="cf-dual">
+      <button class="pz-btn pz-btn--main" data-act="start" ${afford ? '' : 'disabled'}>
+        ${afford ? '自 己 打 造' : '材料不足'}
+      </button>
+      <button class="pz-btn pz-btn--brass" data-act="boss" ${bossAfford ? '' : 'disabled'}>
+        交给老板 · ${goldBoss} 金
+      </button>
+    </div>
+    <div class="cf-hint" style="text-align:center;margin-top:-2px">
+      老板出品：品质 1.00–1.06 保底 · 词条随机 · 不涨熟练度
+    </div>
+
+    <div class="cf-prof">
+      <div class="cf-prof-top">
+        <span>匠艺 T${bp.tier}</span>
+        <span>Lv.${prof.lv} · ${prof.lv >= 5 ? '已满' : `${prof.cur}/${prof.need}`}</span>
+      </div>
+      <div class="cf-prof-bar"><i style="width:${prof.pct}%"></i></div>
+      <div class="cf-hint" style="margin-top:4px">
+        ${prof.lv >= 5
+          ? '满级：指针 −20% · 窗口 +24% · 完美判定放宽到 60%（仍需自己点完）'
+          : `每级：指针 −5% · 窗口 +6% · 完美判定 +3%（现在 ${Math.round(mods.speed * 100)}% 速 · 窗口 ×${mods.win.toFixed(2)}）`}
+      </div>
+    </div>
+
+    <div class="cf-note">
+      新增：代打与自打是同一张图纸的两条路——老板给稳定下限，自己打冲上限并累积匠艺。熟练度按品阶分档，打 T2 练不到 T5。
+    </div>
+  `;
+}
+
+function render() {
+  renderRes();
+  document.querySelectorAll('.cf-tab[data-tab]').forEach((t) => {
+    t.classList.toggle('is-on', t.dataset.tab === S.tab);
+  });
+  if (S.tab === 'book') renderBook();
+  else renderBench();
+}
+
+/* ============================================================
+   打造流程
+   ============================================================ */
+
+const PHASES = [
+  { key: 'heat', title: '火候', sub: '鼓风到黄铜区间内，连击越高，成色越好', btn: '鼓 风', tag: '火候', rounds: 5 },
+  { key: 'hammer', title: '锻打', sub: '锤头扫过砧台，在弱点区落锤', btn: '落 锤', tag: '锻打', rounds: 4 },
+  { key: 'quench', title: '淬火', sub: '红线扫过，在正中入水', btn: '入 水', tag: '淬火', rounds: 1 },
+];
+
+function startForge() {
+  if (!canAfford()) { toast('材料不足'); return; }
+
+  const cost = costOf(S.bp, S.grade);
+  // 先扣材料（金币最后结算时扣，退出即全退）
+  for (const [k, v] of Object.entries(cost)) {
+    if (k === 'coal') continue;
+    S.inv[k] -= v;
+  }
+  S.inv.coal -= S.coal;
+
+  G = {
+    phase: 0,
+    idx: 0,
+    t: 0,
+    pos: 50,
+    zone: { c: 50, w: 30 },
+    quality: 0.87,
+    heatPerfect: 0,
+    hammerPerfect: 0,
+    quench: null,
+    running: true,
+    busy: false,
+    taps: [],
+    bp: S.bp,
+    grade: S.grade,
+    oil: S.oil,
+    sand: S.sand,
+  };
+
+  if (G.oil) G.quality = 0.98;
+  G.mods = profMods(G.bp.tier);
+  bumpQuality(0);
+
+  $('#forgeItemName').textContent = `${G.bp.name} · T${G.bp.tier}`;
+  $('#forge').classList.add('is-open');
+  renderRes();
+  beginPhase(0);
+  lastTs = 0;
+  rafId = requestAnimationFrame(tick);
+}
+
+function beginPhase(p) {
+  G.phase = p;
+  G.idx = 0;
+  G.t = 0;
+  G.running = true;
+  G.busy = false;
+  const cfg = PHASES[p];
+
+  $('#phaseTitle').textContent = cfg.title;
+  $('#phaseSub').textContent = cfg.sub;
+  $('#forgeBtn').textContent = cfg.btn;
+  $('#gaugeTag').textContent = cfg.tag;
+  $('#gaugeHint').textContent = ['窗口逐次收窄', '弱点区逐次收窄', '早·韧性 / 中·双收 / 晚·暴伤'][p];
+  $('#gauge').style.display = 'block';
+  $('#dots').innerHTML = Array.from({ length: cfg.rounds }, () => '<span class="cf-dot"></span>').join('');
+  $('#feedback').textContent = '';
+  $('#feedback').className = 'cf-feedback';
+
+  // 火候：窗口宽度受煤影响；锻打：越来越窄；淬火：三段刻度
+  if (p === 0) {
+    G.zone = { c: rnd(26, 74), w: clamp((30 + G.grade * 2 + (S.coal || 0) * 3 - G.idx * 1.2) * G.mods.win, 18, 56) };
+    $('#anvilWrap').style.display = 'flex';
+    $('#quenchWrap').style.display = 'none';
+  } else if (p === 1) {
+    G.zone = { c: rnd(24, 76), w: [17, 14, 11, 9][0] * G.mods.win };
+    $('#anvilWrap').style.display = 'flex';
+    $('#quenchWrap').style.display = 'none';
+  } else {
+    G.zone = { c: 50, w: 16 };
+    $('#anvilWrap').style.display = 'none';
+    $('#quenchWrap').style.display = 'flex';
+  }
+  document.querySelector('.cf-stage-area').classList.toggle('is-quench', p === 2);
+  layoutZone();
+}
+
+function layoutZone() {
+  const z = $('#zone');
+  const w = G.zone.w;
+  z.style.left = (G.zone.c - w / 2) + '%';
+  z.style.width = w + '%';
+  z.classList.toggle('is-quench', G.phase === 2);
+  const cfg = PHASES[G.phase];
+  $('#gaugeTag').textContent = `${cfg.tag} ${Math.min(G.idx + 1, cfg.rounds)}/${cfg.rounds}`;
+}
+
+function tick(ts) {
+  if (!G || !G.running) return;
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min(48, ts - lastTs);
+  lastTs = ts;
+  G.t += dt;
+
+  if (G.phase === 0) {
+    const w = (2.1 + G.idx * 0.42) * G.mods.speed;
+    G.pos = 50 + 45 * Math.sin((G.t / 1000) * w);
+  } else if (G.phase === 1) {
+    const sp = (0.92 + G.idx * 0.13) * G.mods.speed;
+    const raw = ((G.t / 1000) * sp) % 2;
+    G.pos = raw <= 1 ? raw * 100 : (2 - raw) * 100;
+  } else if (G.phase === 2) {
+    const sweep = 1150 + 60 * G.mods.k;
+    G.pos = (G.t / sweep) * 100;
+    if (G.pos >= 100 && !G.busy) {
+      G.pos = 100;
+      judge('late');
+      return;
+    }
+  }
+
+  $('#needle').style.left = clamp(G.pos, 0, 100) + '%';
+  rafId = requestAnimationFrame(tick);
+}
+
+function stopLoop() {
+  G.running = false;
+  cancelAnimationFrame(rafId);
+}
+
+function popFeedback(text, tone) {
+  const el = $('#feedback');
+  el.textContent = text;
+  el.className = 'cf-feedback ' + (tone === 'hit' ? 'is-hit' : tone === 'miss' ? 'is-miss' : '');
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+
+function bumpQuality(delta) {
+  G.quality = clamp(G.quality + delta, 0.82, 1.30);
+  const ratio = (G.quality - 0.82) / 0.48;
+  $('#qVal').textContent = G.quality.toFixed(2);
+  $('#qFill').style.width = clamp(ratio * 100, 0, 100) + '%';
+}
+
+function markDot() {
+  const dots = document.querySelectorAll('#dots .cf-dot');
+  if (dots[G.idx]) dots[G.idx].classList.add('is-done');
+}
+
+function judge(kind) {
+  if (!G || G.busy) return;
+  G.busy = true;
+  stopLoop();
+
+  const rect = $('#gauge').getBoundingClientRect();
+  const px = rect.left + (G.pos / 100) * rect.width;
+
+  if (kind === 'miss' || kind === 'late' || kind === 'early') {
+    popFeedback(kind === 'early' ? '偏早' : kind === 'late' ? '偏晚' : '失手', 'miss');
+    sfx('fail');
+    if (G.phase === 2) {
+      G.quench = kind;
+      bumpQuality(0.02);
+    } else {
+      bumpQuality(-0.006);
+    }
+  } else {
+    // 判定命中
+    const d = Math.abs(G.pos - G.zone.c);
+    const perfect = d <= G.zone.w * (G.phase === 2 ? 0.45 : G.mods.perfect);
+    popFeedback(perfect ? '完美' : '不错', 'hit');
+    sfx(perfect ? 'ding' : 'hammer');
+    sparks(px - rect.left + rect.left - $('#forge').getBoundingClientRect().left, rect.top - $('#forge').getBoundingClientRect().top + rect.height / 2, perfect ? 9 : 5);
+
+    if (G.phase === 0) {
+      bumpQuality(perfect ? 0.024 : 0.012);
+      if (perfect) G.heatPerfect += 1;
+    } else if (G.phase === 1) {
+      bumpQuality(perfect ? 0.032 : 0.016);
+      if (perfect) G.hammerPerfect += 1;
+      $('#anvilWrap').classList.add('is-swing');
+      setTimeout(() => $('#anvilWrap').classList.remove('is-swing'), 200);
+    } else {
+      G.quench = 'center';
+      bumpQuality(0.055);
+    }
+  }
+
+  markDot();
+  G.idx += 1;
+  const cfg = PHASES[G.phase];
+  setTimeout(() => {
+    if (!G) return;
+    if (G.idx < cfg.rounds) {
+      // 下一轮
+      if (G.phase === 0) {
+        G.zone = { c: rnd(26, 74), w: clamp((30 + G.grade * 2 + (S.coal || 0) * 3 - G.idx * 1.2) * G.mods.win, 18, 56) };
+      } else if (G.phase === 1) {
+        G.zone = { c: rnd(24, 76), w: [17, 14, 11, 9][G.idx] * G.mods.win };
+      }
+      layoutZone();
+      G.t = 0;
+      G.busy = false;
+      G.running = true;
+      lastTs = 0;
+      rafId = requestAnimationFrame(tick);
+    } else if (G.phase < 2) {
+      beginPhase(G.phase + 1);
+      lastTs = 0;
+      rafId = requestAnimationFrame(tick);
+    } else {
+      settle();
+    }
+  }, G.phase === 2 ? 700 : 420);
+}
+
+$('#forgeBtn').addEventListener('click', () => {
+  if (!G) return;
+  const p = G.phase;
+  if (p === 0) {
+    const d = Math.abs(G.pos - G.zone.c);
+    if (d <= G.zone.w / 2) judge(d <= G.zone.w * G.mods.perfect ? 'perfect' : 'good');
+    else judge('miss');
+  } else if (p === 1) {
+    const d = Math.abs(G.pos - G.zone.c);
+    if (d <= G.zone.w / 2) judge(d <= G.zone.w * G.mods.perfect ? 'perfect' : 'good');
+    else judge('miss');
+  } else {
+    const pad = 8 + 2 * G.mods.k;
+    if (G.pos < 50 - pad) judge('early');
+    else if (G.pos > 50 + pad) judge('late');
+    else judge('perfect');
+  }
+});
+
+$('#forgeClose').addEventListener('click', () => {
+  if (!G) return;
+  stopLoop();
+  // 归还材料（未完成不消耗）
+  const cost = costOf(G.bp, G.grade);
+  for (const [k, v] of Object.entries(cost)) {
+    if (k === 'coal') continue;
+    S.inv[k] += v;
+  }
+  S.inv.coal += S.coal;
+  G = null;
+  $('#forge').classList.remove('is-open');
+  render();
+});
+
+/* ============================================================
+   结算
+   ============================================================ */
+
+function rarityOf(q) {
+  const r = (q - 0.82) / 0.48;
+  if (r < 0.22) return 'common';
+  if (r < 0.45) return 'uncommon';
+  if (r < 0.68) return 'rare';
+  if (r < 0.88) return 'epic';
+  return 'legendary';
+}
+
+const AFFIX_CAP = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
+
+function buildRolledAffixes(bp, rarity, quality) {
+  const cap = AFFIX_CAP[rarity];
+  let count = Math.min(cap, 1 + (G.heatPerfect === 5 ? 1 : 0) + (G.hammerPerfect === 4 ? 1 : 0) + (G.sand ? 1 : 0));
+  if (count <= 0) return [];
+
+  const pool = [...(AFFIX_POOL[bp.slot] || [])];
+  const out = [];
+  const r = (quality - 0.82) / 0.48;
+  for (let i = 0; i < count && pool.length > 0; i++) {
+    const def = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    const roll = Math.random();
+    let tier = 'common';
+    if (roll < clamp(r * 0.42, 0, 0.42)) tier = 'legend';
+    else if (roll < clamp(0.25 + r * 0.5, 0.25, 0.8)) tier = 'rare';
+    else if (roll < 0.62) tier = 'fine';
+    const value = def.base * TIER_MULT[tier] * (0.9 + quality * 0.18);
+    out.push({ ...def, tier, value });
+  }
+  return out;
+}
+
+function fmtAffix(a) {
+  if (a.kind === 'percent' || a.stat === 'crit' || a.stat === 'critDmg' || a.stat === 'ten') {
+    return '+' + Math.round(a.value * 100) + '%';
+  }
+  return '+' + Math.round(a.value);
+}
+
+function settle(source = 'self') {
+  stopLoop();
+  const q = G.quality;
+  const rarity = rarityOf(q);
+  const affixes = buildRolledAffixes(G.bp, rarity, q);
+
+  // 扣金币（老板收 1.6 倍）
+  const gold = source === 'boss' ? Math.round(goldCost(G.bp) * 1.6) : goldCost(G.bp);
+  S.inv.gold -= gold;
+  S.oil = false;
+  S.sand = false;
+
+  // 自打结算熟练度；代打不给
+  const xpGain = source === 'boss'
+    ? 0
+    : gainProf(G.bp.tier, G.bp.id, Math.round(20 + q * 26 + (G.heatPerfect + G.hammerPerfect) * 5));
+
+  const scaled = G.bp.base.map((b) => ({
+    ...b,
+    out: b.pct ? Math.round(b.v * (0.9 + q * 0.18) * 100) / 100 : Math.round(b.v * (0.9 + q * 0.18)),
+  }));
+
+  const color = RARITY_COLOR[rarity];
+  const cur = { ad: 16, ap: 12, armor: 15, hp: 60, crit: 0.06, pen: 4, heal: 8 };
+
+  const statRows = scaled.map((b) => {
+    let diff = '';
+    if (cur[b.k] !== undefined) {
+      const d = b.out - cur[b.k];
+      if (Math.abs(d) > 0.0001) {
+        diff = `<span class="cf-diff ${d > 0 ? 'up' : 'down'}">${d > 0 ? '▲ +' : '▼ '}${b.pct ? Math.round(d * 100) + '%' : Math.round(d)}</span>`;
+      }
+    }
+    return `<div class="cf-stat-row"><span>${b.label}</span><b>${b.pct ? Math.round(b.out * 100) + '%' : b.out}${diff}</b></div>`;
+  }).join('');
+
+  const affixRows = affixes.length
+    ? affixes.map((a) => `
+        <div class="cf-affix" data-tier="${a.tier}">
+          <i></i>
+          <span class="cf-affix-name">${a.pre}·${a.label}</span>
+          <span class="cf-affix-val">${fmtAffix(a)}</span>
+        </div>
+      `).join('')
+    : `<div class="cf-affix-empty">本次没有出词条 —— 完美通关火候与锻打，或加一份星陨砂。</div>`;
+
+  $('#resultBody').innerHTML = `
+    <div class="cf-item-card ${rarity === 'legendary' ? 'is-legendary' : ''}">
+      <div class="cf-item-top">
+        <div class="cf-icon-box" style="color:${color}">${ICONS[G.bp.slot]}</div>
+        <div class="pz-grow" style="min-width:0">
+          <div class="cf-item-name" style="color:${color}">${RARITY_LABEL[rarity]}·${G.bp.name}</div>
+          <div class="cf-item-sub">T${G.bp.tier} ${G.bp.grade} · ${G.bp.slot === 'weapon' ? '武器' : G.bp.slot === 'armor' ? '护甲' : '饰品'}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="cf-quality" style="color:${color}">${q.toFixed(2)}</div>
+          <div class="cf-item-sub">${qualityLabel(q)}</div>
+        </div>
+      </div>
+
+      <hr class="pz-divider" style="margin:10px 0 6px" />
+      ${statRows}
+
+      <div class="cf-affix-list">${affixRows}</div>
+
+      <div class="pz-micro" style="margin-top:10px;letter-spacing:.04em">
+        ${source === 'boss'
+          ? `老板代打 · 品质 ${q.toFixed(2)}（保底 1.00–1.06）· 不涨熟练度`
+          : `火候 ${G.heatPerfect}/5 完美 · 锻打 ${G.hammerPerfect}/4 完美 · 淬火 ${G.quench === 'center' ? '正中' : G.quench === 'early' ? '偏早' : '偏晚'} · 匠艺 +${xpGain} xp`}
+      </div>
+    </div>
+
+    <div class="cf-result-actions">
+      <button class="pz-btn pz-btn--ghost pz-btn--block" data-act="again">再打一件</button>
+      <button class="pz-btn pz-btn--main pz-btn--block" data-act="equip">装备给 陈砚</button>
+    </div>
+    <div class="pz-micro" style="text-align:center;color:#C9B791">Demo 示意：数值与词条池接入引擎后由 blueprintData 决定</div>
+  `;
+
+  $('#result').classList.add('is-open');
+  renderRes();
+  sfx(rarity === 'legendary' ? 'ding' : 'hammer');
+
+  // 词条逐条点亮
+  const rows = document.querySelectorAll('#resultBody .cf-affix');
+  rows.forEach((el, i) => {
+    setTimeout(() => {
+      el.classList.add('is-on');
+      if (el.dataset.tier === 'legend' || el.dataset.tier === 'rare') sfx('ding');
+    }, 320 + i * 240);
+  });
+
+  $('#resultBody').querySelector('[data-act="again"]').addEventListener('click', () => {
+    $('#result').classList.remove('is-open');
+    $('#forge').classList.remove('is-open');
+    G = null;
+    S.oil = false;
+    S.sand = false;
+    S.tab = 'bench';
+    render();
+  });
+
+  $('#resultBody').querySelector('[data-act="equip"]').addEventListener('click', () => {
+    toast('已装备给 陈砚（示意）');
+  });
+}
+
+/* ============================================================
+   事件
+   ============================================================ */
+
+document.addEventListener('click', (e) => {
+  const tab = e.target.closest('.cf-tab[data-tab]');
+  if (tab) {
+    S.tab = tab.dataset.tab;
+    render();
+    return;
+  }
+
+  const gradeBtn = e.target.closest('[data-grade]');
+  if (gradeBtn) {
+    S.grade = Number(gradeBtn.dataset.grade);
+    renderBench();
+    return;
+  }
+
+  const coalBtn = e.target.closest('[data-coal]');
+  if (coalBtn) {
+    S.coal = Number(coalBtn.dataset.coal);
+    renderBench();
+    return;
+  }
+
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (!act) return;
+
+  if (act === 'oil') { S.oil = !S.oil; renderBench(); }
+  else if (act === 'sand') { S.sand = !S.sand; renderBench(); }
+  else if (act === 'book') { S.tab = 'book'; render(); }
+  else if (act === 'start') startForge();
+  else if (act === 'boss') bossCraft();
+});
+
+/* ============================================================
+   老板代打：不走小游戏，品质 1.00–1.06 保底，词条随机，不涨熟练度
+   ============================================================ */
+
+function bossCraft() {
+  const bp = S.bp;
+  const gold = Math.round(goldCost(bp) * 1.6);
+  const enough = Object.entries(bp.mat).every(([k, v]) => (S.inv[k] || 0) >= v * S.grade);
+  if (!enough || S.inv.gold < gold) { toast('材料或工钱不足'); return; }
+
+  for (const [k, v] of Object.entries(bp.mat)) S.inv[k] -= v * S.grade;
+  const q = 1 + Math.floor(Math.random() * 7) / 100;
+  G = {
+    bp,
+    grade: S.grade,
+    quality: q,
+    heatPerfect: 0,
+    hammerPerfect: 0,
+    quench: null,
+    mods: profMods(bp.tier),
+    source: 'boss',
+  };
+  settle('boss');
+  renderRes();
+}
+
+$('#soundBtn').addEventListener('click', () => {
+  S.sound = !S.sound;
+  toast(S.sound ? '音效已开' : '音效已关');
+  $('#soundBtn').style.opacity = S.sound ? '1' : '.4';
+});
+
+render();
+</script>
+</body>
+</html>

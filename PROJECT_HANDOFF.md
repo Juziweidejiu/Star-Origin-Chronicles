@@ -609,3 +609,15 @@
   - 360×640 量测：名册滚动区被 `min-height: 200px` 兜住，`main` 出现 194px 的整页滚动，固定区仍完整可见。
   - 截图复核：城镇横幅单行描述 + 省略号、悬赏榜在下方独立滚动；名册收起态两枚折叠条 + 队伍概览卡；展开态筛选条 + 队员卡在剩余空间内滚动。
 
+### Milestone 34: 铁匠铺打造原型（`design/crafting-demo.html`，待评审 ⏳）
+
+- 目标：验证「图纸 + 材料 + 小游戏 + 词条」的打造手感。**不接入构建、不改引擎与存档**，只作为设计原型。
+- 入口：`design/crafting-demo.html`（单文件，`<link>` 复用 `mobile-pwa/src/index.css` 的 `pz-` token），按 390×844 手机壳展示；静态服务下访问 `http://127.0.0.1:5200/design/crafting-demo.html`。
+- 内容：图纸册 6 张（4 张已解锁 + 2 张墨色剪影与线索）、打造台备料（省料/足料/豪掷 × 煤 0–3 × 淬火油/星陨砂）、三段式小游戏（火候 5 次 → 锻打 4 次 → 淬火 1 次）、成品词条逐条点亮并与当前装备对比。
+- 本轮新增：
+  - **老板代打**：1.6 倍工钱，品质保底 1.00–1.06、词条随机、不涨熟练度；只耗基础料，不耗煤/油/砂。与自打形成「下限 vs 上限」的分工。
+  - **熟练度**：按品阶 T1–T5 各自 5 级（每级 150 xp），经验只来自自打；同图纸第 10 次后经验减半、第 20 次归零。满级只放宽判定（指针 −20%、窗口 +24%、完美判定 60%），仍要自己点完 10 下。
+  - **资产槽**：`ART` 表 + `artFor(bp)`，约定路径 `public/art/{icons|items|heroes|npc}/{id}.webp`，缺图回落线性图标；`ArtRef { icon?, card?, portrait?, model? }` 为后续立绘/模型预留。示例插画 `design/assets/items/sword.svg`（透明底、线性钢剑）。
+  - **锻造层视觉**：炉膛面板（渐变 + 暖光圈 + 内阴影）、大砧 104×80、火候/锻打/淬火三态图标切换（砧 → 水滴）、仪表上方「火候 2/5」计数器。
+- 已定方案（评审通过后落地）：`engine/blueprintData.ts` + `engine/craftEngine.ts`（纯函数状态机）、`saveEngine` 增可选字段 `unlockedBlueprints` / `materials` / `profession`（normalize 补默认，**不 bump SAVE_VERSION**）、`components/BlacksmithView.tsx` 从 `TownView.tsx` 拆出。详见 `TODO.md` P1-6。
+- 验证：无 console 错误；火候/锻打/淬火/成品/代打五态截图正常；代打实测金币 636→412（−224）、铁锭 24→12、煤不变、熟练度保持 380，成品「精良·精钢长剑 1.03」+1 词条。

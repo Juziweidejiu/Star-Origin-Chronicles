@@ -66,6 +66,15 @@
 - [ ] 承暴击 +3~5、队友倒地 +5~8、击杀强敌 −2。
 - [ ] 100 压力心理检定：小概率「豪杰/振奋」，大概率「偏执/自私/绝望」。
 
+### 6. 铁匠铺打造（图纸 / 材料 / 小游戏，⏳ 原型已就绪待评审）
+- [x] 原型：`design/crafting-demo.html`（单文件，复用 pz token，不接入构建）；示例插画 `design/assets/items/sword.svg`。
+- 已定分工：图纸定底子（部位/基础属性/词条池）、材料定上限（品质区间/词条数）、小游戏定实际发挥。
+- 已定交互：三段式（火候 5 → 锻打 4 → 淬火 1）；老板代打 1.6 倍工钱、品质保底 1.00–1.06、不涨熟练度；熟练度按品阶 T1–T5 各 5 级，只由自打获得。
+- [ ] 待评审通过后落地：`engine/blueprintData.ts` + `engine/craftEngine.ts`（纯函数状态机 `startCraft/applyBeat/settleCraft`）。
+- [ ] `saveEngine.ts` / `types/world.ts` 增 `unlockedBlueprints`、`materials`、`profession`（可选字段，normalize 补默认，**不 bump SAVE_VERSION**）。
+- [ ] 拆 `components/BlacksmithView.tsx`（`BlueprintBook / CraftStage / CraftMinigame / AffixRow`），`TownView.tsx` 只保留入口。
+- 资产约定：`public/art/{icons|items|heroes|npc}/{id}.webp`，缺图回落线性图标；v1 不改 `combatEngine`。
+
 ---
 
 ## 🟡 P2 · 其他玩法与联调
