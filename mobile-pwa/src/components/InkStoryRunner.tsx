@@ -102,8 +102,9 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
     }
   };
 
-  // 挂载时加载默认剧本
+  // 挂载时加载默认剧本（重建 Ink 实例并同步首屏，属与外部运行时的同步）
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     initStory(selectedStoryMeta.source);
   }, [selectedStoryMeta]);
 

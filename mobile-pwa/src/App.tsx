@@ -34,19 +34,39 @@ import { ENABLE_WORLD_CRISIS } from './config/features';
 import type { FormationPresetId, FormationSlotAssignment, GridSlotId } from './types/formation';
 import { FORMATION_PRESETS, applyPresetToParty } from './engine/formationEngine';
 import { applyTownSave, loadSave, writeSave } from './engine/saveEngine';
-import type { SaveData, SavePayload } from './engine/saveEngine';
+import type { SavePayload } from './engine/saveEngine';
 
 export function App() {
-  // 启动时只读一次存档，之后所有初始化器都基于它，避免重复解析
-  const bootSaveRef = useRef<SaveData | null | undefined>(undefined);
-  if (bootSaveRef.current === undefined) bootSaveRef.current = loadSave();
-  const bootSave = bootSaveRef.current;
+  // 启动时只读一次存档：把「读档 + 名册/首发/阵型兜底」在一个惰性 state 里一次算完。
+  // 好处：render 期间不再读 ref.current，也省掉挂载后再补一次初始化的 effect。
+  const [boot] = useState(() => {
+    const save = loadSave();
+    const starterRoster: Hero[] = [
+      generateHero('blademaster', true, 'female'), // 主角团长
+      generateHero('guardian', false, 'male'),     // 重装前锋
+      generateHero('cleric', false, 'female'),     // 战地医官
+      generateHero('ranger', false, 'male')        // 远程猎手
+    ];
+    const roster = save && save.roster.length > 0 ? save.roster : starterRoster;
+    const deployedHeroIds =
+      save?.deployedHeroIds?.length ? save.deployedHeroIds : roster.slice(0, 4).map(h => h.id);
+    const formationAssignments = save?.formationAssignments?.length
+      ? save.formationAssignments
+      : applyPresetToParty('shield_wall', roster.filter(h => deployedHeroIds.includes(h.id)));
+    return {
+      save,
+      roster,
+      deployedHeroIds,
+      formationAssignments,
+      formationPreset: (save?.formationPreset ?? 'shield_wall') as FormationPresetId
+    };
+  });
 
   const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town' | 'story'>(() => {
     const t = new URLSearchParams(window.location.search).get('tab');
     if (t === 'roster' || t === 'dungeon' || t === 'combat' || t === 'story') return t;
     // 有未完成的地牢就回到探险沙盘，否则回城
-    return bootSave?.dungeon ? 'dungeon' : 'town';
+    return boot.save?.dungeon ? 'dungeon' : 'town';
   });
   const [storySubTab, setStorySubTab] = useState<'ink' | 'event' | 'bark'>('ink');
   const [interactiveEvent, setInteractiveEvent] = useState<DungeonEvent | null>(null);
@@ -56,43 +76,23 @@ export function App() {
   // 初始化城镇、后勤与天灾引擎
   const [townEngine] = useState<TownEngine>(() => {
     const engine = new TownEngine();
-    if (bootSave) applyTownSave(engine, bootSave.town);
+    if (boot.save) applyTownSave(engine, boot.save.town);
     return engine;
   });
   const [crisisEngine] = useState<CrisisEngine>(() => new CrisisEngine());
 
   // 佣兵团名册 (主角 + 3名初始战友) — 男女比例 2:2，全员实力均衡
-  const [roster, setRoster] = useState<Hero[]>(() => {
-    if (bootSave && bootSave.roster.length > 0) return bootSave.roster;
-    return [
-      generateHero('blademaster', true, 'female'), // 主角团长
-      generateHero('guardian', false, 'male'),     // 重装前锋
-      generateHero('cleric', false, 'female'),     // 战地医官
-      generateHero('ranger', false, 'male')        // 远程猎手
-    ];
-  });
+  const [roster, setRoster] = useState<Hero[]>(boot.roster);
 
   // 出战先遣队（4 人名单 ID）
-  const [deployedHeroIds, setDeployedHeroIds] = useState<string[]>(() => bootSave?.deployedHeroIds ?? []);
+  const [deployedHeroIds, setDeployedHeroIds] = useState<string[]>(boot.deployedHeroIds);
 
   // 阵型系统状态：当前预设 + 4 人槽位分配 + 阵型弹窗
-  const [currentFormationPreset, setCurrentFormationPreset] = useState<FormationPresetId>(
-    () => bootSave?.formationPreset ?? 'shield_wall'
-  );
-  const [formationAssignments, setFormationAssignments] = useState<FormationSlotAssignment[]>(
-    () => bootSave?.formationAssignments ?? []
-  );
+  const [currentFormationPreset, setCurrentFormationPreset] =
+    useState<FormationPresetId>(boot.formationPreset);
+  const [formationAssignments, setFormationAssignments] =
+    useState<FormationSlotAssignment[]>(boot.formationAssignments);
   const [showFormationModal, setShowFormationModal] = useState<boolean>(false);
-
-  // 初始化首发 4 人名单与阵型
-  useEffect(() => {
-    if (roster.length > 0 && deployedHeroIds.length === 0) {
-      const initialDeployed = roster.slice(0, 4).map(h => h.id);
-      setDeployedHeroIds(initialDeployed);
-      const activeParty = roster.filter(h => initialDeployed.includes(h.id));
-      setFormationAssignments(applyPresetToParty('shield_wall', activeParty));
-    }
-  }, [roster]);
 
   // 获取当前首发出战的 4 位英雄对象列表
   const deployedSquad = useMemo(() => {
@@ -135,39 +135,41 @@ export function App() {
 
   // 当前进行中的任务契约与地牢探索实例
   const [currentContract, setCurrentContract] = useState<GuildContract | null>(
-    () => bootSave?.dungeon?.contract ?? null
+    boot.save?.dungeon?.contract ?? null
   );
   const [currentDungeon, setCurrentDungeon] = useState<DungeonInstance | null>(
-    () => bootSave?.dungeon?.dungeon ?? null
+    boot.save?.dungeon?.dungeon ?? null
   );
   const [activeDungeonRoom, setActiveDungeonRoom] = useState<DungeonRoom | null>(null);
   // 队伍公共背包（未装备的战利品）
-  const [inventory, setInventory] = useState<Equipment[]>(() => bootSave?.inventory ?? []);
+  const [inventory, setInventory] = useState<Equipment[]>(boot.save?.inventory ?? []);
   const [inventoryTarget, setInventoryTarget] = useState<string>('');
 
   // ── 自动保存 ────────────────────────────────────────────────
-  // 每次渲染刷新一份快照引用（只引用现成对象，不做深拷贝），再由 800ms 防抖写入。
+  // 每次渲染后刷新一份快照引用（只引用现成对象，不做深拷贝），再由 800ms 防抖写入。
   // 战斗中每 200ms 都会重渲染，定时器被不断重置，等价于只在操作间歇落盘。
+  // 快照在 effect 内赋值而不是 render 期间赋值：render 阶段不碰 ref。
   const saveSnapshotRef = useRef<SavePayload | null>(null);
-  saveSnapshotRef.current = {
-    town: {
-      towns: townEngine.towns,
-      logistics: townEngine.logistics,
-      contracts: townEngine.contracts,
-      tavernRecruits: townEngine.tavernRecruits,
-      fallenSouls: townEngine.fallenSouls,
-    },
-    roster,
-    deployedHeroIds,
-    formationPreset: currentFormationPreset,
-    formationAssignments,
-    inventory,
-    dungeon: currentContract && currentDungeon
-      ? { contract: currentContract, dungeon: currentDungeon, roomIndex: currentDungeon.currentRoomIndex }
-      : null,
-  };
 
   useEffect(() => {
+    saveSnapshotRef.current = {
+      town: {
+        towns: townEngine.towns,
+        logistics: townEngine.logistics,
+        contracts: townEngine.contracts,
+        tavernRecruits: townEngine.tavernRecruits,
+        fallenSouls: townEngine.fallenSouls,
+      },
+      roster,
+      deployedHeroIds,
+      formationPreset: currentFormationPreset,
+      formationAssignments,
+      inventory,
+      dungeon: currentContract && currentDungeon
+        ? { contract: currentContract, dungeon: currentDungeon, roomIndex: currentDungeon.currentRoomIndex }
+        : null,
+    };
+
     const timer = window.setTimeout(() => {
       if (saveSnapshotRef.current) writeSave(saveSnapshotRef.current);
     }, 800);
@@ -756,7 +758,7 @@ export function App() {
       clearInterval(timer);
       clearInterval(cleanupTimer);
     };
-  }, [isRunning, engine, battleRewardClaimed, roster, townEngine, activeDungeonRoom, combatSpeed]);
+  }, [isRunning, engine, battleRewardClaimed, roster, townEngine, activeDungeonRoom, combatSpeed, currentDungeon, currentContract]);
 
   // 切换自动/手动大招
   const toggleAutoUlt = () => {

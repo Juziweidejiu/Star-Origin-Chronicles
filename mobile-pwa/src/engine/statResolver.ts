@@ -133,7 +133,7 @@ export function describeAffix(affix: Affix): string {
 /** 装备基础值展示文本，如「物攻 18 · 生命 30」 */
 export function describeBase(item: Equipment): string {
   return (Object.entries(item.base) as [CoreStatKey, number][])
-    .filter(([_, value]) => value > 0)
+    .filter(([, value]) => value > 0)
     .map(([key, value]) => {
       if (key === 'critChance' || key === 'attackSpeed' || key === 'tenacity') {
         return `${STAT_LABEL[key]} ${Math.round(value * 100)}%`;
