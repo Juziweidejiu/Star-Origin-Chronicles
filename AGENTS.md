@@ -108,4 +108,12 @@ style(scope): 说明
 docs: 说明
 ```
 
-每个里程碑完成后：更新 `PROJECT_HANDOFF.md` → `npm run check` → 提交 → `git push origin main`（Gitee）。
+每个里程碑完成后：更新 `PROJECT_HANDOFF.md` → `npm run check` → 提交 → 推送两个远程：
+
+```bash
+git push origin main    # Gitee（主仓）
+git push github main    # GitHub 镜像，触发免费的 Actions CI
+```
+
+GitHub 侧是**公开仓库**，Actions 分钟数不限，`.github/workflows/ci.yml` 会自动跑 `npm ci → check → test → build`。
+Gitee Go（`.workflows/ci.yml`）是付费功能，本项目不使用。
