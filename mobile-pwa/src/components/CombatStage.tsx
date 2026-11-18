@@ -1,4 +1,4 @@
-import React, { useMemo, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useLayoutEffect, useRef, useState } from 'react';
 import type { CombatUnit } from '../engine/combatEngine';
 import type { StageTheme } from '../config/stageThemes';
 import { STAGE_THEMES, stageThemeVars } from '../config/stageThemes';
@@ -81,6 +81,9 @@ const CELLS: Array<[number, number]> = [
   [3, 1], [3, 2], [3, 3],
 ];
 
+/** 空数组常量，避免每次渲染新建引用 */
+const EMPTY_TEXT_ITEMS: FloatingTextItem[] = [];
+
 export const CombatStage: React.FC<CombatStageProps> = ({
   theme,
   playerUnits,
@@ -99,6 +102,25 @@ export const CombatStage: React.FC<CombatStageProps> = ({
   const env = useMemo(() => STAGE_THEMES[theme] || STAGE_THEMES.catacomb, [theme]);
   const stageRef = useRef<HTMLDivElement>(null);
   const [anchors, setAnchors] = useState<Record<string, { x: number; y: number }>>({});
+  // 窗口尺寸变化时才重新测锚点（旋转屏幕 / 键盘弹出等）
+  const [stageSizeKey, setStageSizeKey] = useState(() => `${window.innerWidth}x${window.innerHeight}`);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const onResize = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        setStageSizeKey(`${window.innerWidth}x${window.innerHeight}`);
+      }, 160);
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
 
   const playerLayout = useMemo(() => layoutSide(playerUnits, 'player'), [playerUnits]);
   const enemyLayout = useMemo(() => layoutSide(enemyUnits, 'enemy'), [enemyUnits]);
@@ -109,6 +131,18 @@ export const CombatStage: React.FC<CombatStageProps> = ({
     const hit = [...playerLayout, ...enemyLayout].find(p => p.unit.hero.id === focusedTargetId);
     return new Set(hit ? hit.cells : []);
   }, [focusedTargetId, playerLayout, enemyLayout]);
+
+  // 布局指纹：只有单位进出或换槽时才需要重新量锚点，
+  // 否则每个 tick 新数组都会触发 getBoundingClientRect 强制回流。
+  const layoutKey = useMemo(
+    () =>
+      `${stageSizeKey}|` +
+      [...playerLayout, ...enemyLayout]
+        .map(p => p.unit.slotId || '')
+        .sort()
+        .join('|'),
+    [playerLayout, enemyLayout, stageSizeKey],
+  );
 
   // 量一次棋子中心，作为远程弹道的起点与终点
   useLayoutEffect(() => {
@@ -127,7 +161,17 @@ export const CombatStage: React.FC<CombatStageProps> = ({
       };
     });
     setAnchors(next);
-  }, [playerLayout, enemyLayout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutKey]);
+
+  // 同一单位的飘字预先分组，避免每次渲染都对全表 filter
+  const textsByUnit = useMemo(() => {
+    const map: Record<string, FloatingTextItem[]> = {};
+    for (const t of floatingTexts) {
+      (map[t.targetId] ||= []).push(t);
+    }
+    return map;
+  }, [floatingTexts]);
 
   const resolvedProjectiles = useMemo(
     () =>
@@ -164,7 +208,7 @@ export const CombatStage: React.FC<CombatStageProps> = ({
           }}
         />
         <div style={{ position: 'absolute', top: -4, left: '50%', zIndex: 100, pointerEvents: 'none' }}>
-          <FloatingCombatText items={floatingTexts.filter(t => t.targetId === unit.hero.id)} />
+          <FloatingCombatText items={textsByUnit[unit.hero.id] || EMPTY_TEXT_ITEMS} />
         </div>
       </div>
     );

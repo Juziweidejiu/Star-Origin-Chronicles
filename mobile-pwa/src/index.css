@@ -704,6 +704,40 @@ button, input, textarea, select {
   50% { transform: translateY(-2px) scale(1.015); }
 }
 
+/* ============================================================
+   战斗浮动跳字（全局定义一次；此前每个单位实例各自注入一份
+   <style>，7 个单位 × 每次渲染都会触发一次样式重算）
+   ============================================================ */
+@keyframes fxFloatDamage {
+  0%   { opacity: 0; transform: translate(-50%, 4px) scale(.72); }
+  16%  { opacity: 1; transform: translate(-50%, -10px) scale(1.1); }
+  72%  { opacity: .95; transform: translate(-50%, -30px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -46px) scale(.86); }
+}
+@keyframes fxFloatCrit {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(.6); }
+  18%  { opacity: 1; transform: translate(-50%, -14px) scale(1.42); }
+  40%  { opacity: 1; transform: translate(-50%, -20px) scale(1.18); }
+  80%  { opacity: .95; transform: translate(-50%, -40px) scale(1.04); }
+  100% { opacity: 0; transform: translate(-50%, -58px) scale(.86); }
+}
+@keyframes fxFloatHeal {
+  0%   { opacity: 0; transform: translate(-50%, 4px) scale(.82); }
+  20%  { opacity: 1; transform: translate(-50%, -10px) scale(1.18); }
+  72%  { opacity: .95; transform: translate(-50%, -26px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -42px) scale(.86); }
+}
+
+/* 弹道：只做一次性 CSS 过渡，不再用 requestAnimationFrame 逐帧改 React state */
+.fx-proj {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  transition: transform 240ms linear;
+  pointer-events: none;
+}
+
 .pz-fade { animation: fadeIn .25s ease-out; }
 .pz-rise { animation: riseIn .3s ease-out; }
 .pz-pop { animation: popIn .28s ease-out; }

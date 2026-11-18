@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { BookOpen, Castle, Map, Swords, Users } from 'lucide-react';
 import { generateHero, heroRoleLabel } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
@@ -127,6 +127,8 @@ export function App() {
   const [combatSpeed, setCombatSpeed] = useState<1 | 2>(1); // 1x / 2x 倍速
   const [combatUnits, setCombatUnits] = useState<CombatUnit[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
+  /** 已同步的日志条数，用于避免每 tick 全量拷贝 */
+  const logCountRef = useRef(0);
   const [isAutoUlt, setIsAutoUlt] = useState<boolean>(true);
   const [battleRewardClaimed, setBattleRewardClaimed] = useState<boolean>(false);
   const [focusedTargetId, setFocusedTargetId] = useState<string | null>(null);
@@ -233,17 +235,32 @@ export function App() {
 
     // 绑定实时动效管线
     eng.onCombatFx = (fx) => {
-      // 1. 浮动跳字
+      // 1. 浮动跳字（同一目标连续出伤时向上错行，避免数字糊成一坨）
       if (fx.targetId && fx.label) {
-        const textItem: FloatingTextItem = {
-          id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          targetId: fx.targetId,
-          text: fx.label,
-          type: fx.type === 'crit_shake' ? 'crit' : fx.type === 'heal' ? 'heal' : fx.type === 'ult_burst' ? 'ult' : fx.label.startsWith('CRIT') ? 'crit' : 'damage',
-          xOffset: Math.round((Math.random() - 0.5) * 26),
-          createdAt: Date.now(),
-        };
-        setFloatingTexts(prev => [...prev.slice(-12), textItem]);
+        const targetId = fx.targetId;
+        const isCritFx = fx.type === 'crit_shake' || fx.label.startsWith('暴击') || fx.label.startsWith('CRIT');
+        const textType: FloatingTextItem['type'] =
+          isCritFx ? 'crit'
+          : fx.type === 'heal' ? 'heal'
+          : fx.type === 'ult_burst' ? 'ult'
+          : 'damage';
+
+        setFloatingTexts(prev => {
+          const now = Date.now();
+          const alive = prev.filter(t => now - t.createdAt < 1000);
+          const sameTarget = alive.filter(t => t.targetId === targetId).length;
+          const stack = sameTarget % 4;
+          const textItem: FloatingTextItem = {
+            id: `${now}_${Math.random().toString(36).slice(2, 6)}`,
+            targetId,
+            text: fx.label ?? '',
+            type: textType,
+            xOffset: Math.round((Math.random() - 0.5) * 30) + (stack % 2 === 0 ? -8 : 8),
+            stack,
+            createdAt: now,
+          };
+          return [...alive.slice(-13), textItem];
+        });
       }
 
       // 2. 角色打击与受击瞬态微动效 + 远程飞弹弹道
@@ -306,27 +323,15 @@ export function App() {
 
           setProjectiles(prev => [...prev, newProj]);
 
-          // 弹道动画步进 (250ms 完成飞行)
-          const startTime = performance.now();
-          const duration = 240;
-          const animFrame = () => {
-            const elapsed = performance.now() - startTime;
-            const progress = Math.min(1, elapsed / duration);
-            setProjectiles(prev =>
-              prev.map(p => (p.id === pId ? { ...p, progress } : p))
-            );
-            if (progress < 1) {
-              requestAnimationFrame(animFrame);
-            } else {
-              setProjectiles(prev => prev.filter(p => p.id !== pId));
-            }
-          };
-          requestAnimationFrame(animFrame);
+          // 飞行由 CSS 过渡完成，这里只在落地后移除，避免逐帧驱动 React 重渲染
+          setTimeout(() => {
+            setProjectiles(prev => prev.filter(p => p.id !== pId));
+          }, 280);
         }
       }
 
       if (fx.targetId) {
-        const isCrit = fx.label?.startsWith('CRIT');
+        const isCrit = fx.label?.startsWith('暴击') || fx.label?.startsWith('CRIT');
         setVisualStates(prev => ({
           ...prev,
           [fx.targetId!]: {
@@ -383,7 +388,8 @@ export function App() {
     setActiveLootDrop(null);
     setEngine(eng);
     setCombatUnits([...eng.units]);
-    setLogs([...eng.logs]);
+    logCountRef.current = eng.logs.length;
+    setLogs(eng.logs.slice(-60));
     setIsRunning(true);
     setActiveTab('combat');
     setSystemNotice(`⚔️ 突入【${room.title}】！`);
@@ -433,6 +439,7 @@ export function App() {
   const resetCombatSession = (opts?: { keepRoom?: boolean }) => {
     setEngine(null);
     setCombatUnits([]);
+    logCountRef.current = 0;
     setLogs([]);
     if (!opts?.keepRoom) setActiveDungeonRoom(null);
     setFloatingTexts([]);
@@ -571,7 +578,11 @@ export function App() {
     const timer = setInterval(() => {
       engine.tick(stepDt);
       setCombatUnits([...engine.units]);
-      setLogs([...engine.logs]);
+      // 日志只在条目数变化时才同步，避免每 200ms 全量拷贝并重渲染
+      if (engine.logs.length !== logCountRef.current) {
+        logCountRef.current = engine.logs.length;
+        setLogs(engine.logs.slice(-60));
+      }
 
       // 战斗结束结算
       if (engine.isFinished && !battleRewardClaimed) {
@@ -694,7 +705,8 @@ export function App() {
     if (!engine || unit.side !== 'player' || unit.resource < 100 || unit.isDead) return;
     engine.triggerUltimate(unit);
     setCombatUnits([...engine.units]);
-    setLogs([...engine.logs]);
+    logCountRef.current = engine.logs.length;
+    setLogs(engine.logs.slice(-60));
   };
 
   // 玩家手动点选集火目标

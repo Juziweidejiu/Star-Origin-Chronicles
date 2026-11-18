@@ -11,6 +11,7 @@ export interface FloatingTextItem {
   text: string;
   type: FloatingTextType;
   xOffset: number;        // 横向微偏移 (-20 ~ +20px) 避免堆叠
+  stack?: number;         // 同一目标连续出伤时的纵向错行序号（0 起）
   createdAt: number;
 }
 

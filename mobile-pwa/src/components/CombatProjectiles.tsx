@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 export interface Projectile {
   id: string;
   sourceSlotId: string;
   targetSlotId: string;
   type: 'arrow' | 'magic' | 'holy' | 'slash';
-  progress: number; // 0 -> 1
+  /** 旧字段：保留以兼容调用方，实际飞行由 CSS 过渡完成 */
+  progress: number;
   startX: number;
   startY: number;
   targetX: number;
@@ -16,90 +17,114 @@ interface CombatProjectilesProps {
   projectiles: Projectile[];
 }
 
+/** 单发弹道：挂载时从起点过渡到终点，全程走 CSS 合成层，不触发 React 重渲染 */
+const ProjectileNode: React.FC<{ p: Projectile }> = ({ p }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // 先落位到起点，下一帧再切到终点，确保过渡被触发
+    const raf = requestAnimationFrame(() => {
+      el.style.transform = `translate3d(${p.targetX}px, ${p.targetY}px, 0)`;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [p.targetX, p.targetY]);
+
+  const angle = (Math.atan2(p.targetY - p.startY, p.targetX - p.startX) * 180) / Math.PI;
+
+  let body: React.ReactNode;
+  if (p.type === 'arrow') {
+    body = (
+      <div style={{ transform: `rotate(${angle}deg)`, position: 'relative', width: 0, height: 0 }}>
+        <div
+          style={{
+            position: 'absolute',
+            left: '-18px',
+            top: '-1px',
+            width: '18px',
+            height: '2px',
+            background: 'linear-gradient(90deg, rgba(169,121,58,0), rgba(169,121,58,.85))',
+            borderRadius: '2px',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            left: '-2px',
+            top: '-2.5px',
+            width: 0,
+            height: 0,
+            borderTop: '2.5px solid transparent',
+            borderBottom: '2.5px solid transparent',
+            borderLeft: '7px solid #A9793A',
+          }}
+        />
+      </div>
+    );
+  } else if (p.type === 'magic') {
+    body = (
+      <div
+        style={{
+          width: '13px',
+          height: '13px',
+          marginLeft: '-6.5px',
+          marginTop: '-6.5px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 40% 38%, #EDE4F8, #9B7BD4 55%, rgba(155,123,212,0) 72%)',
+          boxShadow: '0 0 10px rgba(155,123,212,.55)',
+        }}
+      />
+    );
+  } else if (p.type === 'holy') {
+    body = (
+      <div
+        style={{
+          width: '12px',
+          height: '12px',
+          marginLeft: '-6px',
+          marginTop: '-6px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 40% 38%, #EAFAF0, #6FBF8B 58%, rgba(111,191,139,0) 74%)',
+          boxShadow: '0 0 9px rgba(111,191,139,.5)',
+        }}
+      />
+    );
+  } else {
+    body = (
+      <div
+        style={{
+          width: '20px',
+          height: '4px',
+          marginLeft: '-10px',
+          marginTop: '-2px',
+          borderRadius: '2px',
+          background: 'linear-gradient(90deg, rgba(138,59,50,0), #B0524A)',
+          transform: `rotate(${angle}deg)`,
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      className="fx-proj"
+      style={{ transform: `translate3d(${p.startX}px, ${p.startY}px, 0)` }}
+    >
+      {body}
+    </div>
+  );
+};
+
 export const CombatProjectiles: React.FC<CombatProjectilesProps> = ({ projectiles }) => {
   if (!projectiles || projectiles.length === 0) return null;
 
   return (
-    <svg
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 25,
-        overflow: 'visible'
-      }}
-    >
-      <defs>
-        {/* 箭矢轨迹渐变 */}
-        <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="rgba(245, 158, 11, 0)" />
-          <stop offset="100%" stopColor="#f59e0b" />
-        </linearGradient>
-        {/* 奥术法球轨迹渐变 */}
-        <radialGradient id="magicGrad">
-          <stop offset="0%" stopColor="#c084fc" />
-          <stop offset="60%" stopColor="#9333ea" />
-          <stop offset="100%" stopColor="rgba(147, 51, 234, 0)" />
-        </radialGradient>
-        {/* 圣光愈合光球 */}
-        <radialGradient id="holyGrad">
-          <stop offset="0%" stopColor="#86efac" />
-          <stop offset="70%" stopColor="#22c55e" />
-          <stop offset="100%" stopColor="rgba(34, 197, 94, 0)" />
-        </radialGradient>
-      </defs>
-
-      {projectiles.map(p => {
-        const curX = p.startX + (p.targetX - p.startX) * p.progress;
-        // 纵向飞弹：X轴轻微侧向弧度，主要在Y轴纵向推进
-        const arcX = Math.sin(p.progress * Math.PI) * 12;
-        const curY = p.startY + (p.targetY - p.startY) * p.progress;
-        const actualX = curX + arcX;
-
-        // 计算航向角度
-        const dx = (p.targetX - p.startX) + (Math.cos(p.progress * Math.PI) * 12);
-        const dy = (p.targetY - p.startY);
-        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-        if (p.type === 'arrow') {
-          return (
-            <g key={p.id} transform={`translate(${actualX}, ${curY}) rotate(${angle})`}>
-              {/* 尾迹 */}
-              <line x1="-16" y1="0" x2="0" y2="0" stroke="url(#arrowGrad)" strokeWidth="2.5" />
-              {/* 箭簇 */}
-              <polygon points="0,-2 6,0 0,2" fill="#fef08a" />
-            </g>
-          );
-        }
-
-        if (p.type === 'magic') {
-          return (
-            <g key={p.id} transform={`translate(${actualX}, ${curY})`}>
-              <circle r="7" fill="url(#magicGrad)" />
-              <circle r="3" fill="#ffffff" />
-            </g>
-          );
-        }
-
-        if (p.type === 'holy') {
-          return (
-            <g key={p.id} transform={`translate(${actualX}, ${curY})`}>
-              <circle r="6" fill="url(#holyGrad)" />
-              <circle r="2.5" fill="#f0fdf4" />
-            </g>
-          );
-        }
-
-        // 斩击刀光
-        return (
-          <g key={p.id} transform={`translate(${actualX}, ${curY}) rotate(${angle})`}>
-            <ellipse rx="10" ry="2" fill="#f87171" opacity={0.8} />
-          </g>
-        );
-      })}
-    </svg>
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 25, overflow: 'visible' }}>
+      {projectiles.map(p => (
+        <ProjectileNode key={p.id} p={p} />
+      ))}
+    </div>
   );
 };

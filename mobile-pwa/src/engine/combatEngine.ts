@@ -316,7 +316,7 @@ export class CombatEngine {
     if (crit) {
       this.addLog(`💢 暴击！[${target.hero.name}] -${dmg} HP`, 'crit');
       this.onCombatFx?.({ type: 'crit_shake' });
-      this.onCombatFx?.({ type: 'hit', sourceId, targetId: target.hero.id, value: dmg, label: `CRIT! -${dmg}` });
+      this.onCombatFx?.({ type: 'hit', sourceId, targetId: target.hero.id, value: dmg, label: `暴击 -${dmg}` });
     } else {
       this.onCombatFx?.({ type: 'hit', sourceId, targetId: target.hero.id, value: dmg, label: `-${dmg}` });
     }
