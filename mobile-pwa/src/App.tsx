@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { BookOpen, Castle, Map, Swords, Users } from 'lucide-react';
 import { generateHero, heroRoleLabel } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
 import { TownEngine } from './engine/townEngine';
@@ -683,74 +684,104 @@ export function App() {
   const currentTown = townEngine.towns[townEngine.logistics.currentTownId];
 
   return (
-    <div style={{ 
-      maxWidth: '480px', 
-      margin: '0 auto', 
-      minHeight: '100vh', 
+    <div className="pz" style={{
+      maxWidth: '480px',
+      margin: '0 auto',
+      minHeight: '100vh',
       width: '100%',
-      background: '#0f172a', 
-      color: '#f8fafc', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      fontFamily: 'sans-serif' 
+      background: 'var(--pz-page)',
+      color: 'var(--pz-ink)',
+      display: 'flex',
+      flexDirection: 'column'
     }}>
-      
-      {/* 顶部 iOS 状态栏（包含安全区域适配 Safe Area Inset Top） */}
-      <header style={{ 
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-        paddingBottom: '10px',
+
+      {/* 顶部页眉：深木底 + 黄铜双线 */}
+      <header className="pz-grain" style={{
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)',
+        paddingBottom: '9px',
         paddingLeft: '14px',
         paddingRight: '14px',
-        background: '#1e293b', 
-        borderBottom: '1px solid #334155',
+        background: 'linear-gradient(180deg, #3A2E1F 0%, #2A2115 100%)',
+        color: '#F3E9D2',
+        borderBottom: '3px double rgba(217,164,91,.55)',
         position: 'sticky',
         top: 0,
         zIndex: 50
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#38bdf8' }}>⚔️ 星原战纪</span>
-            <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', minWidth: 0 }}>
+            <span style={{ fontFamily: 'var(--pz-serif)', fontSize: '16px', fontWeight: 700, letterSpacing: '.06em', color: '#F0DFBC' }}>
+              星原战纪
+            </span>
+            <span style={{ fontSize: '11px', color: 'rgba(243,233,210,.58)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               第 {townEngine.logistics.day} 天 · {currentTown.name}
             </span>
           </div>
-          <button 
+          <button
             onClick={toggleAutoUlt}
-            style={{ 
-              padding: '3px 8px', 
-              fontSize: '10px', 
-              borderRadius: '12px', 
-              border: 'none', 
+            style={{
+              padding: '3px 9px',
+              fontSize: '10px',
+              borderRadius: '999px',
               cursor: 'pointer',
-              background: isAutoUlt ? '#10b981' : '#64748b', 
-              color: '#fff', 
-              fontWeight: 'bold' 
+              background: isAutoUlt ? 'rgba(111,191,139,.22)' : 'transparent',
+              border: `1px solid ${isAutoUlt ? 'var(--pz-success)' : 'rgba(243,233,210,.32)'}`,
+              color: isAutoUlt ? '#9BD4B0' : 'rgba(243,233,210,.7)',
+              fontWeight: 700,
+              fontFamily: 'var(--pz-sans)',
+              whiteSpace: 'nowrap'
             }}
           >
-            {isAutoUlt ? '⚡ 大招: 自动' : '✋ 大招: 手动'}
+            {isAutoUlt ? '大招 · 自动' : '大招 · 手动'}
           </button>
         </div>
 
-        {/* 后勤资源状态条 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px', background: '#0b1329', padding: '4px 8px', borderRadius: '6px' }}>
-          <span style={{ color: '#eab308' }}>💰 {townEngine.logistics.gold} G</span>
-          <span style={{ color: '#38bdf8' }}>🍞 {townEngine.logistics.rations} 份口粮</span>
-          <span style={{ color: '#a855f7' }}>✨ {townEngine.logistics.soulCrystals} 魂晶</span>
-          <span style={{ color: '#10b981' }}>🧪 {townEngine.logistics.medicines} 药剂</span>
+        {/* 后勤资源 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '7px',
+          padding: '4px 9px',
+          borderRadius: '6px',
+          background: 'rgba(0,0,0,.22)',
+          border: '1px solid rgba(217,164,91,.18)',
+          fontSize: '11px',
+          fontFamily: 'var(--pz-mono)'
+        }}>
+          <span style={{ color: '#E3BE72' }}>{townEngine.logistics.gold} G</span>
+          <span style={{ color: '#8FC7C4' }}>{townEngine.logistics.rations} 口粮</span>
+          <span style={{ color: '#B49BE0' }}>{townEngine.logistics.soulCrystals} 魂晶</span>
+          <span style={{ color: '#86C69A' }}>{townEngine.logistics.medicines} 药剂</span>
         </div>
       </header>
 
-      {/* 广播通知浮条 */}
+      {/* 广播通知 */}
       {systemNotice && (
-        <div style={{ background: '#334155', padding: '6px 12px', fontSize: '11px', color: '#38bdf8', borderBottom: '1px solid #475569', display: 'flex', justifyContent: 'space-between' }}>
-          <span>🔔 {systemNotice}</span>
-          <span onClick={() => setSystemNotice('')} style={{ cursor: 'pointer', color: '#94a3b8', marginLeft: '8px' }}>✕</span>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: '8px',
+          padding: '7px 13px',
+          fontSize: '12px',
+          color: 'var(--pz-ink)',
+          background: 'var(--pz-raised)',
+          borderBottom: '1px solid var(--pz-line)',
+          animation: 'fadeIn .2s ease-out'
+        }}>
+          <span style={{ lineHeight: 1.45 }}>{systemNotice}</span>
+          <span onClick={() => setSystemNotice('')} style={{ cursor: 'pointer', color: 'var(--pz-ink-3)', flexShrink: 0 }}>✕</span>
         </div>
       )}
 
       {/* 核心展示区 */}
-      <main style={{ flex: 1, padding: '12px', overflowY: 'auto' }}>
-        
+      <main style={{
+        flex: 1,
+        padding: '12px',
+        paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+        overflowY: 'auto'
+      }}>
+
         {/* 天灾大事件告警栏 (Milestone 3) — 通过 ENABLE_WORLD_CRISIS 开关控制 */}
         {ENABLE_WORLD_CRISIS && (
           <CrisisAlert
@@ -758,33 +789,6 @@ export function App() {
             onAcceptCrisisBattle={handleAcceptCrisisBattle}
           />
         )}
-
-        {/* 顶部五 Tab 切换 */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
-          {(['town', 'dungeon', 'combat', 'roster', 'story'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                flex: 1,
-                padding: '8px 2px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                background: activeTab === tab ? '#38bdf8' : '#1e293b',
-                color: activeTab === tab ? '#0f172a' : '#94a3b8',
-                fontWeight: 'bold',
-                fontSize: '11px'
-              }}
-            >
-              {tab === 'town' && '🏰 据点'}
-              {tab === 'dungeon' && `🗝️ 地牢${currentDungeon ? '●' : ''}`}
-              {tab === 'combat' && '🗡️ 战役'}
-              {tab === 'roster' && `👥 名册`}
-              {tab === 'story' && '📜 物语'}
-            </button>
-          ))}
-        </div>
 
         {/* Tab 1: 城邦运营与公会据点 */}
         {activeTab === 'town' && (
@@ -1571,18 +1575,70 @@ export function App() {
         />
       )}
 
-      {/* 底部 PWA 离线提示（包含底部小黑条安全区域 Safe Area Inset Bottom） */}
-      <footer style={{ 
-        paddingTop: '8px', 
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
-        textAlign: 'center', 
-        fontSize: '10px', 
-        color: '#64748b', 
-        background: '#0b1329', 
-        borderTop: '1px solid #1e293b' 
+      {/* 底部导航（固定在窄栏内） */}
+      <nav style={{
+        position: 'fixed',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: '480px',
+        zIndex: 60,
+        display: 'flex',
+        alignItems: 'stretch',
+        background: 'var(--pz-sunken)',
+        borderTop: '1px solid var(--pz-line-2)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        boxShadow: '0 -6px 18px rgba(42,36,24,.10)'
       }}>
-        星原战纪 · 移动端 PWA 运营引擎 · 离线自动运算
-      </footer>
+        {([
+          ['town', '据点', Castle],
+          ['dungeon', '地牢', Map],
+          ['combat', '战役', Swords],
+          ['roster', '名册', Users],
+          ['story', '物语', BookOpen],
+        ] as const).map(([key, label, Icon]) => {
+          const on = activeTab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                flex: 1,
+                position: 'relative',
+                padding: '7px 2px 8px',
+                border: 'none',
+                borderTop: `2px solid ${on ? 'var(--pz-wine)' : 'transparent'}`,
+                background: 'transparent',
+                color: on ? 'var(--pz-wine)' : 'var(--pz-ink-3)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                fontFamily: 'var(--pz-sans)',
+                fontSize: '10px',
+                fontWeight: on ? 700 : 500
+              }}
+            >
+              <Icon size={17} />
+              <span>{label}</span>
+              {key === 'dungeon' && currentDungeon && (
+                <span style={{
+                  position: 'absolute',
+                  top: '5px',
+                  right: '50%',
+                  marginRight: '-16px',
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: 'var(--pz-combat)'
+                }} />
+              )}
+            </button>
+          );
+        })}
+      </nav>
 
     </div>
   );

@@ -1,4 +1,24 @@
 import React, { useState } from 'react';
+import {
+  Beer,
+  ChevronRight,
+  Dices,
+  Flame,
+  Gem,
+  Hammer,
+  HeartPulse,
+  Map as MapIcon,
+  Pickaxe,
+  Recycle,
+  RefreshCw,
+  Scale,
+  Scroll,
+  Shield,
+  Skull,
+  Sparkles,
+  Swords,
+  Utensils,
+} from 'lucide-react';
 import type { TownEngine } from '../engine/townEngine';
 import type { TownId, BuildingType, GuildContract, TavernRecruit } from '../types/world';
 import type { Hero, Equipment } from '../types/hero';
@@ -14,10 +34,11 @@ import {
   rerollEquipment,
   salvageYield,
   salvageEquipment,
-  tierForHeroLevel
+  tierForHeroLevel,
 } from '../engine/blacksmithEngine';
 import { EQUIPMENT_TEMPLATES, RARITY_LABEL, qualityLabel } from '../engine/dungeonEngine';
 import { STAT_LABEL } from '../engine/statResolver';
+import { Btn, Card, Seal } from './ui';
 
 interface TownViewProps {
   townEngine: TownEngine;
@@ -31,6 +52,54 @@ interface TownViewProps {
   triggerUpdate: () => void;
 }
 
+const EQUIPPED_SLOTS = ['weapon', 'armor', 'trinket'] as const;
+const PERCENTISH = ['critChance', 'critDamage', 'attackSpeed', 'tenacity'];
+
+const BUILDING_META: Record<BuildingType, { label: string; icon: React.ReactNode }> = {
+  guild: { label: '冒险公会', icon: <Scroll size={14} /> },
+  tavern: { label: '佣兵酒馆', icon: <Beer size={14} /> },
+  market: { label: '补给市集', icon: <Scale size={14} /> },
+  infirmary: { label: '随军医馆', icon: <HeartPulse size={14} /> },
+  sanctuary: { label: '英灵圣所', icon: <Sparkles size={14} /> },
+  blacksmith: { label: '铁匠铺', icon: <Hammer size={14} /> },
+};
+
+/** 段落小标题：左侧印章式竖线 + 标题，右侧可挂操作 */
+const SectionHead: React.FC<{ title: string; hint?: string; right?: React.ReactNode }> = ({ title, hint, right }) => (
+  <div className="pz-between" style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+    <div>
+      <div className="pz-row" style={{ gap: 6 }}>
+        <span style={{ width: 3, height: 13, background: 'var(--pz-brass)', borderRadius: 2 }} />
+        <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 15, fontWeight: 700, letterSpacing: '.02em' }}>{title}</span>
+      </div>
+      {hint && <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginTop: 3, marginLeft: 9 }}>{hint}</div>}
+    </div>
+    {right}
+  </div>
+);
+
+const Empty: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div
+    className="pz-body"
+    style={{
+      padding: '22px 12px',
+      textAlign: 'center',
+      color: 'var(--pz-ink-3)',
+      border: '1px dashed var(--pz-line-2)',
+      borderRadius: 'var(--pz-r-card)',
+    }}
+  >
+    {children}
+  </div>
+);
+
+/** 行内的细属性条 */
+const ThinBar: React.FC<{ ratio: number; tone?: string }> = ({ ratio, tone = 'var(--pz-success)' }) => (
+  <div style={{ height: 4, background: 'var(--pz-sunken)', borderRadius: 2, overflow: 'hidden', border: '1px solid var(--pz-line)' }}>
+    <div style={{ width: `${Math.max(0, Math.min(1, ratio)) * 100}%`, height: '100%', background: tone, transition: 'width .3s' }} />
+  </div>
+);
+
 export const TownView: React.FC<TownViewProps> = ({
   townEngine,
   roster,
@@ -40,11 +109,16 @@ export const TownView: React.FC<TownViewProps> = ({
   onInventoryChange,
   onSelectContract,
   onLogMessage,
-  triggerUpdate
+  triggerUpdate,
 }) => {
   const currentTownId = townEngine.logistics.currentTownId;
   const currentTown = townEngine.towns[currentTownId];
-  const [activeBuilding, setActiveBuilding] = useState<BuildingType>('guild');
+  const [activeBuilding, setActiveBuilding] = useState<BuildingType>(() => {
+    // 便于直接调试某个设施：?b=blacksmith
+    const q = new URLSearchParams(window.location.search).get('b') as BuildingType | null;
+    const all: BuildingType[] = ['guild', 'tavern', 'market', 'infirmary', 'sanctuary', 'blacksmith'];
+    return q && all.includes(q) ? q : 'guild';
+  });
   const [isTravelModalOpen, setIsTravelModalOpen] = useState(false);
   const [smithTab, setSmithTab] = useState<'craft' | 'reforge' | 'reroll' | 'salvage'>('craft');
   const [craftSlot, setCraftSlot] = useState<'weapon' | 'armor' | 'trinket'>('weapon');
@@ -52,8 +126,8 @@ export const TownView: React.FC<TownViewProps> = ({
 
   const deployedSquad = roster.filter(h => deployedHeroIds.includes(h.id));
   const smithDiscount = currentTownId === 'hammerdeep_hold' ? 0.85 : 1;
+  const log = townEngine.logistics;
 
-  // 切换据点旅行
   const handleTravel = (targetTownId: TownId) => {
     const res = townEngine.travelToTown(targetTownId, roster);
     onLogMessage(res.message);
@@ -63,7 +137,6 @@ export const TownView: React.FC<TownViewProps> = ({
     }
   };
 
-  // 采购物资
   const handleBuyRations = (amount: number) => {
     const res = townEngine.buyRations(amount);
     onLogMessage(res.message);
@@ -76,7 +149,6 @@ export const TownView: React.FC<TownViewProps> = ({
     triggerUpdate();
   };
 
-  // 雇佣
   const handleHire = (recruit: TavernRecruit) => {
     const res = townEngine.hireRecruit(recruit.id, roster);
     onLogMessage(res.message);
@@ -86,14 +158,12 @@ export const TownView: React.FC<TownViewProps> = ({
     }
   };
 
-  // 医馆治疗
   const handleHeal = (hero: Hero) => {
     const res = townEngine.healHeroAtInfirmary(hero);
     onLogMessage(res.message);
     triggerUpdate();
   };
 
-  // 圣所召魂复活
   const handleRevive = (index: number) => {
     const res = townEngine.reviveSoul(index, roster);
     onLogMessage(res.message);
@@ -103,28 +173,26 @@ export const TownView: React.FC<TownViewProps> = ({
     }
   };
 
-  // 声望徽章颜色
   const getReputationBadge = (rep: number) => {
-    if (rep >= 60) return { label: '崇拜', color: '#a855f7' };
-    if (rep >= 20) return { label: '友善', color: '#10b981' };
-    if (rep >= -20) return { label: '中立', color: '#38bdf8' };
-    return { label: '冷淡', color: '#ef4444' };
+    if (rep >= 60) return { label: '崇拜', color: 'var(--pz-arcane)' };
+    if (rep >= 20) return { label: '友善', color: 'var(--pz-success)' };
+    if (rep >= -20) return { label: '中立', color: 'var(--pz-brass-deep)' };
+    return { label: '冷淡', color: 'var(--pz-wine)' };
   };
 
   const repBadge = getReputationBadge(currentTown.reputation);
   const contracts = townEngine.contracts[currentTownId] || [];
   const recruits = townEngine.tavernRecruits[currentTownId] || [];
 
-  // 50G 打探刷新契约
   const handleScoutRefresh = () => {
     const cost = 50;
     if (townEngine.logistics.gold < cost) {
-      onLogMessage(`⚠️ 金币不足！打探情报需要 ${cost}G，当前仅有 ${townEngine.logistics.gold}G`);
+      onLogMessage(`金币不足，打探情报需要 ${cost}G。`);
       return;
     }
     townEngine.logistics.gold -= cost;
     townEngine.refreshContractsForTown(currentTownId);
-    onLogMessage(`🔍 花费 ${cost}G 打探情报，公会榜单已刷新！`);
+    onLogMessage(`花 ${cost}G 买到一叠新消息，公会的榜子重抄了一遍。`);
     triggerUpdate();
   };
 
@@ -159,815 +227,777 @@ export const TownView: React.FC<TownViewProps> = ({
     triggerUpdate();
   };
 
-  const EQUIPPED_SLOTS = ['weapon', 'armor', 'trinket'] as const;
-
   const formatBlueprintStat = (key: string, value: number) => {
-    const percentish = ['critChance', 'critDamage', 'attackSpeed', 'tenacity'];
     const label = STAT_LABEL[key as keyof typeof STAT_LABEL] ?? key;
-    return `${label} ${percentish.includes(key) ? `${Math.round(value * 100)}%` : value}`;
+    return `${label} ${PERCENTISH.includes(key) ? `${Math.round(value * 100)}%` : value}`;
   };
 
+  const craftCostPreview = craftCost(craftTier, smithDiscount);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      
-      {/* 据点头部横幅与地标 */}
-      <div style={{ background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)', padding: '14px', borderRadius: '10px', border: '1px solid #334155' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc', margin: 0 }}>{currentTown.name}</h2>
-              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '12px', background: `${repBadge.color}22`, color: repBadge.color, border: `1px solid ${repBadge.color}` }}>
-                {repBadge.label} ({currentTown.reputation} 声望)
+    <div className="pz-col" style={{ gap: 12 }}>
+      {/* ===== 城镇横幅 ===== */}
+      <Card style={{ padding: '14px' }} className="pz-grain">
+        <div className="pz-between" style={{ alignItems: 'flex-start', gap: 10 }}>
+          <div className="pz-grow">
+            <div className="pz-row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <h2 className="pz-h1" style={{ fontFamily: 'var(--pz-serif)' }}>{currentTown.name}</h2>
+              <span
+                className="pz-micro"
+                style={{
+                  padding: '2px 7px',
+                  borderRadius: 999,
+                  color: repBadge.color,
+                  border: `1px solid ${repBadge.color}`,
+                  background: 'rgba(255,255,255,.35)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {repBadge.label} · {currentTown.reputation}
               </span>
             </div>
-            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '4px 0 0 0' }}>{currentTown.subtitle}</p>
+            <div className="pz-sub" style={{ marginTop: 4, color: 'var(--pz-ink-2)' }}>{currentTown.subtitle}</div>
           </div>
-          <button
-            onClick={() => setIsTravelModalOpen(true)}
-            style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            🗺️ 据点转移
-          </button>
+          <Btn variant="ghost" size="sm" onClick={() => setIsTravelModalOpen(true)}>
+            <MapIcon size={13} /> 转移
+          </Btn>
         </div>
-        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '8px', lineHeight: '1.4' }}>
+        <div
+          className="pz-body"
+          style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--pz-line)', color: 'var(--pz-ink-2)' }}
+        >
           {currentTown.description}
         </div>
-      </div>
+      </Card>
 
-      {/* 建筑切换标签栏 */}
-      <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+      {/* ===== 建筑切换 ===== */}
+      <div className="pz-row" style={{ gap: 6, flexWrap: 'wrap', paddingBottom: 2 }}>
         {currentTown.buildings.map(b => {
-          const labels: Record<BuildingType, string> = {
-            guild: '📜 冒险公会',
-            tavern: '🍺 佣兵酒馆',
-            market: '⚖️ 补给市集',
-            infirmary: '🩹 随军医馆',
-            sanctuary: '✨ 英灵圣所',
-            blacksmith: '⚒️ 铁匠铺'
-          };
+          const meta = BUILDING_META[b];
           const isAct = activeBuilding === b;
           return (
             <button
               key={b}
               onClick={() => setActiveBuilding(b)}
               style={{
-                flex: 1,
-                minWidth: '70px',
-                padding: '8px 4px',
-                borderRadius: '6px',
-                border: 'none',
-                background: isAct ? '#38bdf8' : '#1e293b',
-                color: isAct ? '#0f172a' : '#94a3b8',
-                fontWeight: 'bold',
-                fontSize: '11px',
+                flex: '1 1 30%',
+                minWidth: 0,
+                padding: '7px 6px',
+                borderRadius: 'var(--pz-r-btn)',
+                border: `1px solid ${isAct ? 'var(--pz-brass-deep)' : 'var(--pz-line)'}`,
+                background: isAct ? 'var(--pz-brass)' : 'rgba(255,255,255,.32)',
+                color: isAct ? '#2A2115' : 'var(--pz-ink-2)',
+                fontWeight: isAct ? 700 : 500,
+                fontSize: 12,
+                fontFamily: 'var(--pz-sans)',
                 cursor: 'pointer',
-                whiteSpace: 'nowrap'
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden'
               }}
             >
-              {labels[b]}
+              {meta.icon}
+              {meta.label}
             </button>
           );
         })}
       </div>
 
-      {/* 建筑 1: 冒险公会 (委托契约) */}
+      {/* ===== 冒险公会 ===== */}
       {activeBuilding === 'guild' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>📋 在榜悬赏契约 (完成提升城邦声望)</span>
-            <button
-              onClick={handleScoutRefresh}
-              disabled={townEngine.logistics.gold < 50}
-              style={{
-                padding: '4px 10px',
-                background: townEngine.logistics.gold >= 50 ? '#eab308' : '#475569',
-                color: '#0f172a',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '10px',
-                fontWeight: 'bold',
-                cursor: townEngine.logistics.gold >= 50 ? 'pointer' : 'not-allowed'
-              }}
-            >
-              🔍 打探刷新 (50G)
-            </button>
-          </div>
-          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '-4px' }}>
-            赏金加成: +{Math.round((currentTown.rewardMod - 1) * 100)}% | 当前出战队伍: {deployedSquad.length}/4 人
-          </div>
+        <div className="pz-col" style={{ gap: 10 }}>
+          <SectionHead
+            title="悬赏榜"
+            hint={`赏金加成 +${Math.round((currentTown.rewardMod - 1) * 100)}% · 出战 ${deployedSquad.length}/4 人`}
+            right={
+              <Btn variant="ghost" size="sm" onClick={handleScoutRefresh} disabled={log.gold < 50}>
+                <RefreshCw size={12} /> 打探 50G
+              </Btn>
+            }
+          />
 
           {contracts.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>当前暂无可用悬赏，下周公会将发布新任务。</div>
+            <Empty>榜子上空着。等公会抄完新一批悬赏再来。</Empty>
           ) : (
             contracts.map(contract => {
-              const rank = starsToRank(contract.stars);
+              const rank = contract.rank ?? starsToRank(contract.stars);
               const odds = deployedSquad.length >= 2 ? estimateContractOdds(deployedSquad, contract) : null;
-              
-              // 等级印章样式
-              const rankStyles: Record<string, { bg: string; border: string; color: string }> = {
-                S: { bg: '#7c3aed22', border: '#7c3aed', color: '#a78bfa' },
-                A: { bg: '#dc262622', border: '#dc2626', color: '#f87171' },
-                B: { bg: '#ea580c22', border: '#ea580c', color: '#fb923c' },
-                C: { bg: '#eab30822', border: '#eab308', color: '#fde047' },
-                D: { bg: '#10b98122', border: '#10b981', color: '#6ee7b7' },
-              };
-              const rankStyle = rankStyles[rank] || rankStyles.D;
-
               return (
-                <div 
-                  key={contract.id} 
-                  style={{ 
-                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', 
-                    padding: '12px', 
-                    borderRadius: '8px', 
-                    border: '1px solid #334155',
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: '8px',
-                    position: 'relative'
-                  }}
-                >
-                  {/* 顶部：等级印章 + 标题 + 赏金 */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                      {/* S-D 等级印章 */}
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '6px',
-                        background: rankStyle.bg,
-                        border: `2px solid ${rankStyle.border}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: rankStyle.color,
-                        flexShrink: 0
-                      }}>
-                        {rank}
+                <Card key={contract.id} style={{ padding: '12px' }}>
+                  <div className="pz-row" style={{ alignItems: 'flex-start', gap: 10 }}>
+                    <Seal rank={rank} />
+                    <div className="pz-grow" style={{ minWidth: 0 }}>
+                      <div style={{ fontFamily: 'var(--pz-serif)', fontSize: 15, fontWeight: 700, lineHeight: 1.35 }}>
+                        {contract.title}
                       </div>
-                      
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span>{'★'.repeat(contract.stars)}{'☆'.repeat(5 - contract.stars)}</span>
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contract.title}</span>
-                        </div>
-                        {contract.targetMonster && (
-                          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
-                            讨伐目标: {contract.targetMonster}
-                          </div>
-                        )}
+                      <div
+                        className="pz-micro"
+                        style={{ color: 'var(--pz-ink-3)', marginTop: 3, display: 'flex', gap: 6, flexWrap: 'wrap' }}
+                      >
+                        <span style={{ letterSpacing: 1, color: 'var(--pz-brass-deep)' }}>
+                          {'★'.repeat(contract.stars)}
+                          {'☆'.repeat(5 - contract.stars)}
+                        </span>
+                        {contract.targetMonster && <span>· 讨伐 {contract.targetMonster}</span>}
                       </div>
                     </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
-                      <span style={{ fontSize: '12px', color: '#eab308', fontWeight: 'bold' }}>
-                        💰 {contract.goldReward}G
-                      </span>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--pz-brass-deep)' }}>{contract.goldReward} G</div>
                       {contract.specialLootDesc && (
-                        <span style={{ fontSize: '9px', color: '#c084fc' }}>
+                        <div className="pz-micro" style={{ color: 'var(--pz-arcane)', marginTop: 2 }}>
                           {contract.specialLootDesc}
-                        </span>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* 描述文案 */}
-                  <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.4', paddingLeft: '40px' }}>
+                  <p className="pz-body" style={{ margin: '8px 0 0', color: 'var(--pz-ink-2)' }}>
                     {contract.description}
-                  </div>
+                  </p>
 
-                  {/* 胜率评估与战术建议 */}
                   {odds && (
-                    <div style={{
-                      marginLeft: '40px',
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      background: '#0f172a',
-                      border: `1px solid ${odds.dangerColor}`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 'bold' }}>
-                          预估胜率: {odds.winRate}%
+                    <div className="pz-card pz-card--sunken" style={{ marginTop: 9, padding: '8px 10px' }}>
+                      <div className="pz-between">
+                        <span className="pz-row" style={{ gap: 7 }}>
+                          <span style={{ fontSize: 15, fontWeight: 700, color: odds.dangerColor }}>{odds.winRate}%</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: odds.dangerColor }}>{odds.dangerLabel}</span>
                         </span>
-                        <span style={{ fontSize: '10px', color: odds.dangerColor, fontWeight: 'bold' }}>
-                          {odds.dangerLabel}
+                        <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                          {odds.partyPower} : {odds.enemyPower}
                         </span>
                       </div>
-                      {odds.tacticTip && (
-                        <div style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic', lineHeight: '1.3' }}>
-                          💡 {odds.tacticTip}
-                        </div>
-                      )}
+                      <div className="pz-micro" style={{ marginTop: 4, color: 'var(--pz-ink-2)', lineHeight: 1.5 }}>
+                        {odds.tacticTip}
+                      </div>
                     </div>
                   )}
 
-                  {/* 底部：耗时、声望、魂晶 + 接取按钮 */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px', fontSize: '10px', color: '#64748b', paddingLeft: '40px' }}>
-                    <div>
-                      <span>耗时: {contract.durationDays} 天</span> | 
-                      <span style={{ color: '#34d399', marginLeft: '4px' }}>声望 +{contract.reputationReward}</span>
-                      {contract.soulCrystalReward ? <span style={{ color: '#c084fc', marginLeft: '4px' }}>| 魂晶 +{contract.soulCrystalReward}</span> : null}
-                    </div>
-                    <button
-                      onClick={() => onSelectContract(contract)}
+                  <div className="pz-between" style={{ marginTop: 10, alignItems: 'center' }}>
+                    <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                      {contract.durationDays} 天 · 声望 +{contract.reputationReward}
+                      {contract.soulCrystalReward ? ` · 魂晶 +${contract.soulCrystalReward}` : ''}
+                    </span>
+                    <Btn
+                      variant="brass"
+                      size="sm"
                       disabled={deployedSquad.length < 2}
-                      style={{
-                        padding: '5px 14px',
-                        background: deployedSquad.length >= 2 ? '#10b981' : '#475569',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '5px',
-                        fontWeight: 'bold',
-                        cursor: deployedSquad.length >= 2 ? 'pointer' : 'not-allowed',
-                        fontSize: '11px'
-                      }}
+                      onClick={() => onSelectContract(contract)}
                     >
-                      接取并讨伐 ⚔️
-                    </button>
+                      <Swords size={13} /> 接取
+                    </Btn>
                   </div>
-                </div>
+                </Card>
               );
             })
           )}
         </div>
       )}
 
-      {/* 建筑 2: 佣兵酒馆 (招募流浪伙伴) */}
+      {/* ===== 佣兵酒馆 ===== */}
       {activeBuilding === 'tavern' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-            酒馆候聘佣兵 (上限 8 人，当前名册: {roster.length}/8)
-          </div>
-
+        <div className="pz-col" style={{ gap: 10 }}>
+          <SectionHead title="候聘佣兵" hint={`名册 ${roster.length}/8 人 · 签约即随队出征`} />
           {recruits.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>酒馆暂无求职者，请待下一周刷新或前往其他城邦。</div>
+            <Empty>酒馆今日冷清，暂时没有愿意接活的人。</Empty>
           ) : (
             recruits.map(rec => (
-              <div key={rec.id} style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#f8fafc' }}>{rec.hero.name}</span>
-                    <span style={{ fontSize: '11px', color: '#38bdf8', marginLeft: '6px' }}>Lv.{rec.hero.level} {heroRoleLabel(rec.hero)}</span>
+              <Card key={rec.id} style={{ padding: '12px' }}>
+                <div className="pz-between" style={{ alignItems: 'flex-start', gap: 10 }}>
+                  <div className="pz-grow">
+                    <div className="pz-row" style={{ gap: 8 }}>
+                      <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 15, fontWeight: 700 }}>{rec.hero.name}</span>
+                      <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                        Lv.{rec.hero.level} {heroRoleLabel(rec.hero)}
+                      </span>
+                    </div>
+                    <div className="pz-micro" style={{ marginTop: 3, letterSpacing: 1, color: 'var(--pz-brass-deep)' }}>
+                      {rec.starRatingRange}
+                    </div>
                   </div>
-                  <span style={{ fontSize: '11px', color: '#eab308', fontWeight: 'bold' }}>
-                    潜力: {rec.starRatingRange}
-                  </span>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--pz-brass-deep)' }}>{rec.hireCost} G</div>
+                    <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>周薪 {rec.hero.wage} G</div>
+                  </div>
                 </div>
 
-                <div style={{ fontSize: '11px', color: '#94a3b8', margin: '4px 0', fontStyle: 'italic' }}>
-                  "{rec.backgroundStory}"
-                </div>
+                <p
+                  className="pz-body"
+                  style={{
+                    margin: '8px 0',
+                    color: 'var(--pz-ink-2)',
+                    fontStyle: 'italic',
+                    paddingLeft: 9,
+                    borderLeft: '2px solid var(--pz-line-2)',
+                  }}
+                >
+                  {rec.backgroundStory}
+                </p>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px' }}>
-                  <span style={{ color: '#64748b' }}>
-                    现役能力 CA: {rec.hero.currentAbility} | 周薪: {rec.hero.wage} G
+                <div className="pz-between" style={{ alignItems: 'center' }}>
+                  <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                    CA {rec.hero.currentAbility}
                   </span>
-                  <button
-                    onClick={() => handleHire(rec)}
-                    disabled={townEngine.logistics.gold < rec.hireCost}
-                    style={{
-                      padding: '4px 12px',
-                      background: townEngine.logistics.gold >= rec.hireCost ? '#eab308' : '#475569',
-                      color: '#0f172a',
-                      fontWeight: 'bold',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: townEngine.logistics.gold >= rec.hireCost ? 'pointer' : 'not-allowed',
-                      fontSize: '11px'
-                    }}
-                  >
-                    签约 ({rec.hireCost} G)
-                  </button>
+                  <Btn variant="brass" size="sm" onClick={() => handleHire(rec)} disabled={log.gold < rec.hireCost}>
+                    签约
+                  </Btn>
                 </div>
-              </div>
+              </Card>
             ))
           )}
         </div>
       )}
 
-      {/* 建筑 3: 补给市集 (买卖口粮与药剂) */}
+      {/* ===== 补给市集 ===== */}
       {activeBuilding === 'market' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-            军备物资交易所 (当前物价折扣: {Math.round(currentTown.supplyCostMod * 10)} 折)
-          </div>
+        <div className="pz-col" style={{ gap: 10 }}>
+          <SectionHead title="物资交易所" hint={`本镇物价 ${Math.round(currentTown.supplyCostMod * 10)} 折`} />
 
-          <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#f8fafc' }}>🍞 行军干粮 (Rations)</div>
-              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                行军与深潜必需品。每日每人消耗 1 份。当前存量: <b style={{ color: '#38bdf8' }}>{townEngine.logistics.rations}</b>
-              </div>
+          <Card style={{ padding: '12px' }}>
+            <div className="pz-between" style={{ alignItems: 'center', marginBottom: 8 }}>
+              <span className="pz-row" style={{ gap: 7 }}>
+                <Utensils size={16} color="var(--pz-brass-deep)" />
+                <span style={{ fontWeight: 700, fontSize: 14 }}>行军干粮</span>
+              </span>
+              <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>存 {log.rations}</span>
             </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button 
-                onClick={() => handleBuyRations(10)}
-                style={{ padding: '6px 10px', background: '#334155', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
-              >
-                +10份 ({Math.round(60 * currentTown.supplyCostMod)}G)
-              </button>
-              <button 
-                onClick={() => handleBuyRations(30)}
-                style={{ padding: '6px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                +30份 ({Math.round(180 * currentTown.supplyCostMod)}G)
-              </button>
+            <div className="pz-row" style={{ gap: 6 }}>
+              <Btn variant="ghost" size="sm" style={{ flex: 1 }} onClick={() => handleBuyRations(10)}>
+                +10 份 · {Math.round(60 * currentTown.supplyCostMod)}G
+              </Btn>
+              <Btn variant="brass" size="sm" style={{ flex: 1 }} onClick={() => handleBuyRations(30)}>
+                +30 份 · {Math.round(180 * currentTown.supplyCostMod)}G
+              </Btn>
             </div>
-          </div>
+          </Card>
 
-          <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#f8fafc' }}>🧪 金创药剂 (Medicine)</div>
-              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                处理严重肢体伤痕与战术创伤。当前存量: <b style={{ color: '#38bdf8' }}>{townEngine.logistics.medicines}</b>
-              </div>
+          <Card style={{ padding: '12px' }}>
+            <div className="pz-between" style={{ alignItems: 'center', marginBottom: 8 }}>
+              <span className="pz-row" style={{ gap: 7 }}>
+                <Flame size={16} color="var(--pz-combat)" />
+                <span style={{ fontWeight: 700, fontSize: 14 }}>金创药剂</span>
+              </span>
+              <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>存 {log.medicines}</span>
             </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button 
-                onClick={() => handleBuyMedicine(1)}
-                style={{ padding: '6px 10px', background: '#334155', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
-              >
-                +1瓶 ({Math.round(50 * currentTown.supplyCostMod)}G)
-              </button>
-              <button 
-                onClick={() => handleBuyMedicine(3)}
-                style={{ padding: '6px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                +3瓶 ({Math.round(150 * currentTown.supplyCostMod)}G)
-              </button>
+            <div className="pz-row" style={{ gap: 6 }}>
+              <Btn variant="ghost" size="sm" style={{ flex: 1 }} onClick={() => handleBuyMedicine(1)}>
+                +1 瓶 · {Math.round(50 * currentTown.supplyCostMod)}G
+              </Btn>
+              <Btn variant="brass" size="sm" style={{ flex: 1 }} onClick={() => handleBuyMedicine(3)}>
+                +3 瓶 · {Math.round(150 * currentTown.supplyCostMod)}G
+              </Btn>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
-      {/* 建筑 4: 随军医馆 (疗伤消压) */}
+      {/* ===== 随军医馆 ===== */}
       {activeBuilding === 'infirmary' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-            伤患疗养所 (快速恢复生命值、治疗伤痕并平复压力)
-          </div>
-
+        <div className="pz-col" style={{ gap: 10 }}>
+          <SectionHead title="伤患疗养所" hint="按伤势计价，越拖越贵" />
           {roster.map(hero => {
             const needHeal = hero.currentHp < hero.maxHp || hero.injuries.length > 0;
-            const cost = Math.round(((hero.maxHp - hero.currentHp) * 0.4 + hero.injuries.length * 35) * currentTown.supplyCostMod);
+            const cost = Math.round(
+              ((hero.maxHp - hero.currentHp) * 0.4 + hero.injuries.length * 35) * currentTown.supplyCostMod
+            );
             return (
-              <div key={hero.id} style={{ background: '#1e293b', padding: '10px 12px', borderRadius: '8px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#f8fafc' }}>
-                    {hero.name} <span style={{ fontSize: '10px', color: '#94a3b8' }}>HP: {hero.currentHp}/{hero.maxHp}</span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: hero.injuries.length > 0 ? '#ef4444' : '#10b981', marginTop: '2px' }}>
-                    {hero.injuries.length > 0 ? `伤情: ${hero.injuries.join(', ')}` : '状态: 肢体健康'}
-                  </div>
+              <Card key={hero.id} style={{ padding: '11px 12px' }}>
+                <div className="pz-between" style={{ alignItems: 'center', marginBottom: 6 }}>
+                  <span className="pz-row" style={{ gap: 7 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, fontFamily: 'var(--pz-serif)' }}>{hero.name}</span>
+                    <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                      {hero.currentHp}/{hero.maxHp}
+                    </span>
+                  </span>
+                  {needHeal ? (
+                    <Btn variant="brass" size="sm" onClick={() => handleHeal(hero)} disabled={log.gold < cost}>
+                      医治 {cost}G
+                    </Btn>
+                  ) : (
+                    <span className="pz-micro" style={{ color: 'var(--pz-success)' }}>无须就医</span>
+                  )}
                 </div>
-                {needHeal ? (
-                  <button
-                    onClick={() => handleHeal(hero)}
-                    disabled={townEngine.logistics.gold < cost}
-                    style={{
-                      padding: '4px 10px',
-                      background: townEngine.logistics.gold >= cost ? '#10b981' : '#475569',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      cursor: townEngine.logistics.gold >= cost ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    医治 ({cost} G)
-                  </button>
-                ) : (
-                  <span style={{ fontSize: '11px', color: '#10b981' }}>无须就医</span>
-                )}
-              </div>
+                <ThinBar
+                  ratio={hero.maxHp > 0 ? hero.currentHp / hero.maxHp : 0}
+                  tone={hero.currentHp / Math.max(1, hero.maxHp) < 0.4 ? 'var(--pz-combat)' : 'var(--pz-success)'}
+                />
+                <div className="pz-micro" style={{ marginTop: 5, color: 'var(--pz-ink-3)' }}>
+                  {hero.injuries.length > 0 ? hero.injuries.join(' · ') : '肢体健康'}
+                </div>
+              </Card>
             );
           })}
         </div>
       )}
 
-      {/* 建筑 6: 铁匠铺 (分解 / 打造 / 重铸 / 洗练) */}
+      {/* ===== 铁匠铺 ===== */}
       {activeBuilding === 'blacksmith' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: '12px', color: '#f8fafc', fontWeight: 'bold' }}>⚒️ 军械工坊</div>
-              <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
-                {currentTownId === 'hammerdeep_hold'
-                  ? '汽锤堡的老师傅坐镇，强化与打造费用 -15%。'
-                  : '炉火常亮，按佣兵水准打造合身军械。'}
+        <div className="pz-col" style={{ gap: 10 }}>
+          <Card style={{ padding: '12px' }}>
+            <div className="pz-between" style={{ alignItems: 'center' }}>
+              <div>
+                <div className="pz-row" style={{ gap: 6 }}>
+                  <Hammer size={15} color="var(--pz-brass-deep)" />
+                  <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 15, fontWeight: 700 }}>军械工坊</span>
+                </div>
+                <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginTop: 3 }}>
+                  {currentTownId === 'hammerdeep_hold'
+                    ? '汽锤堡的老师傅坐镇，工钱与料钱都便宜一成半。'
+                    : '炉火常亮，按佣兵身板打造合身军械。'}
+                </div>
+              </div>
+              <div className="pz-row" style={{ gap: 10 }}>
+                <span className="pz-row" style={{ gap: 4 }}>
+                  <Gem size={13} color="var(--pz-arcane)" />
+                  <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>晶石</span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{log.forgeStones}</span>
+                </span>
+                <span className="pz-row" style={{ gap: 4 }}>
+                  <Pickaxe size={13} color="var(--pz-ink-2)" />
+                  <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>玄铁</span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{log.ironOre}</span>
+                </span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', fontSize: '10px', color: '#cbd5e1', textAlign: 'right' }}>
-              <span>🪨 晶石 {townEngine.logistics.forgeStones}</span>
-              <span>⛏️ 玄铁 {townEngine.logistics.ironOre}</span>
-            </div>
-          </div>
+          </Card>
 
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div className="pz-row" style={{ gap: 5 }}>
             {([
-              ['craft', '🔨 打造'],
-              ['reforge', '🔥 重铸'],
-              ['reroll', '🎲 洗练'],
-              ['salvage', '♻️ 分解'],
-            ] as const).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setSmithTab(key)}
-                style={{
-                  flex: 1,
-                  padding: '6px 4px',
-                  borderRadius: '6px',
-                  border: smithTab === key ? '1px solid #f59e0b' : '1px solid #334155',
-                  background: smithTab === key ? 'rgba(245, 158, 11, 0.18)' : '#1e293b',
-                  color: smithTab === key ? '#fbbf24' : '#94a3b8',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                {label}
-              </button>
-            ))}
+              ['craft', '打造', <Hammer size={12} key="c" />],
+              ['reforge', '重铸', <Flame size={12} key="r" />],
+              ['reroll', '洗练', <Dices size={12} key="d" />],
+              ['salvage', '分解', <Recycle size={12} key="s" />],
+            ] as const).map(([key, label, icon]) => {
+              const on = smithTab === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSmithTab(key)}
+                  style={{
+                    flex: 1,
+                    padding: '7px 4px',
+                    borderRadius: 'var(--pz-r-btn)',
+                    border: `1px solid ${on ? 'var(--pz-brass-deep)' : 'var(--pz-line)'}`,
+                    background: on ? 'var(--pz-brass)' : 'rgba(255,255,255,.3)',
+                    color: on ? '#2A2115' : 'var(--pz-ink-2)',
+                    fontSize: 12,
+                    fontWeight: on ? 700 : 500,
+                    fontFamily: 'var(--pz-sans)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  {icon}
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {/* 打造 */}
-          {smithTab === 'craft' && (() => {
-            const cost = craftCost(craftTier, smithDiscount);
-            const blueprints = EQUIPMENT_TEMPLATES
-              .map((template, index) => ({ template, index }))
-              .filter(({ template }) => template.slot === craftSlot);
-            const canAfford = townEngine.logistics.gold >= cost.gold
-              && townEngine.logistics.forgeStones >= cost.stones
-              && townEngine.logistics.ironOre >= cost.ore;
-
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {([['weapon', '⚔️ 武器'], ['armor', '🛡️ 护甲'], ['trinket', '💍 饰品']] as const).map(([slot, label]) => (
+          {smithTab === 'craft' && (
+            <div className="pz-col" style={{ gap: 9 }}>
+              <div className="pz-row" style={{ gap: 5 }}>
+                {([
+                  ['weapon', '武器', <Swords size={12} key="w" />],
+                  ['armor', '护甲', <Shield size={12} key="a" />],
+                  ['trinket', '饰品', <Gem size={12} key="t" />],
+                ] as const).map(([slot, label, icon]) => {
+                  const on = craftSlot === slot;
+                  return (
                     <button
                       key={slot}
                       onClick={() => setCraftSlot(slot)}
                       style={{
-                        flex: 1, padding: '5px', borderRadius: '5px', fontSize: '10px', cursor: 'pointer',
-                        border: craftSlot === slot ? '1px solid #38bdf8' : '1px solid #334155',
-                        background: craftSlot === slot ? 'rgba(56, 189, 248, 0.15)' : '#0f172a',
-                        color: craftSlot === slot ? '#7dd3fc' : '#94a3b8'
+                        flex: 1,
+                        padding: '6px 4px',
+                        borderRadius: 'var(--pz-r-btn)',
+                        border: `1px solid ${on ? 'var(--pz-wine)' : 'var(--pz-line)'}`,
+                        background: on ? 'rgba(138,59,50,.10)' : 'transparent',
+                        color: on ? 'var(--pz-wine)' : 'var(--pz-ink-2)',
+                        fontSize: 12,
+                        fontWeight: on ? 700 : 500,
+                        fontFamily: 'var(--pz-sans)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
                       }}
                     >
+                      {icon}
                       {label}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#94a3b8' }}>
-                  <span>装等</span>
-                  {[1, 2, 3, 4, 5].map(t => (
+              <div className="pz-row" style={{ gap: 5 }}>
+                {[1, 2, 3, 4, 5].map(t => {
+                  const on = craftTier === t;
+                  return (
                     <button
                       key={t}
                       onClick={() => setCraftTier(t)}
                       style={{
-                        width: '24px', height: '22px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer',
-                        border: craftTier === t ? '1px solid #f59e0b' : '1px solid #334155',
-                        background: craftTier === t ? '#78350f' : '#0f172a',
-                        color: craftTier === t ? '#fde68a' : '#64748b'
+                        flex: 1,
+                        padding: '6px 0',
+                        borderRadius: 'var(--pz-r-btn)',
+                        border: `1px solid ${on ? 'var(--pz-brass-deep)' : 'var(--pz-line)'}`,
+                        background: on ? 'var(--pz-brass)' : 'transparent',
+                        color: on ? '#2A2115' : 'var(--pz-ink-3)',
+                        fontSize: 12,
+                        fontWeight: on ? 700 : 500,
+                        fontFamily: 'var(--pz-mono)',
+                        cursor: 'pointer',
                       }}
                     >
-                      {t}
+                      T{t}
                     </button>
-                  ))}
-                  <span style={{ marginLeft: '6px' }}>品质随机，装等越高越易出高阶</span>
-                </div>
+                  );
+                })}
+              </div>
 
-                <div style={{ fontSize: '10px', color: '#fbbf24' }}>
-                  工钱 {cost.gold}G · 晶石 {cost.stones} · 玄铁 {cost.ore}
-                </div>
+              <div className="pz-between" style={{ alignItems: 'center' }}>
+                <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                  工钱 {craftCostPreview.gold}G · 晶石 {craftCostPreview.stones} · 玄铁 {craftCostPreview.ore}
+                </span>
+                <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>品质随机</span>
+              </div>
 
-                {blueprints.map(({ template, index }) => (
-                  <div key={index} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '8px 10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 'bold' }}>{template.name}</div>
-                        <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px' }}>
+              {EQUIPMENT_TEMPLATES.filter(t => t.slot === craftSlot).map(template => {
+                const idx = EQUIPMENT_TEMPLATES.indexOf(template);
+                const afford =
+                  log.gold >= craftCostPreview.gold &&
+                  log.forgeStones >= craftCostPreview.stones &&
+                  log.ironOre >= craftCostPreview.ore;
+                return (
+                  <Card key={template.name} variant="sunken" style={{ padding: '10px 11px' }}>
+                    <div className="pz-between" style={{ alignItems: 'center', gap: 8 }}>
+                      <div className="pz-grow" style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>{template.name}</div>
+                        <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginTop: 2 }}>
                           {Object.entries(template.base)
-                            .filter(([, v]) => v !== undefined)
+                            .filter(([, v]) => (v as number) > 0)
                             .map(([k, v]) => formatBlueprintStat(k, v as number))
                             .join(' · ')}
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleCraft(index)}
-                        disabled={!canAfford}
-                        style={{
-                          padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '11px', fontWeight: 'bold',
-                          background: canAfford ? '#f59e0b' : '#475569',
-                          color: canAfford ? '#0f172a' : '#94a3b8',
-                          cursor: canAfford ? 'pointer' : 'not-allowed',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
+                      <Btn variant="brass" size="sm" onClick={() => handleCraft(idx)} disabled={!afford}>
                         锻造
-                      </button>
+                      </Btn>
                     </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
           {/* 重铸 */}
           {smithTab === 'reforge' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '10px', color: '#94a3b8' }}>每件装备只能重铸一次，全部基础属性与词缀提升 18%。</div>
+            <div className="pz-col" style={{ gap: 9 }}>
+              <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                每件装备只能重铸一次，基础属性与词缀一并提升 18%。
+              </div>
               {roster.map(hero => (
-                <div key={hero.id} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px' }}>
-                  <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}>
-                    {hero.name} <span style={{ color: '#64748b', fontWeight: 'normal' }}>Lv.{hero.level}</span>
+                <Card key={hero.id} style={{ padding: '11px 12px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 7, fontFamily: 'var(--pz-serif)' }}>
+                    {hero.name}
                   </div>
-                  {EQUIPPED_SLOTS.map(slot => {
-                    const item = hero.equipment[slot];
-                    if (!item) return null;
-                    const cost = reforgeCost(item, smithDiscount);
-                    const affordable = townEngine.logistics.gold >= cost;
-                    return (
-                      <div key={slot} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '3px 0', borderTop: '1px solid #1e293b' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '11px', color: item.reforged ? '#c084fc' : '#cbd5e1' }}>{item.name}</div>
-                          <div style={{ fontSize: '9px', color: '#64748b' }}>
-                            {RARITY_LABEL[item.rarity]} · 装等 {item.tier} · {qualityLabel(item.quality)} · {item.affixText ?? '无词缀'}
+                  <div className="pz-col" style={{ gap: 7 }}>
+                    {EQUIPPED_SLOTS.map(slot => {
+                      const item = hero.equipment[slot];
+                      if (!item) {
+                        return (
+                          <div key={slot} className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                            {slot === 'weapon' ? '武器' : slot === 'armor' ? '护甲' : '饰品'} · 空
                           </div>
+                        );
+                      }
+                      const cost = reforgeCost(item, smithDiscount);
+                      return (
+                        <div key={slot} className="pz-between" style={{ alignItems: 'center', gap: 8 }}>
+                          <div className="pz-grow" style={{ minWidth: 0 }}>
+                            <div
+                              className="pz-truncate"
+                              style={{ fontSize: 13, fontWeight: 600, color: item.reforged ? 'var(--pz-arcane)' : 'var(--pz-ink)' }}
+                            >
+                              {item.name}
+                            </div>
+                            <div className="pz-micro pz-truncate" style={{ color: 'var(--pz-ink-3)', marginTop: 2 }}>
+                              {RARITY_LABEL[item.rarity]} · T{item.tier} · {qualityLabel(item.quality)} ·{' '}
+                              {item.affixText || '无词缀'}
+                            </div>
+                          </div>
+                          {item.reforged ? (
+                            <span className="pz-micro" style={{ color: 'var(--pz-ink-3)', flexShrink: 0 }}>已重铸</span>
+                          ) : (
+                            <Btn variant="brass" size="sm" onClick={() => handleReforge(item)} disabled={log.gold < cost}>
+                              {cost}G
+                            </Btn>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleReforge(item)}
-                          disabled={item.reforged || !affordable}
-                          style={{
-                            padding: '4px 10px', borderRadius: '5px', border: 'none', fontSize: '10px', fontWeight: 'bold',
-                            background: item.reforged ? '#334155' : affordable ? '#dc2626' : '#475569',
-                            color: item.reforged || !affordable ? '#94a3b8' : '#fff',
-                            cursor: item.reforged || !affordable ? 'not-allowed' : 'pointer',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {item.reforged ? '已重铸' : `重铸 ${cost}G`}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </Card>
               ))}
             </div>
           )}
 
           {/* 洗练 */}
           {smithTab === 'reroll' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '10px', color: '#94a3b8' }}>重掷全部词缀，保留词条数量与装备品质。</div>
-              {roster.map(hero => (
-                <div key={hero.id} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px' }}>
-                  <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}>
-                    {hero.name} <span style={{ color: '#64748b', fontWeight: 'normal' }}>已装备</span>
-                  </div>
-                  {EQUIPPED_SLOTS.map(slot => {
-                    const item = hero.equipment[slot];
-                    if (!item) return null;
-                    const cost = rerollCost(item, smithDiscount);
-                    const affordable = townEngine.logistics.gold >= cost.gold && townEngine.logistics.forgeStones >= cost.stones;
-                    return (
-                      <div key={slot} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '3px 0', borderTop: '1px solid #1e293b' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '11px', color: '#cbd5e1' }}>{item.name}</div>
-                          <div style={{ fontSize: '9px', color: '#64748b' }}>{item.affixText ?? '无词缀'}</div>
-                        </div>
-                        <button
-                          onClick={() => handleReroll(item)}
-                          disabled={item.rarity === 'common' || !affordable}
-                          style={{
-                            padding: '4px 10px', borderRadius: '5px', border: 'none', fontSize: '10px', fontWeight: 'bold',
-                            background: item.rarity === 'common' ? '#334155' : affordable ? '#7c3aed' : '#475569',
-                            color: item.rarity === 'common' || !affordable ? '#94a3b8' : '#fff',
-                            cursor: item.rarity === 'common' || !affordable ? 'not-allowed' : 'pointer',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {item.rarity === 'common' ? '无词缀' : `洗练 ${cost.gold}G · ${cost.stones}石`}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+            <div className="pz-col" style={{ gap: 9 }}>
+              <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                重掷全部词缀，保留词条数量与装备品质。
+              </div>
+              {roster.map(hero => {
+                const items = EQUIPPED_SLOTS.map(s => hero.equipment[s]).filter(Boolean) as Equipment[];
+                if (items.length === 0) return null;
+                return (
+                  <Card key={hero.id} style={{ padding: '11px 12px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 7, fontFamily: 'var(--pz-serif)' }}>
+                      {hero.name}
+                    </div>
+                    <div className="pz-col" style={{ gap: 7 }}>
+                      {items.map(item => {
+                        const cost = rerollCost(item, smithDiscount);
+                        const common = item.rarity === 'common';
+                        return (
+                          <div key={item.id} className="pz-between" style={{ alignItems: 'center', gap: 8 }}>
+                            <div className="pz-grow" style={{ minWidth: 0 }}>
+                              <div className="pz-truncate" style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</div>
+                              <div className="pz-micro pz-truncate" style={{ color: 'var(--pz-ink-3)', marginTop: 2 }}>
+                                {item.affixText || '无词缀'}
+                              </div>
+                            </div>
+                            <Btn
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleReroll(item)}
+                              disabled={common || log.gold < cost.gold || log.forgeStones < cost.stones}
+                            >
+                              {cost.gold}G · {cost.stones}石
+                            </Btn>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                );
+              })}
+
               {inventory.length > 0 && (
-                <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px' }}>
-                  <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}>背包军械</div>
-                  {inventory.map(item => {
-                    const cost = rerollCost(item, smithDiscount);
-                    const affordable = townEngine.logistics.gold >= cost.gold && townEngine.logistics.forgeStones >= cost.stones;
-                    return (
-                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '3px 0', borderTop: '1px solid #1e293b' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '11px', color: '#cbd5e1' }}>{item.name}</div>
-                          <div style={{ fontSize: '9px', color: '#64748b' }}>{item.affixText ?? '无词缀'}</div>
+                <Card variant="sunken" style={{ padding: '11px 12px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 7, fontFamily: 'var(--pz-serif)' }}>
+                    背包军械
+                  </div>
+                  <div className="pz-col" style={{ gap: 7 }}>
+                    {inventory.map(item => {
+                      const cost = rerollCost(item, smithDiscount);
+                      const common = item.rarity === 'common';
+                      return (
+                        <div key={item.id} className="pz-between" style={{ alignItems: 'center', gap: 8 }}>
+                          <div className="pz-grow" style={{ minWidth: 0 }}>
+                            <div className="pz-truncate" style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</div>
+                            <div className="pz-micro pz-truncate" style={{ color: 'var(--pz-ink-3)', marginTop: 2 }}>
+                              {item.affixText || '无词缀'}
+                            </div>
+                          </div>
+                          <Btn
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReroll(item)}
+                            disabled={common || log.gold < cost.gold || log.forgeStones < cost.stones}
+                          >
+                            {cost.gold}G · {cost.stones}石
+                          </Btn>
                         </div>
-                        <button
-                          onClick={() => handleReroll(item)}
-                          disabled={item.rarity === 'common' || !affordable}
-                          style={{
-                            padding: '4px 10px', borderRadius: '5px', border: 'none', fontSize: '10px', fontWeight: 'bold',
-                            background: item.rarity === 'common' ? '#334155' : affordable ? '#7c3aed' : '#475569',
-                            color: item.rarity === 'common' || !affordable ? '#94a3b8' : '#fff',
-                            cursor: item.rarity === 'common' || !affordable ? 'not-allowed' : 'pointer',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {item.rarity === 'common' ? '无词缀' : `洗练 ${cost.gold}G · ${cost.stones}石`}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </Card>
               )}
             </div>
           )}
 
           {/* 分解 */}
           {smithTab === 'salvage' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '10px', color: '#94a3b8' }}>只分解背包中的淘汰军械，已装备的需先卸下。</div>
+            <div className="pz-col" style={{ gap: 9 }}>
+              <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                只分解背包里的淘汰军械；已装备的需先在名册里卸下。
+              </div>
               {inventory.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', fontSize: '11px', color: '#64748b' }}>背包里没有可分解的军械。</div>
-              ) : inventory.map(item => {
-                const gain = salvageYield(item);
-                return (
-                  <div key={item.id} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '11px', color: '#cbd5e1' }}>{item.name}</div>
-                      <div style={{ fontSize: '9px', color: '#64748b' }}>
-                        {RARITY_LABEL[item.rarity]} · 装等 {item.tier} · {qualityLabel(item.quality)} · {item.affixText ?? '无词缀'}
+                <Empty>背包里没有可分解的军械。</Empty>
+              ) : (
+                inventory.map(item => {
+                  const gain = salvageYield(item);
+                  return (
+                    <Card key={item.id} style={{ padding: '11px 12px' }}>
+                      <div className="pz-between" style={{ alignItems: 'center', gap: 8 }}>
+                        <div className="pz-grow" style={{ minWidth: 0 }}>
+                          <div className="pz-truncate" style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</div>
+                          <div className="pz-micro pz-truncate" style={{ color: 'var(--pz-ink-3)', marginTop: 2 }}>
+                            {RARITY_LABEL[item.rarity]} · T{item.tier} · {qualityLabel(item.quality)} ·{' '}
+                            {item.affixText || '无词缀'}
+                          </div>
+                          <div className="pz-micro" style={{ color: 'var(--pz-success)', marginTop: 3 }}>
+                            回收 {gain.gold}G · {gain.stones} 晶石
+                            {gain.ore > 0 ? ` · ${gain.ore} 玄铁` : ''}
+                          </div>
+                        </div>
+                        <Btn variant="ghost" size="sm" onClick={() => handleSalvage(item)}>
+                          <Recycle size={12} /> 分解
+                        </Btn>
                       </div>
-                      <div style={{ fontSize: '9px', color: '#fbbf24', marginTop: '2px' }}>
-                        回收 {gain.gold}G · {gain.stones} 晶石{gain.ore > 0 ? ` · ${gain.ore} 玄铁` : ''}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleSalvage(item)}
-                      style={{
-                        padding: '5px 12px', borderRadius: '5px', border: '1px solid #10b981', background: 'transparent',
-                        color: '#34d399', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'
-                      }}
-                    >
-                      分解
-                    </button>
-                  </div>
-                );
-              })}
+                    </Card>
+                  );
+                })
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* 建筑 5: 英灵圣所 (软着陆死亡保护 · 灵魂引渡) */}
+      {/* ===== 英灵圣所 ===== */}
       {activeBuilding === 'sanctuary' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-            星原引魂坛 (消耗金币与稀有魂晶，引渡阵亡勇士之英魂)
-          </div>
-
-          <div style={{ background: 'rgba(168, 85, 247, 0.1)', border: '1px dashed #a855f7', padding: '10px', borderRadius: '8px', fontSize: '11px', color: '#d8b4fe' }}>
-            ✨ 当前拥有的稀有魂晶: <b>{townEngine.logistics.soulCrystals}</b> 颗 (高星级公会任务奖励)
+        <div className="pz-col" style={{ gap: 10 }}>
+          <SectionHead title="星原引魂坛" hint="耗金币与稀有魂晶，引渡阵亡者之魂" />
+          <div
+            className="pz-row"
+            style={{
+              gap: 7,
+              padding: '9px 11px',
+              border: '1px dashed var(--pz-arcane)',
+              borderRadius: 'var(--pz-r-card)',
+              color: 'var(--pz-arcane)',
+              fontSize: 12,
+            }}
+          >
+            <Sparkles size={14} />
+            现有稀有魂晶 {log.soulCrystals} 颗（高星公会委托可得）
           </div>
 
           {townEngine.fallenSouls.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
-              英灵名册空空如也，佣兵团至今尚无同伴长眠。
-            </div>
+            <Empty>名册背面没有新的名字。至今无人长眠。</Empty>
           ) : (
             townEngine.fallenSouls.map((soul, idx) => (
-              <div key={soul.hero.id} style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #475569' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#f87171' }}>✝️ {soul.hero.name}</span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>Lv.{soul.hero.level} {heroRoleLabel(soul.hero)}</span>
+              <Card key={idx} style={{ padding: '11px 12px' }}>
+                <div className="pz-between" style={{ alignItems: 'flex-start', gap: 8 }}>
+                  <div className="pz-grow">
+                    <div className="pz-row" style={{ gap: 6 }}>
+                      <Skull size={14} color="var(--pz-ink-3)" />
+                      <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 14, fontWeight: 700 }}>
+                        {soul.hero.name}
+                      </span>
+                      <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                        Lv.{soul.hero.level} {heroRoleLabel(soul.hero)}
+                      </span>
+                    </div>
+                    <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginTop: 4 }}>
+                      阵亡于第 {soul.deathDate} 天 · {soul.deathLocation}
+                    </div>
+                    <div className="pz-micro" style={{ color: 'var(--pz-brass-deep)', marginTop: 2 }}>
+                      需 {soul.revivalSoulCrystals} 魂晶 + {soul.revivalCostGold} G
+                    </div>
                   </div>
-                  <span style={{ fontSize: '11px', color: '#a855f7', fontWeight: 'bold' }}>
-                    需要: {soul.revivalSoulCrystals} 魂晶 + {soul.revivalCostGold} G
-                  </span>
-                </div>
-                <div style={{ fontSize: '11px', color: '#64748b', margin: '4px 0' }}>
-                  阵亡于第 {soul.deathDate} 天 · {soul.deathLocation}
-                </div>
-                <div style={{ textAlign: 'right', marginTop: '6px' }}>
-                  <button
+                  <Btn
+                    variant="brass"
+                    size="sm"
                     onClick={() => handleRevive(idx)}
-                    disabled={
-                      townEngine.logistics.gold < soul.revivalCostGold || 
-                      townEngine.logistics.soulCrystals < soul.revivalSoulCrystals
-                    }
-                    style={{
-                      padding: '4px 14px',
-                      background: '#a855f7',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontWeight: 'bold',
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}
+                    disabled={log.soulCrystals < soul.revivalSoulCrystals || log.gold < soul.revivalCostGold}
                   >
-                    引渡还魂 ⚡
-                  </button>
+                    引渡
+                  </Btn>
                 </div>
-              </div>
+              </Card>
             ))
           )}
         </div>
       )}
 
-      {/* 转移据点弹窗 */}
+      {/* ===== 据点转移 ===== */}
       {isTravelModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px',
-          zIndex: 999
-        }}>
-          <div style={{ background: '#1e293b', width: '100%', maxWidth: '380px', borderRadius: '12px', padding: '16px', border: '1px solid #334155' }}>
-            <h3 style={{ fontSize: '15px', color: '#38bdf8', margin: '0 0 12px 0' }}>🗺️ 选择行军目的地</h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {(Object.keys(townEngine.towns) as TownId[]).map(tId => {
-                const t = townEngine.towns[tId];
-                const isCurrent = tId === currentTownId;
-                const days = Math.max(1, Math.abs(currentTown.distanceFromCapital - t.distanceFromCapital) + 1);
-                const foodCost = days * townEngine.logistics.dailyFoodCost;
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(20,16,10,.62)',
+            zIndex: 999,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+          onClick={() => setIsTravelModalOpen(false)}
+        >
+          <div
+            className="pz pz-grain"
+            style={{
+              width: '100%',
+              maxWidth: 480,
+              background: 'var(--pz-page)',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              padding: `16px 14px calc(env(safe-area-inset-bottom,0px) + 16px)`,
+              maxHeight: '86vh',
+              overflowY: 'auto',
+              animation: 'riseIn .22s ease-out',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="pz-h2" style={{ fontFamily: 'var(--pz-serif)', marginBottom: 4 }}>选择行军目的地</div>
+            <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginBottom: 12 }}>
+              路程与口粮消耗按各据点间距换算
+            </div>
 
+            <div className="pz-col" style={{ gap: 8 }}>
+              {Object.values(townEngine.towns).map(t => {
+                const days = Math.max(1, Math.abs(currentTown.distanceFromCapital - t.distanceFromCapital) + 1);
+                const foodCost = days * log.dailyFoodCost;
+                const here = t.id === currentTownId;
                 return (
-                  <div 
-                    key={tId}
-                    style={{ 
-                      padding: '10px', 
-                      background: isCurrent ? '#0f172a' : '#334155', 
-                      borderRadius: '8px', 
-                      border: isCurrent ? '1px solid #38bdf8' : '1px solid transparent',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 'bold', fontSize: '13px', color: isCurrent ? '#38bdf8' : '#fff' }}>
-                        {t.name} {isCurrent && '(驻扎在此)'}
+                  <Card key={t.id} variant={here ? 'sunken' : 'flat'} style={{ padding: '11px 12px' }}>
+                    <div className="pz-between" style={{ alignItems: 'center', gap: 8 }}>
+                      <div className="pz-grow" style={{ minWidth: 0 }}>
+                        <div className="pz-row" style={{ gap: 6 }}>
+                          <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 14, fontWeight: 700 }}>{t.name}</span>
+                          {here && <span className="pz-micro" style={{ color: 'var(--pz-brass-deep)' }}>驻扎中</span>}
+                        </div>
+                        <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginTop: 2 }}>
+                          {days} 天 · 口粮 {foodCost} 份
+                        </div>
                       </div>
-                      <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                        耗时: {days} 天 | 消耗口粮: {foodCost} 份
-                      </div>
+                      {here ? (
+                        <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                          <ChevronRight size={12} />
+                        </span>
+                      ) : (
+                        <Btn
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleTravel(t.id)}
+                          disabled={log.rations < foodCost}
+                        >
+                          拔营
+                        </Btn>
+                      )}
                     </div>
-                    {!isCurrent && (
-                      <button
-                        onClick={() => handleTravel(tId)}
-                        disabled={townEngine.logistics.rations < foodCost}
-                        style={{
-                          padding: '4px 10px',
-                          background: townEngine.logistics.rations >= foodCost ? '#3b82f6' : '#64748b',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          cursor: townEngine.logistics.rations >= foodCost ? 'pointer' : 'not-allowed'
-                        }}
-                      >
-                        拔营前往
-                      </button>
-                    )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>
 
-            <div style={{ marginTop: '16px', textAlign: 'right' }}>
-              <button
-                onClick={() => setIsTravelModalOpen(false)}
-                style={{ padding: '6px 14px', background: '#475569', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
-              >
-                取消
-              </button>
+            <div style={{ marginTop: 12 }}>
+              <Btn variant="quiet" block onClick={() => setIsTravelModalOpen(false)}>取消</Btn>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 };

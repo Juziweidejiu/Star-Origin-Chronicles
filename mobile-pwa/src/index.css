@@ -63,9 +63,9 @@
 html, body {
   margin: 0;
   padding: 0;
-  /* 迁移期保留旧深色底，待全部页面迁到纸面后改为 var(--pz-page) */
-  background-color: var(--pz-legacy-bg);
-  color: #f8fafc;
+  /* 桌面端两侧留纸桌底；手机端应用自身铺满 */
+  background-color: var(--pz-desk);
+  color: var(--pz-ink);
   font-family: var(--pz-sans);
   font-size: 14px;
   line-height: 1.6;
