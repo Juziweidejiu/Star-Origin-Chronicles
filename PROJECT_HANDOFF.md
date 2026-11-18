@@ -453,3 +453,31 @@
   - 带 `concurrency` 分组，同分支只保留最新一次运行。
   - 主远端为 Gitee，若改用 Gitee Go，按同样四步配置即可（README 已注明）。
 - [x] **验证**: `npm run check` EXIT=0（仅既有 warning）；`npx vitest run` 4 files / 30 tests 全绿，435ms。
+
+### Milestone 28: 质量门禁清零与性能收尾 (已完成交付 ✅)
+
+- [x] **oxlint 41 → 0 warning**
+  - `App.tsx` 启动引导由 `bootSaveRef`（render 期读 `ref.current`，10 条 `react(refs)`）改为惰性 `useState(() => {...})` 一次性装箱；删除挂载后补初始化首发/阵型的 effect（同时消除 `exhaustive-deps` 与 `set-state-in-effect`）。
+  - 自动保存快照从 render 期赋值改为在无依赖 `useEffect` 内构造并写 ref，仍保持 800ms 防抖。
+  - 战斗心跳 effect 补齐 `currentDungeon` / `currentContract` 依赖（战斗中途二者身份不变，不会重启计时器）。
+  - `InkStoryRunner` 的挂载同步用 `// oxlint-disable-next-line react/set-state-in-effect` 精准抑制（圆括号形式不生效，必须斜杠形式）。
+  - `statResolver.describeBase` 用解构空位 `([, value])` 消除未使用参数。
+  - `.oxlintrc.json` 关闭 `react/immutability`，理由：引擎为可变领域对象架构，彻底改不可变需大重构，已记入 `TODO.md` 技术债。
+
+- [x] **性能收尾**
+  - 删除 3 处 `backdrop-filter: blur()`（`DungeonEventModal` / `FormationModal` / `CombatStage` 结算遮罩），改用加深的半透墨底（`.62` / `.62` / `.6`），视觉几乎无差别、移动端 GPU 开销显著下降。
+  - `index.css` 的 `.pz` 加 `font-variant-numeric: tabular-nums`，血量/金币/伤害刷新不再抖动。
+  - `InkStoryRunner` 改为 `React.lazy` + `Suspense` 懒加载：主包 **681 kB → 425.64 kB**，另出 `InkStoryRunner` 独立 chunk **256.87 kB**（gzip 66.49），构建警告消失。
+
+- [x] **CI 真正可跑**
+  - 新增 `.workflows/ci.yml`（Gitee Go）：`npm ci` → `check` → `test` → `build`。需在仓库网页端「流水线」开通并选中该 YAML。
+  - 保留 `.github/workflows/ci.yml`（镜像到 GitHub 时直接生效），二者等价。
+
+- [x] **蓝图更新**
+  - `TODO.md` 全量重写为当前状态：M1–M28 摘要表、P0 数值校准（暂缓，附目标胜率曲线）、P1 性能剩余（战场单单位 memo）、P2 未来玩法（**《杀戮尖塔》式地牢路线图**三项拆解 + 技能库/状态效果/压力崩溃/羁绊/天灾/iOS）、技术债（引擎不可变化重构）。
+
+- [x] **验证**
+  - `npm run check` → 零 error 零 warning。
+  - `npx vitest run` → 4 files / 30 tests 全绿。
+  - `npm run build` → 838ms，主包 425.64 kB + 懒加载 chunk 256.87 kB。
+

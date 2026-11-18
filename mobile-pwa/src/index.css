@@ -38,7 +38,6 @@
   --pz-serif: "Noto Serif SC", "Songti SC", "Source Han Serif SC", STSong, SimSun, serif;
   --pz-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
   --pz-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
-
   /* ---------- 间距 8pt ---------- */
   --pz-s1: 4px;
   --pz-s2: 8px;
@@ -106,6 +105,8 @@ button, input, textarea, select {
   background: var(--pz-page);
   color: var(--pz-ink);
   font-family: var(--pz-sans);
+  /* 等宽数字：血量/金币/伤害刷新时不抖动（省掉每帧排版重算） */
+  font-variant-numeric: tabular-nums;
 }
 
 /* 纸张颗粒：铺在容器底层，不拦截点击 */

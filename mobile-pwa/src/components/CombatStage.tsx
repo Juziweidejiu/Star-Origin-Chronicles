@@ -318,8 +318,7 @@ export const CombatStage: React.FC<CombatStageProps> = ({
             justifyContent: 'center',
             padding: '16px 14px calc(84px + env(safe-area-inset-bottom, 0px))',
             overflowY: 'auto',
-            background: 'rgba(42,36,24,.52)',
-            backdropFilter: 'blur(2px)',
+            background: 'rgba(42,36,24,.6)',
             animation: 'fadeIn .22s ease-out',
           }}
         >

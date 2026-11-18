@@ -227,8 +227,7 @@ export const FormationModal: React.FC<FormationModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(42,36,24,.55)',
-        backdropFilter: 'blur(3px)',
+        background: 'rgba(42,36,24,.62)',
         zIndex: 9999,
         display: 'flex',
         alignItems: 'center',

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { BookOpen, Castle, Map, Swords, Users } from 'lucide-react';
 import { generateHero, heroRoleLabel } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
@@ -15,11 +15,13 @@ import type { Hero, Equipment } from './types/hero';
 import type { GuildContract } from './types/world';
 import type { DungeonInstance, DungeonRoom } from './types/dungeon';
 import type { DungeonEvent, ChoiceConsequence } from './types/narrative';
-import { InkStoryRunner } from './components/InkStoryRunner';
+const InkStoryRunner = lazy(() =>
+  import('./components/InkStoryRunner').then(m => ({ default: m.InkStoryRunner }))
+);
 import { DungeonEventModal } from './components/DungeonEventModal';
 import { CampBarkBubble } from './components/CampBarkBubble';
 import { FormationModal } from './components/FormationModal';
-import { Btn } from './components/ui';
+import { Btn, Card } from './components/ui';
 import { CombatStage } from './components/CombatStage';
 import { BattleStatsModal } from './components/BattleStatsModal';
 import { LootDropModal } from './components/LootDropModal';
@@ -1412,6 +1414,13 @@ export function App() {
 
             {/* 子面板 1: Ink.js DSL 剧本运行器 */}
             {storySubTab === 'ink' && (
+              <Suspense
+                fallback={
+                  <Card variant="sunken">
+                    <div className="pz-sub">正在展开卷轴…</div>
+                  </Card>
+                }
+              >
               <InkStoryRunner
                 onApplyEffectsToGame={({ stressDelta, goldDelta, message }) => {
                   if (goldDelta) townEngine.logistics.gold += goldDelta;
@@ -1424,6 +1433,7 @@ export function App() {
                   triggerUpdate();
                 }}
               />
+              </Suspense>
             )}
 
             {/* 子面板 2: 偶发事件检定架 */}

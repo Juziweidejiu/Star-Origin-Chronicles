@@ -1,0 +1,35 @@
+# Gitee Go 流水线：提交 / PR 时跑质量门禁
+#
+# 启用方式：仓库页 → 「流水线」(Gitee Go) → 新建流水线 → 选择本文件。
+# 注意 Gitee Go 需要在网页端开通并选中该 YAML，单纯推文件不会自动跑。
+# 如果你把仓库镜像到 GitHub，.github/workflows/ci.yml 会直接生效，二者等价。
+
+version: 1.0
+name: ci
+displayName: 质量门禁
+
+triggers:
+  push:
+    branches:
+      include:
+        - main
+  pull_request:
+    branches:
+      include:
+        - main
+
+stages:
+  - stage:
+      name: verify
+      displayName: 类型检查 / 单测 / 构建
+      steps:
+        - step: shell@1
+          name: verify
+          displayName: npm run check + test + build
+          script: |
+            set -e
+            cd mobile-pwa
+            npm ci
+            npm run check
+            npm test
+            npm run build

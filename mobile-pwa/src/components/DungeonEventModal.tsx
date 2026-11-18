@@ -96,8 +96,8 @@ export const DungeonEventModal: React.FC<DungeonEventModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(42,36,24,.55)',
-        backdropFilter: 'blur(3px)',
+        // 用半透墨底代替 backdrop-filter: blur()：移动端 GPU 开销大，视觉几乎无差别
+        backgroundColor: 'rgba(42,36,24,.62)',
         zIndex: 999,
         display: 'flex',
         alignItems: 'flex-start',
