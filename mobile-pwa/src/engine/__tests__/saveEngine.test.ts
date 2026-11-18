@@ -2,12 +2,17 @@ import { beforeAll, afterAll, describe, expect, it, vi } from 'vitest';
 import { TownEngine } from '../townEngine';
 import type { Hero } from '../../types/hero';
 import {
+  BACKUP_KEY,
   SAVE_KEY,
+  SAVE_MIGRATIONS,
   SAVE_VERSION,
+  applyMigrations,
   clearSave,
   loadSave,
+  readSave,
   writeSave,
   type SavePayload,
+  type SavePayloadRaw,
 } from '../saveEngine';
 
 /** 用内存实现顶替 localStorage：node 环境没有 window */
@@ -132,3 +137,211 @@ describe('写入总闸 suspendSave', () => {
     expect(loadSave()).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 版本迁移链（纯函数，不依赖 window / localStorage）
+// ---------------------------------------------------------------------------
+
+const SAVED_AT = 1_700_000_000_000;
+
+/** 造一份「指定版本号」的原始存档文本 */
+function rawSave(version: number, overrides: Partial<SavePayloadRaw> = {}): SavePayloadRaw {
+  return { ...buildPayload(), version, savedAt: SAVED_AT, ...overrides };
+}
+
+describe('applyMigrations', () => {
+  it('逐级执行 1 → 2 → 3，顺序为升序且字段累积', () => {
+    const order: number[] = [];
+    const table = {
+      1: (old: SavePayloadRaw) => {
+        order.push(1);
+        return { ...old, two: true };
+      },
+      2: (old: SavePayloadRaw) => {
+        order.push(2);
+        return { ...old, three: true };
+      },
+    };
+
+    const out = applyMigrations({ version: 1, seed: 'x' }, table, 3);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(order).toEqual([1, 2]);
+    expect(out.from).toBe(1);
+    expect(out.migrated).toBe(true);
+    expect(out.data.version).toBe(3);
+    expect(out.data.seed).toBe('x');
+    expect(out.data.two).toBe(true);
+    expect(out.data.three).toBe(true);
+  });
+
+  it('版本已是最新时不调用任何迁移', () => {
+    let calls = 0;
+    const out = applyMigrations({ version: 3 }, { 1: old => { calls += 1; return old; } }, 3);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(out.migrated).toBe(false);
+    expect(calls).toBe(0);
+  });
+
+  it('链路缺级时判 gap', () => {
+    const out = applyMigrations({ version: 1 }, { 1: old => old }, 3);
+    expect(out.ok).toBe(false);
+    if (out.ok) return;
+    expect(out.status).toBe('gap');
+    expect(out.fromVersion).toBe(1);
+  });
+
+  it('迁移函数抛异常时判 migrationFailed 并带回错误', () => {
+    const boom = new Error('boom');
+    const out = applyMigrations({ version: 1 }, { 1: () => { throw boom; } }, 2);
+    expect(out.ok).toBe(false);
+    if (out.ok) return;
+    expect(out.status).toBe('migrationFailed');
+    expect(out.error).toBe(boom);
+  });
+
+  it('迁移函数返回非对象时判 migrationFailed', () => {
+    const out = applyMigrations({ version: 1 }, { 1: (() => null) as unknown as () => SavePayloadRaw }, 2);
+    expect(out.ok).toBe(false);
+    if (out.ok) return;
+    expect(out.status).toBe('migrationFailed');
+  });
+
+  it('版本号非法（字符串 / 0 / 负数 / NaN / 小数 / 缺失）判 corrupt', () => {
+    const bad = ['1', 0, -3, NaN, 1.5, null, undefined];
+    for (const version of bad) {
+      const out = applyMigrations({ version }, {}, SAVE_VERSION);
+      expect(out.ok).toBe(false);
+      if (out.ok) return;
+      expect(out.status).toBe('corrupt');
+    }
+  });
+
+  it('版本高于目标时判 tooNew（回滚旧构建的保护）', () => {
+    const out = applyMigrations({ version: SAVE_VERSION + 5 }, {}, SAVE_VERSION);
+    expect(out.ok).toBe(false);
+    if (out.ok) return;
+    expect(out.status).toBe('tooNew');
+    expect(out.fromVersion).toBe(SAVE_VERSION + 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 落盘行为：备份 / 自愈回写 / 失败不落盘
+// ---------------------------------------------------------------------------
+
+describe('readSave 的迁移落盘行为', () => {
+  const twoStep = { 1: (old: SavePayloadRaw) => ({ ...old, migratedMark: true }) };
+
+  it('升级成功后自愈回写，并保留原始 savedAt', () => {
+    memory.clear();
+    memory.setItem(SAVE_KEY, JSON.stringify(rawSave(1)));
+
+    // 迁移函数只在「旧形态」上打标，归一化层会按白名单丢弃未知字段——
+    // 因此这里用调用计数确认迁移确实跑过，而不是看标记字段。
+    let calls = 0;
+    const step = { 1: (old: SavePayloadRaw) => { calls += 1; return old; } };
+
+    const { save, diag } = readSave(memory, step, 2);
+    expect(diag.status).toBe('ok');
+    expect(diag.fromVersion).toBe(1);
+    expect(save).not.toBeNull();
+    expect(save!.version).toBe(2);
+    expect(calls).toBe(1);
+
+    const written = JSON.parse(memory.getItem(SAVE_KEY)!);
+    expect(written.version).toBe(2);
+    expect(written.savedAt).toBe(SAVED_AT);
+  });
+
+  it('升级前把原文写进备份位，且原文之后再被覆盖也不影响备份', () => {
+    memory.clear();
+    const original = JSON.stringify(rawSave(1));
+    memory.setItem(SAVE_KEY, original);
+
+    readSave(memory, twoStep, 2);
+    expect(memory.getItem(BACKUP_KEY)).toBe(original);
+
+    // 第二份迁移不再覆盖已存在的备份
+    memory.setItem(SAVE_KEY, original);
+    readSave(memory, twoStep, 2);
+    expect(memory.getItem(BACKUP_KEY)).toBe(original);
+  });
+
+  it('幂等：迁移后的档再读一次不会重复迁移', () => {
+    memory.clear();
+    memory.setItem(SAVE_KEY, JSON.stringify(rawSave(1)));
+
+    let calls = 0;
+    const counting = { 1: (old: SavePayloadRaw) => { calls += 1; return old; } };
+    readSave(memory, counting, 2);
+    expect(calls).toBe(1);
+
+    const again = readSave(memory, counting, 2);
+    expect(calls).toBe(1);
+    expect(again.diag.status).toBe('ok');
+    expect(again.diag.fromVersion).toBe(2);
+  });
+
+  it('迁移失败时主档逐字节未变', () => {
+    memory.clear();
+    const original = JSON.stringify(rawSave(1));
+    memory.setItem(SAVE_KEY, original);
+
+    const { save, diag } = readSave(memory, { 1: () => { throw new Error('boom'); } }, 2);
+    expect(save).toBeNull();
+    expect(diag.status).toBe('migrationFailed');
+    expect(memory.getItem(SAVE_KEY)).toBe(original);
+    expect(memory.getItem(BACKUP_KEY)).toBeNull();
+  });
+
+  it('遇到未来版本：主档不动，但留下保命副本', () => {
+    memory.clear();
+    const future = JSON.stringify(rawSave(SAVE_VERSION + 9));
+    memory.setItem(SAVE_KEY, future);
+
+    const { save, diag } = readSave(memory, twoStep, 2);
+    expect(save).toBeNull();
+    expect(diag.status).toBe('tooNew');
+    expect(memory.getItem(SAVE_KEY)).toBe(future);
+    expect(memory.getItem(BACKUP_KEY)).toBe(future);
+  });
+
+  it('suspendSave 时仍能读出迁移结果，但不回写', () => {
+    vi.resetModules();
+    memory.clear();
+    memory.setItem(SAVE_KEY, JSON.stringify(rawSave(1)));
+
+    return import('../saveEngine').then(fresh => {
+      fresh.suspendSave();
+      const { save, diag } = fresh.readSave(memory, twoStep, 2);
+      expect(diag.status).toBe('ok');
+      expect(save).not.toBeNull();
+      expect(JSON.parse(memory.getItem(SAVE_KEY)!).version).toBe(1);
+    });
+  });
+
+  it('归一化裁掉残留英雄 id 与非法阵型槽位', () => {
+    memory.clear();
+    const raw = rawSave(SAVE_VERSION, {
+      deployedHeroIds: ['h1', '已删除的英雄'],
+      formationAssignments: [
+        { heroId: 'h1', slotId: 'front_center' },
+        { heroId: 'h1', slotId: 'not_a_slot' },
+        { heroId: '已删除的英雄', slotId: 'back_top' },
+      ],
+      formationPreset: '不存在的阵型',
+      dungeon: { contract: {}, dungeon: { id: 'd1', rooms: [] }, roomIndex: 0 },
+    });
+    memory.setItem(SAVE_KEY, JSON.stringify(raw));
+
+    const { save } = readSave(memory, SAVE_MIGRATIONS, SAVE_VERSION);
+    expect(save).not.toBeNull();
+    expect(save!.deployedHeroIds).toEqual(['h1']);
+    expect(save!.formationAssignments).toEqual([{ heroId: 'h1', slotId: 'front_center' }]);
+    expect(save!.formationPreset).toBe('shield_wall');
+    expect(save!.dungeon).toBeNull();
+  });
+});
+

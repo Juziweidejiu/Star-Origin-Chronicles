@@ -1,7 +1,7 @@
 # 《星原战纪》路线蓝图
 
 > 最后更新：2026-11-18
-> 当前版本：Milestone 30（GitHub 镜像 + 免费 CI + 真机性能采样器）
+> 当前版本：Milestone 31（存档迁移层 P1-1）
 > 新会话从这里开始读：本文件 → `AGENTS.md` → `PROJECT_HANDOFF.md`
 
 ---
@@ -22,6 +22,7 @@
 | M28 | oxlint 41 → 0 warning；去 3 处 `backdrop-filter`；`tabular-nums`；`React.lazy` 拆出 Ink 剧本（主包 681 → 425 kB，另出 257 kB 懒加载 chunk） |
 | M29 | `BattlePawn` memo 化 + `sameVisual()` 逐字段比较（解掉「视觉态每次新引用导致 memo 失效」）；性能清单清零 |
 | M30 | GitHub 镜像（公开仓）+ Actions 真跑绿灯；双远程推送流程；`?perf=1` 真机性能采样器（FPS/p95/掉帧/卡死/LongTask/LoAF，纯 DOM 挂载） |
+| M31 | 存档迁移层（P1-1）：链式 `SAVE_MIGRATIONS` + 原档备份 + 自愈回写 + 结构归一；`readSave` 可注入测试缝；单测 30 → 44 |
 
 ---
 
@@ -36,13 +37,15 @@
 
 ## 🟠 P1 · 下一步建议（新会话从这里开工）
 
-### 1. 存档迁移层（半天，**必须先做**）
-- [ ] `saveEngine.ts` 现在是 `SAVE_VERSION = 1`，版本不匹配直接 `return null` 当无存档。
-- [ ] 任何结构变更（尤其地牢改图）都会让所有人进度清零。
-- [ ] 加 `migrations: Record<number, (old: any) => any>` 链式升级，`loadSave` 里循环跑到最新版本。
-- [ ] 补单测：v1 档 → v2 档的迁移与字段兜底。
+### 1. 存档迁移层（✅ 已完成，Milestone 31）
+- [x] `saveEngine.ts` 版本不符不再直接 `return null`：先备份原档 → 逐级跑 `SAVE_MIGRATIONS` → 归一化 → 自愈回写。
+- [x] `applyMigrations` 纯函数 + `readSave(s, migrations, target)` 测试缝，失败分 `corrupt / tooNew / gap / migrationFailed` 四类。
+- [x] `BACKUP_KEY = 'starfall.save.v1.backup'`，只在空缺时写，永不覆盖第一份原始档；`tooNew` 也留副本防自动保存铲档。
+- [x] 单测 9 → 23 条（全仓 30 → 44），`check` / `test` / `build` 全绿。
+- [x] 方案文档：`docs/SAVE_MIGRATION.md`。
+- 注意：`SAVE_VERSION` 仍为 1；落地 P1-2 时登记 `1: migrateV1ToV2` 再 bump，`SAVE_KEY` 字符串**不得改动**。
 
-### 2. 《杀戮尖塔》式地牢路线图（约 2 天，依赖第 1 项）
+### 2. 《杀戮尖塔》式地牢路线图（约 2 天，存档前置已就绪）
 - 现状：生成器产**线性数组** + `branchOptions` 二选一；`DungeonView` 是横向圆点条，玩家不能自选节点。
 - Demo 承诺：`design/demo-c-route.html` 手绘分支地图，玩家自己点下一格。
 - [ ] 生成器改图：深 6–8 层、每层 1–3 节点、节点带边；一条偏战斗主干 + 一条偏事件/宝箱侧翼，中间可横切。

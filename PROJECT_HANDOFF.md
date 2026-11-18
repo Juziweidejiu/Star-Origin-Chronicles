@@ -518,3 +518,40 @@
 - [x] **文档与蓝图同步**
   - `TODO.md` 全量重写为 M1–M30 摘要 + P0/P1/P2 分级 + 技术债 + 工程约定，并在头部写明「新会话从这里开始读」。
   - 本文件追加本节，作为 M30 的交付记录。
+
+### Milestone 31: 存档迁移层（P1-1，已完成交付 ✅）
+
+- [x] **设计方案落档（`docs/SAVE_MIGRATION.md`）**
+  - 立项前先盘点缺陷：`isUsableSave` 只认版本精确相等、`SAVE_KEY` 里嵌着 `v1`、版本不符时只 warn 不备份（随后的 800ms 防抖会把「看不懂的新档」直接覆盖成新游戏）。
+  - 定下四段式链路：`readSave → applyMigrations → normalizeSave → persist`，对外 `loadSave()` 契约不变，`App.tsx` 零改动。
+  - 明确「`saveEngine` 只翻译结构、不创造玩法状态」——默认值只归 `TownEngine` / `generateHero` 所有。
+
+- [x] **迁移链（`engine/saveEngine.ts`）**
+  - 新增 `SAVE_MIGRATIONS`（当前为空）、`applyMigrations(raw, migrations, targetVersion)` 纯函数：`corrupt / tooNew / gap / migrationFailed` 四类失败带 `status` 返回，不返回裸 `null`（诊断信息不丢）。
+  - `SAVE_VERSION` **保持 1**：真正的 `1 → v2` 内容取决于 P1-2 地牢图格式，避免版本号被空迁移占用。
+  - 迁移函数约定：不读 storage、不读时钟、不做随机，同输入必同输出。
+
+- [x] **归一化（`normalizeSave`）**
+  - 白名单收敛：`deployedHeroIds` 过滤掉已删英雄 id；`formationAssignments` 丢弃未知 `slotId` / 幽灵 `heroId`；非法 `formationPreset` 回落 `shield_wall`。
+  - 地牢结构不合法 → 置 `null`（等价「这趟作废回城」），与「战斗瞬时态不存盘」同一取舍。
+  - `KNOWN_PRESETS` 用 `Record<FormationPresetId, true>` 约束，新增预设时 TypeScript 强制同步。
+
+- [x] **备份与自愈**
+  - `BACKUP_KEY = 'starfall.save.v1.backup'`：升级前落一份原文，**只在空缺时写**，永不覆盖第一份真进度。
+  - 升级成功后按目标版本回写并**保留原 `savedAt`**（否则「上次保存」会撒谎成「刚刚」）。
+  - `tooNew`（用户回滚旧构建）也先留副本，防止随后自动保存铲掉新版档；迁移抛异常时主档逐字节不变。
+
+- [x] **密钥说明**
+  - `SAVE_KEY` 的 `.v1` 是命名空间历史遗留，**不是版本号**；bump 版本时绝不能改这个字符串。已在常量上方注释锁定。
+
+- [x] **测试（`engine/__tests__/saveEngine.test.ts`）**
+  - 新增 14 条：链路顺序与字段累积、已最新不调用、缺级 `gap`、抛异常 / 返回非对象 `migrationFailed`、7 种非法版本号、`tooNew`、自愈回写保留 `savedAt`、备份不被覆盖、幂等、失败不落盘、`suspendSave` 不回写、归一化裁剪。
+  - 既有 9 条语义不变仍全绿；`readSave(s, migrations, target)` 作为可注入 Storage 的测试缝，不需要真实 `localStorage`。
+
+- [x] **验证**
+  - `npm run check`（tsc -b && oxlint）EXIT=0，零 error、零 warning。
+  - `npm run test` → 4 files / **44 tests** 全绿（原 30 条 + 新增 14 条），410ms。
+  - `npm run build` → 857ms，主包 433.53 kB（gzip 137.09）、`InkStoryRunner` 懒加载块 256.87 kB（gzip 66.49）、CSS 14.44 kB。
+  - 未跑 `sim_balance.mjs`：本里程碑不触碰任何数值常量。
+
+- [x] **结果**：`TODO.md` P1-1 清零，P1-2（杀戮尖塔式地牢路线图）的存档前置条件就绪——只需登记 `1: migrateV1ToV2` 并 bump `SAVE_VERSION`。
