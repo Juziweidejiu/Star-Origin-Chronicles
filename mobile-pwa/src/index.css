@@ -415,7 +415,7 @@ button, input, textarea, select {
     radial-gradient(128% 86% at 50% 44%, rgba(42, 36, 24, 0) 48%, rgba(42, 36, 24, .16) 100%),
     radial-gradient(52% 18% at 50% 52%, var(--cs-torch), rgba(232, 164, 74, 0) 74%),
     linear-gradient(180deg, var(--cs-floor-a) 0%, var(--cs-floor-b) 100%);
-  transform: translate(0, 0);
+  transform: none;
   transition: transform .08s ease-in-out;
   user-select: none;
 }

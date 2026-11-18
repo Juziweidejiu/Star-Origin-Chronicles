@@ -1,6 +1,6 @@
 /**
- * 战斗结算统计面板组件 (BattleStatsModal)
- * 展示战斗时长、MVP 最佳英雄徽章、输出榜/承伤榜/治疗榜柱状占比条
+ * 战斗结算面板
+ * 战绩、MVP、战后成长与三榜统计；纸面语言，底部按钮固定可点。
  */
 
 import React, { useState } from 'react';
@@ -11,20 +11,24 @@ import { heroRoleLabel } from '../engine/heroFactory';
 interface BattleStatsModalProps {
   summary: BattleSettlementSummary;
   progression?: HeroProgressionResult[];
-  onNext: () => void; // 点击继续：进入战利品开箱/返回沙盘
+  onNext: () => void;
 }
 
 type StatTab = 'damage' | 'taken' | 'heal';
+
+const TABS: Array<{ id: StatTab; label: string }> = [
+  { id: 'damage', label: '输出榜' },
+  { id: 'taken', label: '承伤榜' },
+  { id: 'heal', label: '治疗榜' },
+];
 
 export const BattleStatsModal: React.FC<BattleStatsModalProps> = ({ summary, progression, onNext }) => {
   const [activeTab, setActiveTab] = useState<StatTab>('damage');
 
   const { playerPerformances, mvpHeroId, winner, durationSeconds } = summary;
   const isVictory = winner === 'player';
-
   const mvp = playerPerformances.find(p => p.hero.id === mvpHeroId) || playerPerformances[0];
 
-  // 计算当前 Tab 下的最大值用于百分比柱状条绘制
   const maxVal = Math.max(
     1,
     ...playerPerformances.map(p =>
@@ -32,253 +36,250 @@ export const BattleStatsModal: React.FC<BattleStatsModalProps> = ({ summary, pro
     )
   );
 
+  const barTone =
+    activeTab === 'damage' ? 'var(--pz-wine)' : activeTab === 'taken' ? '#2F6E8F' : '#3F6E52';
+
   return (
     <div
       style={{
-        background: 'rgba(15, 23, 42, 0.98)',
-        border: isVictory ? '2px solid #10b981' : '2px solid #ef4444',
-        borderRadius: '12px',
-        padding: '16px',
-        color: '#fff',
-        boxShadow: isVictory
-          ? '0 12px 30px rgba(16, 185, 129, 0.35)'
-          : '0 12px 30px rgba(239, 68, 68, 0.35)',
-        width: '100%',
-        boxSizing: 'border-box',
-        animation: 'fadeIn 0.25s ease-out'
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: 'calc(100vh - 130px)',
+        background: 'var(--pz-raised)',
+        border: `1px solid ${isVictory ? 'rgba(74,122,94,.55)' : 'rgba(138,59,50,.55)'}`,
+        borderRadius: 'var(--pz-r-card)',
+        boxShadow: '0 14px 34px rgba(42,36,24,.30)',
+        color: 'var(--pz-ink)',
+        overflow: 'hidden',
+        animation: 'popIn .22s ease-out',
       }}
     >
-      {/* 头部标题与战斗耗时 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <div>
-          <span style={{ fontSize: '16px', fontWeight: 'bold', color: isVictory ? '#34d399' : '#f87171' }}>
-            {isVictory ? '🎉 战役大捷 · 强敌肃清' : '💀 战役惨败 · 溃散撤离'}
+      {/* 头部 */}
+      <div
+        style={{
+          padding: '12px 14px 10px',
+          borderBottom: '1px solid var(--pz-line)',
+          background: 'linear-gradient(180deg, rgba(42,36,24,.05), transparent)',
+        }}
+      >
+        <div className="pz-between">
+          <span
+            style={{
+              fontFamily: 'var(--pz-serif)',
+              fontSize: '16px',
+              color: isVictory ? '#3F6E52' : 'var(--pz-wine)',
+            }}
+          >
+            {isVictory ? '战役大捷' : '溃散撤离'}
           </span>
-          <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: '8px' }}>
+          <span className="pz-mono" style={{ fontSize: '10px', color: 'var(--pz-ink-3)' }}>
             耗时 {durationSeconds}s
           </span>
         </div>
-        <div style={{ fontSize: '10px', background: '#334155', padding: '2px 8px', borderRadius: '4px', color: '#cbd5e1' }}>
-          阶段 1/2 · 战绩
+        <div style={{ fontSize: '11px', color: 'var(--pz-ink-3)', marginTop: '2px' }}>
+          战绩总览 · 第 1 步 / 共 2 步
         </div>
       </div>
 
-      {/* MVP 黄金展台 */}
-      {mvp && (
-        <div
-          style={{
-            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(30, 41, 59, 0.7) 100%)',
-            border: '1px solid #eab308',
-            borderRadius: '8px',
-            padding: '10px 12px',
-            marginBottom: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
+      {/* 可滚动内容 */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px' }}>
+        {/* MVP */}
+        {mvp && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              padding: '9px 11px',
+              borderRadius: 'var(--pz-r-btn)',
+              background: 'rgba(217,164,91,.14)',
+              border: '1px solid rgba(169,121,58,.45)',
+              marginBottom: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+              <span
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  background: 'var(--pz-brass)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  flexShrink: 0,
+                }}
+              >
+                ★
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap' }}>{mvp.hero.name}</span>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      padding: '0 4px',
+                      borderRadius: '3px',
+                      background: 'var(--pz-brass-deep)',
+                      color: '#F6EFDF',
+                    }}
+                  >
+                    全场 MVP
+                  </span>
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--pz-ink-2)', marginTop: '1px' }}>
+                  {heroRoleLabel(mvp.hero)} · 综合评分 {mvp.mvpScore}
+                </div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right', fontSize: '10px', color: 'var(--pz-ink-2)', flexShrink: 0 }}>
+              <div>击杀 {mvp.kills}</div>
+              <div>暴击 {mvp.critsCount}</div>
+            </div>
+          </div>
+        )}
+
+        {/* 战后成长 */}
+        {progression && progression.length > 0 && (
+          <div style={{ marginBottom: '12px' }}>
+            <div className="pz-between" style={{ marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--pz-ink-2)' }}>战后成长</span>
+              <span style={{ fontSize: '9px', color: 'var(--pz-ink-3)' }}>MVP 经验 +15%</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              {progression.map(p => {
+                const leveledUp = p.levelAfter > p.levelBefore;
+                return (
+                  <div
+                    key={p.heroId}
+                    style={{
+                      background: 'var(--pz-sunken)',
+                      borderRadius: 'var(--pz-r-seal)',
+                      padding: '6px 8px',
+                      border: leveledUp ? '1px solid var(--pz-brass-deep)' : '1px solid var(--pz-line)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+                      <span style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {p.heroName}
+                        {p.isMvp && <span style={{ marginLeft: '4px', fontSize: '9px', color: 'var(--pz-brass-deep)' }}>MVP</span>}
+                      </span>
+                      <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                        <span style={{ color: '#2F6E8F' }}>经验 +{p.xpGained}</span>
+                        {p.caGained > 0 && <span style={{ color: '#6B4E9E' }}>能力 +{p.caGained}</span>}
+                        {leveledUp ? (
+                          <span
+                            className="pz-mono"
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              color: '#7A5410',
+                              background: 'rgba(217,164,91,.30)',
+                              padding: '0 5px',
+                              borderRadius: '3px',
+                            }}
+                          >
+                            Lv.{p.levelBefore}→{p.levelAfter}
+                          </span>
+                        ) : (
+                          <span className="pz-mono" style={{ fontSize: '10px', color: 'var(--pz-ink-3)' }}>
+                            Lv.{p.levelAfter}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {p.attributeGains.length > 0 && (
+                      <div style={{ marginTop: '2px', fontSize: '10px', color: 'var(--pz-ink-3)' }}>
+                        属性成长 {p.attributeGains.slice(0, 4).map(g => `${g.label}+${g.amount}`).join(' · ')}
+                        {p.attributeGains.length > 4 ? ' …' : ''}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 三榜切换 */}
+        <div style={{ display: 'flex', gap: '5px', marginBottom: '9px' }}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: '#ca8a04',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                boxShadow: '0 0 10px rgba(234, 179, 8, 0.6)'
+                flex: 1,
+                padding: '6px 0',
+                background: activeTab === t.id ? 'var(--pz-wine)' : 'transparent',
+                color: activeTab === t.id ? '#F6EFDF' : 'var(--pz-ink-2)',
+                border: `1px solid ${activeTab === t.id ? 'var(--pz-wine)' : 'var(--pz-line-2)'}`,
+                borderRadius: 'var(--pz-r-btn)',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: activeTab === t.id ? 600 : 400,
               }}
             >
-              👑
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#fef08a' }}>
-                  {mvp.hero.name}
-                </span>
-                <span style={{ fontSize: '10px', background: 'rgba(234, 179, 8, 0.25)', color: '#fde047', padding: '1px 5px', borderRadius: '3px' }}>
-                  全场 MVP
-                </span>
-              </div>
-              <div style={{ fontSize: '10px', color: '#cbd5e1', marginTop: '2px' }}>
-                {heroRoleLabel(mvp.hero)} · 综合战绩评分 {mvp.mvpScore}
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'right', fontSize: '11px', color: '#fde047' }}>
-            <div>击杀: {mvp.kills}</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8' }}>暴击: {mvp.critsCount}次</div>
-          </div>
+              {t.label}
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* 经验与成长结算 */}
-      {progression && progression.length > 0 && (
-        <div
-          style={{
-            background: 'rgba(56, 189, 248, 0.08)',
-            border: '1px solid #0ea5e9',
-            borderRadius: '8px',
-            padding: '10px 12px',
-            marginBottom: '14px',
-            animation: 'fadeIn 0.35s ease-out'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#7dd3fc' }}>📈 战后成长结算</span>
-            <span style={{ fontSize: '9px', color: '#94a3b8' }}>MVP 经验 +15%</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {progression.map(p => {
-              const leveledUp = p.levelAfter > p.levelBefore;
-              return (
-                <div key={p.heroId} style={{ background: '#0f172a', borderRadius: '6px', padding: '6px 8px', border: leveledUp ? '1px solid #eab308' : '1px solid #1e293b' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-                    <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>
-                      {p.heroName}
-                      {p.isMvp && <span style={{ marginLeft: '5px', fontSize: '9px', color: '#fde047' }}>MVP</span>}
+        {/* 榜单 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+          {playerPerformances.map((p, idx) => {
+            const val = activeTab === 'damage' ? p.damageDealt : activeTab === 'taken' ? p.damageTaken : p.healingDone;
+            const pct = Math.round((val / maxVal) * 100);
+            return (
+              <div key={p.hero.id} style={{ background: 'var(--pz-sunken)', padding: '6px 9px', borderRadius: 'var(--pz-r-seal)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600 }}>
+                    #{idx + 1} {p.hero.name}
+                    <span style={{ fontSize: '10px', color: 'var(--pz-ink-3)', marginLeft: '4px' }}>
+                      {p.hero.role === 'tank' ? '盾' : p.hero.role === 'healer' ? '医' : '刃'}
                     </span>
-                    <span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span style={{ color: '#38bdf8' }}>经验 +{p.xpGained}</span>
-                      {p.caGained > 0 && <span style={{ color: '#a78bfa' }}>能力 +{p.caGained}</span>}
-                      {leveledUp ? (
-                        <span
-                          style={{
-                            color: '#fde047',
-                            fontWeight: 'bold',
-                            fontSize: '11px',
-                            background: 'rgba(234, 179, 8, 0.18)',
-                            padding: '1px 6px',
-                            borderRadius: '4px'
-                          }}
-                        >
-                          ⬆ Lv.{p.levelBefore} → Lv.{p.levelAfter}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#64748b', fontSize: '10px' }}>Lv.{p.levelAfter}</span>
-                      )}
-                    </span>
-                  </div>
-                  {p.attributeGains.length > 0 && (
-                    <div style={{ marginTop: '3px', fontSize: '9px', color: '#94a3b8' }}>
-                      属性成长: {p.attributeGains.slice(0, 4).map(g => `${g.label}+${g.amount}`).join(' · ')}
-                      {p.attributeGains.length > 4 ? ' …' : ''}
-                    </div>
-                  )}
+                  </span>
+                  <span className="pz-mono" style={{ fontWeight: 700, color: barTone }}>
+                    {val.toLocaleString()}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <div style={{ height: '4px', background: 'rgba(42,36,24,.14)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${Math.max(4, pct)}%`,
+                      height: '100%',
+                      background: barTone,
+                      borderRadius: '3px',
+                      transition: 'width .4s ease-out',
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
-
-      {/* 榜单切换 Tab */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-        <button
-          onClick={() => setActiveTab('damage')}
-          style={{
-            flex: 1,
-            padding: '6px 0',
-            background: activeTab === 'damage' ? '#dc2626' : '#1e293b',
-            color: '#fff',
-            border: activeTab === 'damage' ? '1px solid #ef4444' : '1px solid #334155',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '11px',
-            fontWeight: activeTab === 'damage' ? 'bold' : 'normal'
-          }}
-        >
-          ⚔️ 输出榜
-        </button>
-        <button
-          onClick={() => setActiveTab('taken')}
-          style={{
-            flex: 1,
-            padding: '6px 0',
-            background: activeTab === 'taken' ? '#2563eb' : '#1e293b',
-            color: '#fff',
-            border: activeTab === 'taken' ? '1px solid #3b82f6' : '1px solid #334155',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '11px',
-            fontWeight: activeTab === 'taken' ? 'bold' : 'normal'
-          }}
-        >
-          🛡️ 承伤榜
-        </button>
-        <button
-          onClick={() => setActiveTab('heal')}
-          style={{
-            flex: 1,
-            padding: '6px 0',
-            background: activeTab === 'heal' ? '#16a34a' : '#1e293b',
-            color: '#fff',
-            border: activeTab === 'heal' ? '1px solid #22c55e' : '1px solid #334155',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '11px',
-            fontWeight: activeTab === 'heal' ? 'bold' : 'normal'
-          }}
-        >
-          💚 治疗榜
-        </button>
       </div>
 
-      {/* 柱状统计条列表 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-        {playerPerformances.map((p, idx) => {
-          const val = activeTab === 'damage' ? p.damageDealt : activeTab === 'taken' ? p.damageTaken : p.healingDone;
-          const pct = Math.round((val / maxVal) * 100);
-          const barColor = activeTab === 'damage' ? '#f87171' : activeTab === 'taken' ? '#60a5fa' : '#4ade80';
-
-          return (
-            <div key={p.hero.id} style={{ background: '#1e293b', padding: '6px 10px', borderRadius: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 'bold', color: '#e2e8f0' }}>
-                  #{idx + 1} {p.hero.name} <span style={{ fontSize: '9px', color: '#94a3b8' }}>({p.hero.role === 'tank' ? '盾' : p.hero.role === 'healer' ? '医' : '刃'})</span>
-                </span>
-                <span style={{ fontWeight: 'bold', color: barColor }}>
-                  {val.toLocaleString()} pt
-                </span>
-              </div>
-              <div style={{ height: '6px', background: '#0f172a', borderRadius: '3px', overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${Math.max(4, pct)}%`,
-                    height: '100%',
-                    background: barColor,
-                    borderRadius: '3px',
-                    transition: 'width 0.4s ease-out'
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
+      {/* 固定底部按钮 */}
+      <div style={{ padding: '10px 14px 12px', borderTop: '1px solid var(--pz-line)' }}>
+        <button
+          onClick={onNext}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            background: 'var(--pz-wine)',
+            color: '#F6EFDF',
+            fontWeight: 600,
+            border: 'none',
+            borderRadius: 'var(--pz-r-btn)',
+            cursor: 'pointer',
+            fontSize: '13px',
+          }}
+        >
+          {isVictory ? '查看战利品 · 翻牌' : '撤回城邦医馆'}
+        </button>
       </div>
-
-      {/* 下一步操作按钮 */}
-      <button
-        onClick={onNext}
-        style={{
-          width: '100%',
-          padding: '10px 16px',
-          background: isVictory ? '#38bdf8' : '#ef4444',
-          color: isVictory ? '#0f172a' : '#fff',
-          fontWeight: 'bold',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          fontSize: '13px',
-          boxShadow: isVictory ? '0 4px 12px rgba(56, 189, 248, 0.35)' : '0 4px 12px rgba(239, 68, 68, 0.35)'
-        }}
-      >
-        {isVictory ? '查看战利品与翻牌 🎁 ➔' : '先遣队溃退 · 撤回医馆 🏥'}
-      </button>
     </div>
   );
 };

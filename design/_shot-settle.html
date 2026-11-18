@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>shot-settle</title>
+<style>html,body{margin:0;padding:0;background:#EFE3C8}iframe{display:block;border:0;width:390px;height:844px}</style>
+</head><body>
+<iframe id="f" src="http://127.0.0.1:5199/game/?tab=town"></iframe>
+<script>
+const f = document.getElementById('f');
+f.addEventListener('load', () => {
+  let n = 0;
+  const tick = setInterval(() => {
+    n++;
+    const doc = f.contentDocument;
+    if (!doc) return;
+    const btns = [...doc.querySelectorAll('button')];
+    const accept = btns.find(b => b.textContent && b.textContent.trim() === '接取');
+    if (accept && n < 26) { accept.click(); return; }
+    const fight = btns.find(b => b.textContent && b.textContent.trim() === '列阵迎敌');
+    if (fight) { fight.click(); clearInterval(tick); }
+    if (n > 40) clearInterval(tick);
+  }, 250);
+});
+</script>
+</body></html>

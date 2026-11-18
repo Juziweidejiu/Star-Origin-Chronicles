@@ -266,19 +266,20 @@ export const CombatStage: React.FC<CombatStageProps> = ({
       {resultOverlay && (
         <div
           style={{
-            position: 'absolute',
+            position: 'fixed',
             inset: 0,
-            zIndex: 45,
+            zIndex: 300,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: '14px',
-            background: 'rgba(42,36,24,.45)',
+            padding: '16px 14px calc(84px + env(safe-area-inset-bottom, 0px))',
+            overflowY: 'auto',
+            background: 'rgba(42,36,24,.52)',
             backdropFilter: 'blur(2px)',
             animation: 'fadeIn .22s ease-out',
           }}
         >
-          <div style={{ width: '100%', maxWidth: '320px' }}>{resultOverlay}</div>
+          <div style={{ width: '100%', maxWidth: '390px', margin: 'auto' }}>{resultOverlay}</div>
         </div>
       )}
     </div>
