@@ -416,5 +416,23 @@
   - 战斗进行中底部导航除「战役」外全部变灰，点击只提示不跳转；结算未确认时同理。战斗中阵型按钮禁用，顶栏新增「撤退」按钮。
   - 构建 789ms 0 报错；`?tab=story` / `?tab=combat` 实测 console 0 error、无横向溢出。
 
+### Milestone 25: 存档持久化 + 待办蓝图 (已完成交付 ✅)
+- [x] **路线蓝图 (`TODO.md` 全量重写)**:
+  - M1–M24 已完成摘要表；P0 存档持久化 / P0 数值校准 / P1 性能剩余 / P1 表现 / P2 功能五段分级，附目标胜率曲线（1★≈85% … 5★≈22%）与工程约定（构建门禁、无 Tailwind、改数值先跑 sim）。
+- [x] **存档引擎 (`engine/saveEngine.ts`)**:
+  - `SAVE_KEY = 'starfall.save.v1'`、`SAVE_VERSION = 1`；`SaveData` 覆盖城镇五字段、名册、首发、阵型预设与槽位、背包、进行中的契约与地牢（含 `roomIndex`）。
+  - `loadSave` 逐项体检版本与字段类型，结构不符只 `console.warn` 不删档；`writeSave` 捕获配额/隐私模式异常静默失败；`clearSave` 与 `formatSavedAt`。
+  - `suspendSave()` 写入总闸：重开新档时先关闸，避免「清档 → 刷新」之间 800ms 防抖定时器把旧快照写回（实测触发过该竞态，已修）。
+- [x] **App 接线 (`App.tsx`)**:
+  - 启动时一次性读档（`useRef` 记忆，避免重复解析），`townEngine` 构造后 `applyTownSave`，名册/首发/阵型/背包/契约/地牢全部优先取存档值。
+  - 每次渲染把快照写入 `snapshotRef`，无依赖数组的 `useEffect` 设 800ms 防抖定时器落盘——战斗中每 200ms 重渲染会不断重置定时器，等价于「战斗不写盘」；另挂 `pagehide` 与 `visibilitychange` 立即落盘。
+  - 有进行中的地牢时，启动默认落在战役页。
+- [x] **城镇横幅 (`TownView.tsx`)**: 新增「进度自动保存 · 第 N 天」与「重新开始」（二次确认 → `suspendSave` + `clearSave` + reload）。
+- [x] **实机验证**:
+  - 打探 50G 后落盘 27284 bytes，`savedGold 1150`；刷新后金币仍 1150，console 0 error。
+  - 接取契约后存档写入 `dungeon` 与 `roomIdx`；刷新直接回到「草药商队峡谷护送 · 第 1 / 7 间」，路线与当前房间完整保留。
+  - 重新开始后回到 1200 G / 第 1 天 / 无地牢的新局，旧档未复活。
+  - `npm run build` 725ms 0 报错。
+
 
 

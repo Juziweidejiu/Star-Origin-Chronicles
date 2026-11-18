@@ -39,6 +39,7 @@ import {
 import { EQUIPMENT_TEMPLATES, RARITY_LABEL, qualityLabel } from '../engine/dungeonEngine';
 import { STAT_LABEL } from '../engine/statResolver';
 import { Btn, Card, Seal } from './ui';
+import { clearSave, suspendSave } from '../engine/saveEngine';
 
 interface TownViewProps {
   townEngine: TownEngine;
@@ -267,6 +268,35 @@ export const TownView: React.FC<TownViewProps> = ({
           style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--pz-line)', color: 'var(--pz-ink-2)' }}
         >
           {currentTown.description}
+        </div>
+        <div
+          className="pz-row pz-between"
+          style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--pz-line)', gap: 8 }}
+        >
+          <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+            进度自动保存 · 第 {townEngine.logistics.day} 天
+          </span>
+          <button
+            onClick={() => {
+              if (window.confirm('重新开始会清空当前所有进度（名册、金币、装备、地牢）。确定吗？')) {
+                suspendSave();
+                clearSave();
+                window.location.reload();
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              fontSize: '10px',
+              color: 'var(--pz-ink-3)',
+              textDecoration: 'underline dotted',
+              fontFamily: 'var(--pz-sans)',
+            }}
+          >
+            重新开始
+          </button>
         </div>
       </Card>
 
