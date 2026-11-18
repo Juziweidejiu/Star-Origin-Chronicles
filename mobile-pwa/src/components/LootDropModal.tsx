@@ -22,11 +22,11 @@ interface LootDropModalProps {
 }
 
 const RARITY_THEMES: Record<string, { color: string; bg: string; glow: string; name: string }> = {
-  common: { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.15)', glow: 'rgba(148, 163, 184, 0.3)', name: '普通' },
-  uncommon: { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', glow: 'rgba(34, 197, 94, 0.5)', name: '优秀' },
-  rare: { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', glow: 'rgba(56, 189, 248, 0.5)', name: '精良' },
-  epic: { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)', glow: 'rgba(192, 132, 252, 0.6)', name: '史诗' },
-  legendary: { color: '#facc15', bg: 'rgba(250, 204, 21, 0.2)', glow: 'rgba(250, 204, 21, 0.7)', name: '传说' },
+  common: { color: '#5C513C', bg: 'rgba(92, 81, 60, 0.12)', glow: 'rgba(92, 81, 60, 0.18)', name: '普通' },
+  uncommon: { color: '#4E7A5A', bg: 'rgba(78, 122, 90, 0.14)', glow: 'rgba(78, 122, 90, 0.22)', name: '优秀' },
+  rare: { color: '#2F6E8F', bg: 'rgba(47, 110, 143, 0.14)', glow: 'rgba(47, 110, 143, 0.22)', name: '精良' },
+  epic: { color: '#7A4E8C', bg: 'rgba(122, 78, 140, 0.14)', glow: 'rgba(122, 78, 140, 0.24)', name: '史诗' },
+  legendary: { color: '#A9793A', bg: 'rgba(169, 121, 58, 0.16)', glow: 'rgba(169, 121, 58, 0.28)', name: '传说' },
 };
 
 export const LootDropModal: React.FC<LootDropModalProps> = ({
@@ -87,21 +87,21 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
     return (
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.98)',
-          border: '2px solid #eab308',
-          borderRadius: '12px',
-          padding: '24px 16px',
-          color: '#fff',
+          background: 'var(--pz-raised)',
+          border: '1px solid var(--pz-brass-deep)',
+          borderRadius: 'var(--pz-r-card)',
+          padding: '22px 16px',
+          color: 'var(--pz-ink)',
           textAlign: 'center',
-          boxShadow: '0 12px 35px rgba(234, 179, 8, 0.35)',
+          boxShadow: '0 14px 34px rgba(42,36,24,.28)',
           animation: 'fadeIn 0.25s ease-out'
         }}
       >
-        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fde047', marginBottom: '8px' }}>
-          ✨ 战利品翻牌
+        <div style={{ fontFamily: 'var(--pz-serif)', fontSize: '16px', color: 'var(--pz-ink)', marginBottom: '6px' }}>
+          战利品翻牌
         </div>
-        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '18px' }}>
-          肃清强敌缴获了一件稀有物资，点击翻开封印卡牌
+        <div style={{ fontSize: '12px', color: 'var(--pz-ink-2)', marginBottom: '18px' }}>
+          肃清强敌缴获了一件物资，点开封印卡牌
         </div>
 
         {/* 翻牌卡牌背面 */}
@@ -111,26 +111,26 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
             margin: '0 auto',
             width: '180px',
             height: '240px',
-            background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
-            border: '2px dashed #f59e0b',
-            borderRadius: '10px',
+            background: 'linear-gradient(145deg, #E3D3B0 0%, #D3C2A0 100%)',
+            border: '1.5px dashed var(--pz-brass-deep)',
+            borderRadius: 'var(--pz-r-card)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            boxShadow: '0 8px 20px rgba(42,36,24,.22)',
             transform: 'scale(1)',
             transition: 'transform 0.2s',
           }}
         >
-          <div style={{ fontSize: '42px', marginBottom: '8px', animation: 'bounce 1.5s infinite' }}>
+          <div style={{ fontSize: '40px', marginBottom: '8px', animation: 'bounce 1.5s infinite' }}>
             🎴
           </div>
-          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#fde047' }}>
-            点击翻牌查验
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pz-wine)' }}>
+            点开查验
           </div>
-          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '10px', color: 'var(--pz-ink-3)', marginTop: '4px' }}>
             装等 {loot.tier} 阶
           </div>
         </div>
@@ -144,23 +144,25 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
   return (
     <div
       style={{
-        background: 'rgba(15, 23, 42, 0.98)',
-        border: `2px solid ${rarityInfo.color}`,
-        borderRadius: '12px',
-        padding: '16px',
-        color: '#fff',
-        boxShadow: `0 12px 35px ${rarityInfo.glow}`,
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: 'calc(100vh - 130px)',
+        background: 'var(--pz-raised)',
+        border: `1px solid ${rarityInfo.color}`,
+        borderRadius: 'var(--pz-r-card)',
+        color: 'var(--pz-ink)',
+        boxShadow: '0 14px 34px rgba(42,36,24,.28)',
         animation: 'fadeIn 0.25s ease-out',
-        maxHeight: '85vh',
-        overflowY: 'auto'
+        overflow: 'hidden'
       }}
     >
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '14px 14px 0' }}>
       {/* 标题 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <span style={{ fontSize: '15px', fontWeight: 'bold', color: rarityInfo.color }}>
+        <span style={{ fontFamily: 'var(--pz-serif)', fontSize: '15px', color: 'var(--pz-ink)' }}>
           {title}
         </span>
-        <span style={{ fontSize: '10px', background: rarityInfo.bg, color: rarityInfo.color, padding: '2px 8px', borderRadius: '4px', border: `1px solid ${rarityInfo.color}` }}>
+        <span style={{ fontSize: '10px', background: rarityInfo.bg, color: rarityInfo.color, padding: '1px 7px', borderRadius: '3px', border: `1px solid ${rarityInfo.color}` }}>
           {rarityInfo.name} · {loot.slot === 'weapon' ? '武器' : loot.slot === 'armor' ? '防具' : '饰品'}
         </span>
       </div>
@@ -168,34 +170,34 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
       {/* 装备名与基础词条展示 */}
       <div
         style={{
-          background: 'rgba(30, 41, 59, 0.8)',
+          background: 'var(--pz-sunken)',
           border: `1px solid ${rarityInfo.color}`,
-          borderRadius: '8px',
+          borderRadius: 'var(--pz-r-btn)',
           padding: '10px 12px',
           marginBottom: '12px'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '14px', fontWeight: 'bold', color: rarityInfo.color }}>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: rarityInfo.color }}>
             {loot.name}
           </span>
-          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+          <span style={{ fontSize: '10px', color: 'var(--pz-ink-3)' }}>
             装等 {loot.tier} 阶
           </span>
         </div>
 
         {/* 基础属性 */}
-        <div style={{ fontSize: '11px', color: '#e2e8f0', marginTop: '6px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--pz-ink-2)', marginTop: '6px' }}>
           {Object.entries(loot.base).map(([k, v]) => (
             <span key={k} style={{ marginRight: '10px' }}>
-              {STAT_LABEL[k as CoreStatKey]}: <b style={{ color: '#38bdf8' }}>+{v}</b>
+              {STAT_LABEL[k as CoreStatKey]}: <b style={{ color: '#2F6E8F' }}>+{v}</b>
             </span>
           ))}
         </div>
 
         {/* 附加词条 */}
         {loot.affixes.length > 0 && (
-          <div style={{ borderTop: '1px dashed #475569', marginTop: '6px', paddingTop: '4px', fontSize: '10px', color: '#a78bfa' }}>
+          <div style={{ borderTop: '1px dashed var(--pz-line-2)', marginTop: '6px', paddingTop: '5px', fontSize: '10px', color: '#6B4E9E' }}>
             {loot.affixes.map((af, i) => (
               <div key={i}>
                 • {af.label}: {af.kind === 'percent' ? `+${Math.round(af.value * 100)}%` : `+${af.value}`}
@@ -207,8 +209,8 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
 
       {/* 切换对比英雄头像栏 */}
       <div style={{ marginBottom: '10px' }}>
-        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px' }}>
-          选择比对穿戴队员 (推荐: <b style={{ color: '#fde047' }}>{squad.find(h => h.id === recommendedHeroId)?.name || '前锋'}</b>)
+        <div style={{ fontSize: '11px', color: 'var(--pz-ink-2)', marginBottom: '6px' }}>
+          比对穿戴队员 · 推荐 <b style={{ color: 'var(--pz-brass-deep)' }}>{squad.find(h => h.id === recommendedHeroId)?.name || '前锋'}</b>
         </div>
         <div style={{ display: 'flex', gap: '6px' }}>
           {squad.map(h => {
@@ -221,22 +223,22 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
                 style={{
                   flex: 1,
                   padding: '5px 4px',
-                  background: isSelected ? 'rgba(56, 189, 248, 0.25)' : '#1e293b',
-                  border: isSelected ? '1px solid #38bdf8' : '1px solid #334155',
-                  borderRadius: '6px',
-                  color: isSelected ? '#38bdf8' : '#cbd5e1',
+                  background: isSelected ? 'rgba(138,59,50,.10)' : 'transparent',
+                  border: `1px solid ${isSelected ? 'var(--pz-wine)' : 'var(--pz-line-2)'}`,
+                  borderRadius: 'var(--pz-r-seal)',
+                  color: isSelected ? 'var(--pz-wine)' : 'var(--pz-ink-2)',
                   cursor: 'pointer',
                   textAlign: 'center',
                   position: 'relative'
                 }}
               >
                 {isRec && (
-                  <span style={{ position: 'absolute', top: '-4px', right: '-2px', fontSize: '8px', background: '#eab308', color: '#0f172a', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold' }}>
+                  <span style={{ position: 'absolute', top: '-5px', right: '-3px', fontSize: '8px', background: 'var(--pz-brass)', color: '#2A2115', padding: '0 3px', borderRadius: '3px', fontWeight: 700 }}>
                     荐
                   </span>
                 )}
-                <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{h.name}</div>
-                <div style={{ fontSize: '9px', color: '#94a3b8' }}>{heroRoleLabel(h)}</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.name}</div>
+                <div style={{ fontSize: '9px', color: 'var(--pz-ink-3)' }}>{heroRoleLabel(h)}</div>
               </button>
             );
           })}
@@ -246,19 +248,19 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
       {/* 左右对比栏：当前穿戴 vs 新掉落替换效果 */}
       <div
         style={{
-          background: '#0f172a',
-          borderRadius: '8px',
+          background: 'var(--pz-sunken)',
+          borderRadius: 'var(--pz-r-btn)',
           padding: '10px',
-          marginBottom: '14px',
-          border: '1px solid #334155'
+          marginBottom: '12px',
+          border: '1px solid var(--pz-line)'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '8px', borderBottom: '1px solid #334155', paddingBottom: '4px' }}>
-          <span style={{ color: '#94a3b8' }}>
-            当前: {currentEquippedItem ? currentEquippedItem.name : '（空手槽位）'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '8px', borderBottom: '1px solid var(--pz-line)', paddingBottom: '5px' }}>
+          <span style={{ color: 'var(--pz-ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            当前 {currentEquippedItem ? currentEquippedItem.name : '空槽位'}
           </span>
-          <span style={{ color: '#fde047', fontWeight: 'bold' }}>
-            替换后属性差值
+          <span style={{ color: 'var(--pz-brass-deep)', fontWeight: 600, whiteSpace: 'nowrap', marginLeft: '8px' }}>
+            替换后差值
           </span>
         </div>
 
@@ -277,19 +279,19 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
               const isDown = diff < 0;
 
               return (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', background: '#1e293b', padding: '4px 8px', borderRadius: '4px' }}>
-                  <span style={{ color: '#94a3b8' }}>{STAT_LABEL[k]}</span>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', background: 'rgba(42,36,24,.05)', padding: '4px 8px', borderRadius: '3px' }}>
+                  <span style={{ color: 'var(--pz-ink-3)' }}>{STAT_LABEL[k]}</span>
                   <div>
-                    <span style={{ color: '#e2e8f0', marginRight: '4px' }}>
+                    <span style={{ color: 'var(--pz-ink)', marginRight: '4px' }}>
                       {isCrit ? `${Math.round(after * 100)}%` : after}
                     </span>
                     {isUp && (
-                      <span style={{ color: '#22c55e', fontWeight: 'bold' }}>
+                      <span style={{ color: '#3F6E52', fontWeight: 700 }}>
                         ↑+{isCrit ? `${diff}%` : diff}
                       </span>
                     )}
                     {isDown && (
-                      <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
+                      <span style={{ color: 'var(--pz-wine)', fontWeight: 700 }}>
                         ↓{isCrit ? `${diff}%` : diff}
                       </span>
                     )}
@@ -301,8 +303,10 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
         )}
       </div>
 
+      </div>
+
       {/* 底部双按钮：直接穿戴替换 / 放入战利品背包 */}
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', padding: '10px 14px 12px', borderTop: '1px solid var(--pz-line)' }}>
         <button
           onClick={() => {
             if (selectedHero) {
@@ -311,18 +315,17 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
           }}
           style={{
             flex: 1.3,
-            padding: '10px 0',
-            background: '#22c55e',
-            color: '#0f172a',
+            padding: '11px 0',
+            background: 'var(--pz-wine)',
+            color: '#F6EFDF',
             border: 'none',
-            borderRadius: '8px',
-            fontWeight: 'bold',
+            borderRadius: 'var(--pz-r-btn)',
+            fontWeight: 600,
             cursor: 'pointer',
-            fontSize: '12px',
-            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.35)'
+            fontSize: '12px'
           }}
         >
-          ⚔️ 装备给 [{selectedHero?.name}]
+          装备给 {selectedHero?.name}
         </button>
         <button
           onClick={() => {
@@ -330,16 +333,16 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
           }}
           style={{
             flex: 1,
-            padding: '10px 0',
-            background: '#334155',
-            color: '#cbd5e1',
-            border: '1px solid #475569',
-            borderRadius: '8px',
+            padding: '11px 0',
+            background: 'transparent',
+            color: 'var(--pz-ink-2)',
+            border: '1px solid var(--pz-line-2)',
+            borderRadius: 'var(--pz-r-btn)',
             cursor: 'pointer',
             fontSize: '12px'
           }}
         >
-          🎒 存入战利品包
+          存入战利品包
         </button>
       </div>
     </div>
