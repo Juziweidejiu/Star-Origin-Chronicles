@@ -481,3 +481,14 @@
   - `npx vitest run` → 4 files / 30 tests 全绿。
   - `npm run build` → 838ms，主包 425.64 kB + 懒加载 chunk 256.87 kB。
 
+
+### Milestone 29: 战场渲染 memo 化 — 性能项清零 (已完成交付 ✅)
+- [x] **`BattlePawn` 改为 `React.memo` + 逐字段比较 (`components/BattlePawn.tsx`)**:
+  - 战斗心跳每 200ms 执行 `setCombatUnits([...engine.units])`，数组是新的但 unit 对象是**原地 mutate** 的，所以默认浅比较会误判「没变化」而冻结血量。改为显式比较 `hero.id / currentHp / maxHp / resource / isDead / slotId / autoUlt / isSelected / isInteractable`。
+- [x] **修掉一个会让 memo 完全失效的陷阱 (`components/CombatStage.tsx`)**:
+  - 原本每次都写 `visualState={{ ...visualStates[id], focused }}`，每次渲染都是新对象引用；若按引用比较则永远不相等。改为 `sameVisual()` 逐字段比较 7 个视觉状态位（`isAttacking / attackMotion / isHit / isCritHit / isHealing / isDead / focused`）。
+  - `onFocus` 每次都是新的内联箭头函数，但只做 id 透传、功能等价，故不参与比较。
+- [x] **构建验证**:
+  - `npm run check`（tsc -b && oxlint）零 error、零 warning。
+  - `npm run build` 992ms 成功，主包 426.20 kB（gzip 134.06）、InkStoryRunner 懒加载块 256.87 kB（gzip 66.49）、CSS 14.44 kB，**chunk-size 警告已消失**。
+- [x] **结果**: `TODO.md` 中 P1「战场单单位 memo 重渲染」清零；至此性能优化清单（跳字 rAF、样式注入、布局回流、日志拷贝、backdrop-filter、tabular-nums、代码拆分、单单位 memo）全部完成。

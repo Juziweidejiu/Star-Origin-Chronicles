@@ -107,7 +107,7 @@ function WeaponGlyph({ kind }: { kind: 'shield' | 'sword' | 'bow' | 'staff' | 'a
   }
 }
 
-export const BattlePawn: React.FC<BattlePawnProps> = ({
+const BattlePawnInner: React.FC<BattlePawnProps> = ({
   unit,
   visualState,
   onFocus,
@@ -198,3 +198,35 @@ export const BattlePawn: React.FC<BattlePawnProps> = ({
     </div>
   );
 };
+
+/**
+ * 每 200ms 心跳都会 `setCombatUnits([...engine.units])`——数组是新的，但 unit 对象是原地 mutate 的。
+ * 默认浅比较会因为「同一个对象」而跳过渲染（血量变了也不更新），必须逐字段比较。
+ * onFocus 每次渲染都是新的内联箭头函数，但它只是把 id 透传出去（功能等价），故不参与比较。
+ */
+const sameVisual = (a?: UnitVisualState, b?: UnitVisualState) => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.isAttacking === b.isAttacking &&
+    a.attackMotion === b.attackMotion &&
+    a.isHit === b.isHit &&
+    a.isCritHit === b.isCritHit &&
+    a.isHealing === b.isHealing &&
+    a.isDead === b.isDead &&
+    a.focused === b.focused
+  );
+};
+
+export const BattlePawn = React.memo(BattlePawnInner, (prev, next) => (
+  prev.unit.hero.id === next.unit.hero.id &&
+  prev.unit.currentHp === next.unit.currentHp &&
+  prev.unit.maxHp === next.unit.maxHp &&
+  prev.unit.resource === next.unit.resource &&
+  prev.unit.isDead === next.unit.isDead &&
+  prev.unit.slotId === next.unit.slotId &&
+  prev.unit.autoUlt === next.unit.autoUlt &&
+  sameVisual(prev.visualState, next.visualState) &&
+  prev.isSelected === next.isSelected &&
+  prev.isInteractable === next.isInteractable
+));
