@@ -390,6 +390,292 @@ button, input, textarea, select {
 .pz-col { display: flex; flex-direction: column; gap: var(--pz-s2); }
 .pz-between { display: flex; align-items: center; justify-content: space-between; gap: var(--pz-s2); }
 .pz-grow { flex: 1; min-width: 0; }
+
+/* ============================================================
+   战场 · 隐形格 3×3 窟室
+   双方各一块 3×3：格线默认不可见，但占格是真实的。
+   首领占 2×2，随从/英雄各占 1 格。
+   ============================================================ */
+.cs-stage {
+  --cs-floor-a: #CFBA93;
+  --cs-floor-b: #F1E6CD;
+  --cs-wall: #B9A37C;
+  --cs-torch: rgba(232, 164, 74, .34);
+  --cs-accent: rgba(138, 59, 50, .16);
+  --cs-mote: #FBF0D6;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--pz-r-card);
+  overflow: hidden;
+  border: 1px solid var(--pz-line-2);
+  box-shadow: 0 8px 24px rgba(42, 36, 24, .18);
+  background:
+    linear-gradient(180deg, rgba(32, 25, 16, .38) 0%, rgba(32, 25, 16, .10) 7%, rgba(32, 25, 16, 0) 16%),
+    radial-gradient(128% 86% at 50% 44%, rgba(42, 36, 24, 0) 48%, rgba(42, 36, 24, .16) 100%),
+    radial-gradient(52% 18% at 50% 52%, var(--cs-torch), rgba(232, 164, 74, 0) 74%),
+    linear-gradient(180deg, var(--cs-floor-a) 0%, var(--cs-floor-b) 100%);
+  transform: translate(0, 0);
+  transition: transform .08s ease-in-out;
+  user-select: none;
+}
+.cs-stage.is-shaking { transform: translate(2px, -2px); }
+
+/* 地面横缝：把平面读成立体地面 */
+.cs-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(42, 36, 24, .055) 0 1px, rgba(42, 36, 24, 0) 1px 33px);
+  -webkit-mask-image: linear-gradient(180deg, transparent 12%, rgba(0, 0, 0, .8) 46%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 12%, rgba(0, 0, 0, .8) 46%, #000 100%);
+}
+
+/* 窟室后墙：把顶部空白读成「房间深处」 */
+.cs-backwall {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 11%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(24% 130% at 13% 100%, var(--cs-torch), rgba(232, 164, 74, 0) 72%),
+    radial-gradient(24% 130% at 87% 100%, var(--cs-torch), rgba(232, 164, 74, 0) 72%),
+    repeating-linear-gradient(90deg, rgba(42, 36, 24, .13) 0 1px, rgba(42, 36, 24, 0) 1px 44px),
+    repeating-linear-gradient(180deg, rgba(42, 36, 24, .15) 0 1px, rgba(42, 36, 24, 0) 1px 16px),
+    linear-gradient(180deg, rgba(32, 25, 16, .58) 0%, rgba(32, 25, 16, .26) 54%, rgba(32, 25, 16, .10) 100%),
+    linear-gradient(180deg, var(--cs-wall) 0%, #C9B58D 100%);
+  border-bottom: 1px solid rgba(42, 36, 24, .26);
+  box-shadow: 0 8px 16px -8px rgba(42, 36, 24, .55);
+}
+.cs-backwall::before,
+.cs-backwall::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  width: 7px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 30%, #F6D79A, #E8A44A 55%, rgba(232, 164, 74, 0) 78%);
+}
+.cs-backwall::before { left: 11%; }
+.cs-backwall::after { right: 11%; }
+
+/* 两个 3×3 阵地：格线默认透明 */
+.cs-zone {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px 10px;
+}
+.cs-zone--enemy { flex: 0 0 auto; height: 180px; min-height: 180px; padding-top: 56px; }
+.cs-zone--player { flex: 1 1 auto; min-height: 186px; max-height: 300px; }
+
+.cs-cell {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  pointer-events: none;
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+.cs-cell.is-aim {
+  background: rgba(138, 59, 50, .15);
+  border-color: rgba(138, 59, 50, .55);
+  box-shadow: inset 0 0 14px rgba(138, 59, 50, .30);
+}
+
+/* 单位：图形绝对定位，不挤占网格轨道，可以向上溢出 */
+.cs-unit {
+  --s: 1;
+  --lunge: 0px;
+  --knock: 0px;
+  position: absolute;
+  inset: 0;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  cursor: pointer;
+  z-index: 12;
+}
+.cs-unit[data-depth="mid"] { --s: .96; z-index: 10; }
+.cs-unit[data-depth="back"] { --s: .92; z-index: 8; }
+
+.cs-unit .cs-ground {
+  position: absolute;
+  left: 50%;
+  bottom: 21px;
+  transform: translateX(-50%);
+  width: 66%;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(42, 36, 24, .28), rgba(42, 36, 24, 0) 70%);
+}
+.cs-unit--boss .cs-ground { width: 58%; height: 11px; bottom: 19px; }
+
+.cs-unit .cs-fig {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transform: translateX(-50%) scale(var(--s));
+  transform-origin: 50% 100%;
+  transition: transform .14s cubic-bezier(.2, .8, .2, 1), filter .14s ease;
+}
+.cs-unit--hero .cs-fig { height: clamp(54px, 8vh, 74px); width: 100%; }
+.cs-unit--mob .cs-fig { height: clamp(44px, 6.6vh, 62px); width: 100%; }
+.cs-unit--boss .cs-fig { height: clamp(150px, 23vh, 220px); width: 96%; }
+
+.cs-unit.is-attack .cs-fig {
+  transform: translateX(-50%) scale(calc(var(--s) * 1.07)) translateY(var(--lunge));
+  filter: brightness(1.06);
+}
+.cs-unit.is-hit .cs-fig {
+  transform: translateX(-50%) scale(calc(var(--s) * .96)) translateY(var(--knock));
+  filter: brightness(1.28) saturate(1.1);
+}
+.cs-unit.is-crit .cs-fig { filter: brightness(1.5) sepia(.25) saturate(1.6); }
+.cs-unit.is-heal .cs-fig { filter: drop-shadow(0 0 8px rgba(111, 191, 139, .85)); }
+.cs-unit.is-dead .cs-fig { filter: grayscale(1) opacity(.32); }
+.cs-unit.is-dead .cs-plate { opacity: .45; }
+.cs-unit.is-focus .cs-fig { filter: drop-shadow(0 0 10px rgba(217, 164, 91, .95)); }
+
+/* 首领呼吸：只缩放图形本体，不影响占格 */
+@keyframes csBreathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.028) translateY(-3px); }
+}
+.cs-unit--boss .cs-art { animation: csBreathe 4.8s ease-in-out infinite; transform-origin: 50% 100%; }
+
+/* 名牌：纸签 + 短血条 */
+.cs-plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+}
+.cs-nm {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: rgba(243, 233, 209, .92);
+  border: 1px solid rgba(42, 36, 24, .28);
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--pz-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(42, 36, 24, .18);
+}
+.cs-nm i {
+  font-style: normal;
+  font-size: 8px;
+  line-height: 12px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: var(--pz-wine);
+  color: #F3E9D1;
+  letter-spacing: .04em;
+}
+.cs-hp {
+  width: 44px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(42, 36, 24, .20);
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(243, 233, 209, .7);
+}
+.cs-hp > i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4E9A6E, #9CCB7D);
+  transition: width .2s ease-out;
+}
+.cs-unit--enemy .cs-hp > i { background: linear-gradient(90deg, #8A3B32, #C1573F); }
+.cs-unit--boss .cs-hp { width: 116px; height: 4px; }
+.cs-en {
+  width: 44px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(42, 36, 24, .14);
+  overflow: hidden;
+}
+.cs-en > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #3B6E8F, #5CC8FF);
+  transition: width .2s ease-out;
+}
+.cs-en.is-full > i {
+  background: linear-gradient(90deg, #A9793A, #D9A45B);
+  box-shadow: 0 0 6px rgba(217, 164, 91, .9);
+}
+
+/* 中央空地：散落物 + 浮尘，不做成一条「腰带」 */
+.cs-clash {
+  position: relative;
+  z-index: 2;
+  flex: .22 1 auto;
+  min-height: 34px;
+  max-height: 58px;
+  overflow: hidden;
+}
+.cs-clash svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+@keyframes csMote {
+  0% { transform: translateY(0); opacity: 0; }
+  22% { opacity: .85; }
+  100% { transform: translateY(-18px); opacity: 0; }
+}
+.cs-mote {
+  position: absolute;
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: var(--cs-mote);
+  box-shadow: 0 0 6px 2px rgba(251, 240, 214, .65);
+  animation: csMote 7s linear infinite;
+  pointer-events: none;
+}
+
+/* 特效层：跳字与弹道 */
+.cs-fx { position: absolute; inset: 0; z-index: 40; pointer-events: none; }
+
+@media (max-height: 720px) {
+  .cs-zone--enemy { min-height: 172px; }
+  .cs-zone--player { min-height: 146px; }
+  .cs-backwall { height: 11%; }
+  .cs-clash { min-height: 28px; }
+  .cs-unit--boss .cs-fig { height: clamp(118px, 19vh, 170px); }
+  .cs-unit--hero .cs-fig { height: 54px; }
+  .cs-unit--mob .cs-fig { height: 46px; }
+  .cs-unit .cs-fig { bottom: 20px; }
+  .cs-nm { font-size: 9px; line-height: 13px; padding: 0 4px; }
+  .cs-hp { width: 36px; }
+  .cs-unit--boss .cs-hp { width: 96px; }
+  .cs-en { width: 36px; }
+}
 .pz-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pz-divider { height: 1px; background: var(--pz-line); border: 0; margin: var(--pz-s3) 0; }
 

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo C · 地牢路线图</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  .map-head{flex:none;display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid rgba(42,36,24,.28);background:#E3D3B0}
+  .map-head .back{width:28px;height:28px;border-radius:6px;border:1px solid rgba(42,36,24,.3);background:rgba(255,255,255,.25);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .mh-main{flex:1;min-width:0}
+  .mh-main h1{margin:0;font-family:var(--serif);font-size:16px;letter-spacing:1.5px}
+  .mh-main span{font-size:10px;color:var(--ink-2)}
+  .floor{font-family:var(--serif);font-size:11px;color:#7C2F27;border:1px solid rgba(124,47,39,.4);padding:3px 7px;border-radius:4px}
+
+  .map-wrap{position:relative;background:
+      radial-gradient(300px 200px at 50% 40%, rgba(255,255,255,.35), transparent 70%),
+      repeating-linear-gradient(0deg, rgba(90,70,40,.05) 0 1px, transparent 1px 4px);
+    border-bottom:1px solid rgba(42,36,24,.25);padding:2px 10px 0}
+  .map-wrap::before,.map-wrap::after{
+    content:"";position:absolute;width:36px;height:36px;border:1px solid rgba(42,36,24,.18);pointer-events:none;
+  }
+  .map-wrap::before{left:8px;top:8px;border-right:0;border-bottom:0}
+  .map-wrap::after{right:8px;bottom:8px;border-left:0;border-top:0}
+  svg.map{display:block;width:100%;height:auto}
+  .edge{stroke:#8C7A58;stroke-width:1.6;stroke-dasharray:4 4;fill:none;opacity:.6}
+  .edge.done{stroke:#A9793A;stroke-dasharray:none;opacity:.95;stroke-width:2}
+  .node{cursor:pointer}
+  .node circle{fill:#F7EFDD;stroke:#5C513C;stroke-width:2;transition:fill .15s ease,stroke .15s ease}
+  .node text.glyph{font-family:var(--serif);font-size:12px;fill:#3A2E1F;text-anchor:middle;dominant-baseline:central;font-weight:700}
+  .node text.cap{font-family:var(--sans);font-size:8px;fill:#8C7A58;text-anchor:middle}
+  .node.done circle{fill:#C9A56B;stroke:#8A5A16}
+  .node.current circle{fill:#8A3B32;stroke:#5E211B}
+  .node.current text.glyph{fill:#F7E8D2}
+  .node.current text.cap{fill:#7C2F27}
+  .node.available circle{fill:#FBF5E7;stroke:#A9793A}
+  .node.selected circle{stroke:#7C2F27;stroke-width:3}
+  .node.selected .halo{opacity:1}
+  .node .halo{fill:none;stroke:#7C2F27;stroke-width:1;opacity:0;stroke-dasharray:3 3}
+  .node.locked{cursor:not-allowed;opacity:.42}
+  .node.locked circle{stroke-dasharray:3 3}
+  .legend{position:absolute;right:12px;top:10px;font-size:8px;color:#8C7A58;text-align:right;line-height:1.6;pointer-events:none}
+
+  .node-panel{flex:none;padding:10px 14px 0;background:var(--paper)}
+  .panel-card{border:1px solid rgba(42,36,24,.3);border-radius:4px;background:#F7EFDD;padding:10px 11px;box-shadow:2px 2px 0 rgba(42,36,24,.10)}
+  .p-top{display:flex;align-items:flex-start;gap:8px}
+  .p-type{width:30px;height:30px;flex:none;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;font-weight:700;color:#F7E8D2;background:#7C2F27}
+  .p-main{flex:1;min-width:0}
+  .p-main h2{margin:0;font-family:var(--serif);font-size:14px;letter-spacing:.5px}
+  .p-main span{font-size:9px;color:#8C7A58}
+  .p-body{display:flex;gap:10px;margin-top:7px;align-items:center}
+  .p-desc{flex:1;font-size:10px;line-height:1.6;color:#5C513C}
+  .p-reward{text-align:right;flex:none;font-size:9px;color:#8C7A58;line-height:1.7}
+  .p-reward b{display:block;font-size:13px;color:#8A5A16}
+  .risk{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:9px;color:#6B5C42}
+  .risk b{font-size:12px;color:#2A2418}
+  .risk .tag{font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid rgba(42,36,24,.25)}
+  .tip{margin-top:5px;font-size:9px;color:#8C7A58}
+
+  .party{display:flex;gap:5px;padding:8px 14px 0;background:var(--paper)}
+  .pm{flex:1;border:1px solid rgba(42,36,24,.22);border-radius:4px;padding:4px 5px;background:rgba(247,239,221,.5)}
+  .pm span{font-size:8px;color:#8C7A58;display:flex;justify-content:space-between}
+  .pm .bar{height:2px;margin-top:3px;background:rgba(42,36,24,.15)}
+  .pm:nth-child(2) .bar i{background:#B0731F}
+  .pm i{background:#3F7A55}
+
+  .map-foot{flex:none;display:flex;gap:8px;padding:9px 14px 12px;background:var(--paper)}
+  .map-foot .btn{flex:1;padding:10px;font-size:13px;border-radius:3px;letter-spacing:1.5px}
+  .map-foot .pack{flex:0 0 78px;border:1px solid rgba(42,36,24,.3);background:rgba(255,255,255,.25);color:#5C513C;font-size:10px}
+</style>
+</head>
+<body class="lab">
+  <div class="phone paper">
+    <div class="statusbar"><span>9:41</span><span>旧武库 · 第 3 层</span></div>
+
+    <div class="map-head">
+      <button class="back">‹</button>
+      <div class="mh-main"><h1>沉陷边关旧武库</h1><span>B 级悬赏 · 已清 2 / 5 间 · 口粮 6</span></div>
+      <span class="floor">3 / 5</span>
+    </div>
+
+    <div class="scroll">
+      <div class="map-wrap">
+        <div class="legend">■ 已清　● 当前<br>○ 可走　◌ 未探</div>
+        <svg class="map" viewBox="0 0 360 410" aria-label="地牢路线图">
+          <path class="edge done" d="M180 28 L96 86"/>
+          <path class="edge done" d="M96 86 L96 158"/>
+          <path class="edge" d="M180 28 L264 86"/>
+          <path class="edge" d="M264 86 L180 158"/>
+          <path class="edge" d="M96 86 L180 158"/>
+          <path class="edge" d="M180 158 L56 230"/>
+          <path class="edge" d="M180 158 L180 230"/>
+          <path class="edge" d="M180 158 L304 230"/>
+          <path class="edge" d="M56 230 L120 302"/>
+          <path class="edge" d="M56 230 L240 302"/>
+          <path class="edge" d="M180 230 L120 302"/>
+          <path class="edge" d="M180 230 L240 302"/>
+          <path class="edge" d="M304 230 L120 302" opacity=".18"/>
+          <path class="edge" d="M304 230 L240 302"/>
+          <path class="edge" d="M120 302 L180 372"/>
+          <path class="edge" d="M240 302 L180 372"/>
+
+          <g class="node done" data-node="start">
+            <circle cx="180" cy="24" r="12"/>
+            <text class="glyph" x="180" y="24">入</text>
+            <text class="cap" x="180" y="43">入口</text>
+          </g>
+
+          <g class="node done" data-node="f1a">
+            <circle cx="96" cy="84" r="15"/>
+            <text class="glyph" x="96" y="84">战</text>
+            <text class="cap" x="96" y="106">外廊巡哨</text>
+          </g>
+          <g class="node available" data-node="f1b">
+            <circle cx="264" cy="84" r="15"/>
+            <text class="glyph" x="264" y="84">事</text>
+            <text class="cap" x="264" y="106">塌陷侧门</text>
+          </g>
+
+          <g class="node done" data-node="f2a">
+            <circle cx="56" cy="158" r="15"/>
+            <text class="glyph" x="56" y="158">战</text>
+            <text class="cap" x="56" y="180">断戟走廊</text>
+          </g>
+          <g class="node current" data-node="f2b">
+            <circle cx="180" cy="158" r="17"/>
+            <circle class="halo" cx="180" cy="158" r="23"/>
+            <text class="glyph" x="180" y="158">营</text>
+            <text class="cap" x="180" y="182">热汤营地</text>
+          </g>
+          <g class="node locked" data-node="f2c">
+            <circle cx="304" cy="158" r="15"/>
+            <text class="glyph" x="304" y="158">箱</text>
+            <text class="cap" x="304" y="180">封存库房</text>
+          </g>
+
+          <g class="node available selected" data-node="f3a">
+            <circle class="halo" cx="120" cy="230" r="21"/>
+            <circle cx="120" cy="230" r="15"/>
+            <text class="glyph" x="120" y="230">战</text>
+            <text class="cap" x="120" y="252">武库外廊</text>
+          </g>
+          <g class="node available" data-node="f3b">
+            <circle class="halo" cx="240" cy="230" r="21"/>
+            <circle cx="240" cy="230" r="15"/>
+            <text class="glyph" x="240" y="230">事</text>
+            <text class="cap" x="240" y="252">倾倒兵器架</text>
+          </g>
+
+          <g class="node available" data-node="f4">
+            <circle class="halo" cx="180" cy="302" r="21"/>
+            <circle cx="180" cy="302" r="15"/>
+            <text class="glyph" x="180" y="302">营</text>
+            <text class="cap" x="180" y="324">残火营地</text>
+          </g>
+
+          <g class="node locked" data-node="boss">
+            <circle cx="180" cy="372" r="19"/>
+            <text class="glyph" x="180" y="372" style="font-size:13px">王</text>
+            <text class="cap" x="180" y="397">发条重装统领</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="node-panel">
+        <div class="panel-card">
+          <div class="p-top">
+            <div class="p-type" id="p-type">战</div>
+            <div class="p-main"><h2 id="p-title">武库外廊 · 遭遇战</h2><span id="p-sub">3 名敌人 · 赤耳盾手领队</span></div>
+            <div class="p-reward"><b id="p-gold">+96 G</b><span id="p-loot">军械残件</span></div>
+          </div>
+          <div class="p-body">
+            <div class="p-desc" id="p-desc">外廊堆着半塌的兵器架，哥布林正把能搬动的铁器往地窖里拖。打赢可拿到一件随机军械。</div>
+          </div>
+          <div class="risk"><span>预估</span><b id="p-odds">68%</b><span class="tag" id="p-danger" style="color:#9A5A18">苦战险胜</span><span style="margin-left:auto">体力 -8% · 压力 +4</span></div>
+          <div class="tip" id="p-tip">战术 · 盾手会护住后排，先用范围技能拆阵。</div>
+        </div>
+      </div>
+
+      <div class="party">
+        <div class="pm"><span>沈 <em>86%</em></span><div class="bar"><i style="width:86%"></i></div></div>
+        <div class="pm"><span>萧 <em>61%</em></span><div class="bar"><i style="width:61%"></i></div></div>
+        <div class="pm"><span>叶 <em>92%</em></span><div class="bar"><i style="width:92%"></i></div></div>
+        <div class="pm"><span>季 <em>74%</em></span><div class="bar"><i style="width:74%"></i></div></div>
+      </div>
+    </div>
+
+    <div class="map-foot">
+      <button class="btn pack">补给 6</button>
+      <button class="btn btn-wine">进 入 此 间</button>
+    </div>
+  </div>
+
+  <aside class="spec">
+    <div>
+      <h4>C · 地牢路线</h4>
+      <p>回答一个问题：<b>下一间走哪边？</b> 把分支、房间类型、收益与队伍状态放在同一张地图上，点击节点看细节。</p>
+    </div>
+    <div>
+      <h4>参考坐标</h4>
+      <ul>
+        <li>Slay the Spire 的爬塔地图：分支路线与节点预告</li>
+        <li>Darkest Dungeon 的走廊与营地：房间类型即资源</li>
+        <li>白皮书：营地恢复、压力与补给消耗</li>
+      </ul>
+    </div>
+    <div>
+      <h4>取舍</h4>
+      <p>战斗本身交给自动战斗，决策发生在“选路”与“扎营”两个时刻。地图必须能一眼看出哪条路会掉人。</p>
+    </div>
+  </aside>
+
+<script>
+  const nodes = {
+    start: { type:'入', title:'旧武库入口', sub:'已清理', gold:'—', loot:'—', desc:'门框上的封条被撕开了，地上有新鲜的泥脚印。', odds:'—', danger:'安全', tip:'补给与队伍状态已确认。' },
+    f1a: { type:'战', title:'外廊巡哨', sub:'已清理 · 3 名敌人', gold:'+72 G', loot:'粗制护甲', desc:'两名盾手与一名掷弹手，已经被清理。', odds:'—', danger:'已清', tip:'—' },
+    f1b: { type:'事', title:'塌陷侧门', sub:'未探索 · 事件', gold:'?', loot:'未知', desc:'侧门被碎石堵住，搬开需要时间。', odds:'—', danger:'未探', tip:'可能通向库房，也可能只是死路。' },
+    f2a: { type:'战', title:'断戟走廊', sub:'已清理 · 2 名敌人', gold:'+64 G', loot:'铁屑', desc:'折断的长戟横在走廊中间，血迹已经干了。', odds:'—', danger:'已清', tip:'—' },
+    f2b: { type:'营', title:'热汤营地', sub:'当前所在 · 可休整', gold:'—', loot:'口粮 -4', desc:'一口还能用的铜锅，热汤能压住队伍的压力。', odds:'—', danger:'安全', tip:'休整：恢复 25% 生命，压力 -7。' },
+    f2c: { type:'箱', title:'封存库房', sub:'需要钥匙 · 未解锁', gold:'?', loot:'高阶军械', desc:'门锁是旧的，但钥匙不在巡哨身上。', odds:'—', danger:'未探', tip:'可在事件房找到钥匙。' },
+    f3a: { type:'战', title:'武库外廊 · 遭遇战', sub:'3 名敌人 · 赤耳盾手领队', gold:'+96 G', loot:'随机军械', desc:'外廊堆着半塌的兵器架，哥布林正把能搬动的铁器往地窖里拖。', odds:'68%', danger:'苦战险胜', tip:'盾手会护住后排，先用范围技能拆阵。' },
+    f3b: { type:'事', title:'倾倒兵器架', sub:'事件 · 可搜刮', gold:'+40 G', loot:'锻造晶石 ×2', desc:'一排兵器架倒在地上，下面压着还能用的材料和一具旧盔。', odds:'—', danger:'低风险', tip:'搜刮会多花半天，但不会掉血。' },
+    f4: { type:'营', title:'残火营地', sub:'Boss 前最后一处营地', gold:'—', loot:'口粮 -4', desc:'背风处的火堆还剩一点余烬，适合做最后一顿热食。', odds:'—', danger:'安全', tip:'建议在此休整，Boss 房没有回复机会。' },
+    boss: { type:'王', title:'发条重装统领', sub:'Boss · 未解锁', gold:'+220 G', loot:'史诗军械', desc:'库房深处传来齿轮咬合的声音，那东西还在动。', odds:'—', danger:'未探', tip:'需要先清理 3 层才能靠近。' }
+  };
+  let selected = 'f3a';
+  function setSelected(id){
+    selected = id;
+    document.querySelectorAll('.node').forEach(n => n.classList.toggle('selected', n.dataset.node === id));
+    const d = nodes[id];
+    document.getElementById('p-type').textContent = d.type;
+    document.getElementById('p-title').textContent = d.title;
+    document.getElementById('p-sub').textContent = d.sub;
+    document.getElementById('p-gold').textContent = d.gold;
+    document.getElementById('p-loot').textContent = d.loot;
+    document.getElementById('p-desc').textContent = d.desc;
+    document.getElementById('p-odds').textContent = d.odds;
+    const danger = document.getElementById('p-danger');
+    danger.textContent = d.danger;
+    danger.style.color = d.danger === '苦战险胜' ? '#9A5A18' : d.danger === '安全' || d.danger === '低风险' ? '#3F7A55' : '#8C7A58';
+    document.getElementById('p-tip').textContent = d.tip === '—' ? '这一间已经处理完毕。' : '战术 · ' + d.tip;
+  }
+  document.querySelectorAll('.node').forEach(n => {
+    if(n.classList.contains('locked')) return;
+    n.addEventListener('click', () => setSelected(n.dataset.node));
+  });
+</script>
+</body>
+</html>

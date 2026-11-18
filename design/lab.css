@@ -1,0 +1,103 @@
+/* 星原战纪 · UI 实验室公共样式 */
+:root{
+  --night:#0A101C;
+  --panel:#141F33;
+  --raised:#1B2942;
+  --line:rgba(214,226,255,.10);
+  --line-strong:rgba(214,226,255,.20);
+  --paper:#EFE3C8;
+  --paper-2:#E3D3B0;
+  --ink:#2A2418;
+  --ink-2:#5C513C;
+  --brass:#D9A45B;
+  --brass-deep:#A9793A;
+  --wine:#8A3B32;
+  --town:#E8A44A;
+  --dungeon:#5CC8FF;
+  --combat:#E4573D;
+  --success:#6FBF8B;
+  --arcane:#9B7BD4;
+  --text:#F2EAD8;
+  --text-2:#A9B6CC;
+  --muted:#6C7C96;
+  --serif:"Noto Serif SC","Songti SC","Source Han Serif SC",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body.lab{
+  min-height:100vh;
+  background:
+    radial-gradient(900px 560px at 12% -10%, rgba(217,164,91,.10), transparent 60%),
+    radial-gradient(800px 560px at 92% 108%, rgba(92,200,255,.07), transparent 60%),
+    #070C15;
+  color:var(--text);
+  font-family:var(--sans);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  gap:36px;
+  padding:28px 20px 56px;
+}
+.phone{
+  width:390px;
+  flex:none;
+  height:min(844px, calc(100vh - 56px));
+  min-height:620px;
+  border-radius:30px;
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  border:1px solid var(--line-strong);
+  box-shadow:0 36px 80px rgba(0,0,0,.55), 0 0 0 6px rgba(20,31,51,.55);
+  background:var(--night);
+}
+.phone.paper{background:var(--paper);color:var(--ink);border-color:rgba(42,36,24,.35);box-shadow:0 36px 80px rgba(0,0,0,.5),0 0 0 6px rgba(60,48,32,.35)}
+.phone.paper::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
+  background:
+    repeating-linear-gradient(0deg, rgba(90,70,40,.05) 0 1px, transparent 1px 3px),
+    radial-gradient(600px 300px at 20% 0%, rgba(255,255,255,.35), transparent 70%);
+  mix-blend-mode:multiply;
+}
+.statusbar{height:26px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:10px;letter-spacing:.4px;color:var(--muted);position:relative;z-index:2}
+.phone.paper .statusbar{color:var(--ink-2)}
+.scroll{flex:1;overflow-y:auto;scrollbar-width:none;position:relative;z-index:2}
+.scroll::-webkit-scrollbar{display:none}
+.serif{font-family:var(--serif)}
+.bar{height:3px;background:rgba(120,120,120,.20);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.btn{
+  font-family:var(--sans);border:0;cursor:pointer;border-radius:8px;font-weight:600;letter-spacing:.4px;
+  transition:filter .15s ease, transform .1s ease;
+}
+.btn:active{transform:translateY(1px)}
+.btn-brass{background:var(--brass);color:#1A1207}
+.btn-wine{background:var(--wine);color:#F6E7CF}
+.btn-ghost{background:transparent;border:1px solid var(--line-strong);color:var(--text-2)}
+.phone.paper .btn-ghost{border-color:rgba(42,36,24,.35);color:var(--ink-2)}
+.icon{width:16px;height:16px;flex:none}
+.muted{color:var(--muted)}
+.phone.paper .muted{color:var(--ink-2)}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 7px;border-radius:999px;border:1px solid var(--line-strong);color:var(--text-2)}
+.phone.paper .tag{border-color:rgba(42,36,24,.28);color:var(--ink-2)}
+.seal{
+  width:40px;height:40px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:20px;font-weight:700;border:1px solid currentColor;background:rgba(255,255,255,.04);
+}
+.seal.d{color:#6E7C6A}
+.seal.c{color:#5F7F96}
+.seal.b{color:#A9793A}
+.seal.a{color:#A94F3F}
+.seal.s{color:#8B5FA8}
+.spec{width:280px;padding-top:6px;display:flex;flex-direction:column;gap:18px}
+.spec h4{margin:0 0 8px;font-family:var(--serif);font-size:14px;letter-spacing:2px;font-weight:600}
+.spec p{margin:0;font-size:12px;line-height:1.75;color:var(--muted)}
+.spec ul{margin:0;padding-left:16px;font-size:12px;line-height:1.8;color:var(--muted)}
+.spec li::marker{color:var(--brass)}
+@media (max-width:860px){
+  body.lab{display:block;padding:0;background:var(--night)}
+  .phone{width:100%;height:100vh;min-height:0;border:0;border-radius:0;box-shadow:none}
+  .spec{display:none}
+}

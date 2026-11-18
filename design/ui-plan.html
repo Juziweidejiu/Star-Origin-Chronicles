@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>星原战纪 · UI 改版总览</title>
+<style>
+  :root{
+    --paper:#EFE3C8; --paper-2:#E3D3B0; --paper-3:#F7EFDD;
+    --ink:#2A2418; --ink-2:#5C513C; --ink-3:#8A7B5F;
+    --brass:#D9A45B; --brass-deep:#A9793A;
+    --wine:#8A3B32; --wine-2:#B0524A;
+    --town:#E8A44A; --dungeon:#5CC8FF; --combat:#E4573D; --success:#6FBF8B; --arcane:#9B7BD4;
+    --line:rgba(42,36,24,.16); --line-2:rgba(42,36,24,.32);
+    --serif:"Noto Serif SC","Songti SC","Source Han Serif SC",serif;
+    --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    --shadow:0 8px 24px rgba(42,36,24,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:linear-gradient(180deg,#DCCDAE 0%,#D3C2A0 100%);
+    color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px 80px}
+
+  /* ---------- 页头 ---------- */
+  header.masthead{
+    background:linear-gradient(180deg,#3A2E1F 0%,#2A2115 100%);
+    color:#F3E9D2; border-bottom:3px double var(--brass);
+    padding:34px 20px 30px; margin-bottom:26px;
+  }
+  header.masthead .inner{max-width:1040px;margin:0 auto}
+  header.masthead h1{
+    font-family:var(--serif); font-size:30px; font-weight:700; margin:0 0 6px; letter-spacing:.06em;
+  }
+  header.masthead p{margin:0;font-size:13px;color:#C9B791;letter-spacing:.02em}
+  header.masthead .tagline{margin-top:14px;font-size:15px;color:#E8D9B8;font-family:var(--serif);letter-spacing:.04em}
+
+  /* ---------- 通用区块 ---------- */
+  section{
+    background:var(--paper); border:1px solid var(--line-2); border-radius:6px;
+    padding:22px 24px 26px; margin-bottom:20px;
+  }
+  section > h2{
+    font-family:var(--serif); font-size:19px; margin:0 0 4px; letter-spacing:.05em;
+    display:flex; align-items:baseline; gap:10px;
+  }
+  section > h2 .num{
+    font-family:var(--sans); font-size:11px; letter-spacing:.14em; color:var(--brass-deep);
+    border:1px solid var(--brass); border-radius:3px; padding:1px 6px; font-weight:700;
+  }
+  section > .lead{margin:2px 0 18px;font-size:13px;color:var(--ink-2)}
+  h3{font-size:14px;margin:20px 0 8px;letter-spacing:.03em}
+  h3 .en{font-size:11px;color:var(--ink-3);font-weight:400;letter-spacing:.08em;margin-left:6px}
+  p{margin:0 0 10px}
+  .muted{color:var(--ink-2)}
+  .tiny{font-size:12px}
+  code{
+    font-family:ui-monospace,Consolas,monospace; font-size:12px;
+    background:rgba(42,36,24,.07); border-radius:3px; padding:1px 5px;
+  }
+
+  /* ---------- 色板 ---------- */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;margin-top:10px}
+  .sw{border:1px solid var(--line);border-radius:5px;overflow:hidden;background:var(--paper-3)}
+  .sw .chip{height:52px;position:relative}
+  .sw .chip span{position:absolute;right:6px;bottom:5px;font-size:10px;color:rgba(255,255,255,.85);letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .sw .chip.dark span{color:rgba(42,36,24,.75);text-shadow:none}
+  .sw .meta{padding:6px 8px 7px;font-size:11px;line-height:1.45}
+  .sw .meta b{display:block;font-size:12px;letter-spacing:.03em}
+  .sw .meta em{font-style:normal;color:var(--ink-3);font-size:10px;letter-spacing:.02em}
+
+  /* ---------- 字号刻度 ---------- */
+  .scale{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .scale div{
+    display:flex;align-items:baseline;gap:16px;padding:9px 2px;border-bottom:1px solid var(--line);
+  }
+  .scale .px{width:66px;flex:none;font-size:11px;color:var(--brass-deep);letter-spacing:.08em;font-weight:700}
+  .scale .demo{flex:1;font-family:var(--serif)}
+  .scale .use{width:190px;flex:none;font-size:11px;color:var(--ink-3)}
+
+  /* ---------- token 网格 ---------- */
+  .toks{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .tok{background:var(--paper-3);border:1px solid var(--line);border-radius:5px;padding:12px 14px}
+  .tok b{display:block;font-size:12px;letter-spacing:.05em;margin-bottom:6px}
+  .tok ul{margin:0;padding-left:16px;font-size:12px;color:var(--ink-2);line-height:1.75}
+
+  /* ---------- 组件展示 ---------- */
+  .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:12px}
+  .spec{background:var(--paper-3);border:1px solid var(--line);border-radius:5px;padding:14px 16px}
+  .spec > .cap{font-size:11px;color:var(--brass-deep);letter-spacing:.10em;font-weight:700;margin-bottom:10px}
+  .spec .note{margin-top:10px;font-size:11px;color:var(--ink-3);line-height:1.6}
+
+  /* 页眉样张 */
+  .demo-head{
+    background:linear-gradient(180deg,#3A2E1F,#2A2115); color:#F3E9D2;
+    border-bottom:2px solid var(--brass); border-radius:4px; padding:9px 12px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .demo-head .t{font-family:var(--serif);font-size:14px;letter-spacing:.06em}
+  .demo-head .s{font-size:10px;color:#C9B791;letter-spacing:.04em}
+
+  /* 卡片样张 */
+  .demo-card{
+    background:linear-gradient(180deg,#FBF4E4,#F2E7CE);
+    border:1px solid var(--line-2); border-radius:8px; padding:12px 13px;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset;
+  }
+  .seal{
+    width:34px;height:34px;flex:none;border-radius:4px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:17px;font-weight:700;border:1.5px solid;letter-spacing:0;
+  }
+  .seal.s{color:#6B4E9E;border-color:#6B4E9E;background:rgba(107,78,158,.12)}
+  .seal.a{color:var(--wine);border-color:var(--wine);background:rgba(138,59,50,.10)}
+  .seal.b{color:#B4632A;border-color:#B4632A;background:rgba(180,99,42,.10)}
+  .seal.c{color:#8A7220;border-color:#8A7220;background:rgba(138,114,32,.10)}
+  .seal.d{color:#4A7A5E;border-color:#4A7A5E;background:rgba(74,122,94,.10)}
+
+  .rowline{display:flex;align-items:center;gap:8px}
+  .btn{
+    font-family:var(--sans);border:0;cursor:pointer;border-radius:8px;font-weight:600;
+    letter-spacing:.06em;font-size:13px;padding:10px 16px;transition:filter .15s,transform .1s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-main{background:var(--wine);color:#F6E7CF}
+  .btn-main:hover{filter:brightness(1.1)}
+  .btn-brass{background:var(--brass);color:#1A1207}
+  .btn-ghost{background:transparent;border:1px solid var(--line-2);color:var(--ink-2)}
+  .btn-block{display:block;width:100%;padding:12px 16px;font-size:15px}
+
+  .chip-tag{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:999px;
+    border:1px solid var(--line-2);color:var(--ink-2);background:rgba(255,255,255,.28);letter-spacing:.03em;
+  }
+  .chip-tag.wine{border-color:rgba(138,59,50,.4);color:var(--wine);background:rgba(138,59,50,.07)}
+  .chip-tag.brass{border-color:rgba(169,121,58,.5);color:var(--brass-deep);background:rgba(217,164,91,.14)}
+
+  .statbar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-2)}
+  .statbar .track{flex:1;height:3px;border-radius:3px;background:rgba(42,36,24,.14);overflow:hidden}
+  .statbar .track i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#4E9A6E,#9CCB7D)}
+
+  .ring{
+    width:58px;height:58px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    background:conic-gradient(var(--success) 0 68%, rgba(42,36,24,.12) 68% 100%);
+    position:relative;
+  }
+  .ring::after{content:'';position:absolute;inset:6px;border-radius:50%;background:var(--paper-3)}
+  .ring b{position:relative;z-index:2;font-size:14px;font-family:var(--serif)}
+
+  .plate-demo{
+    display:inline-flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  .plate-demo .nm{
+    background:rgba(243,233,209,.92);border:1px solid var(--line);border-radius:4px;
+    padding:1px 7px;font-size:11px;letter-spacing:.02em;box-shadow:0 1px 2px rgba(42,36,24,.12);
+  }
+  .plate-demo .nm i{font-style:normal;background:var(--wine);color:#F6E7CF;font-size:9px;padding:0 4px;border-radius:2px;margin-right:4px;letter-spacing:.04em}
+  .plate-demo .hp{width:72px;height:3px;border-radius:2px;background:rgba(42,36,24,.20);overflow:hidden}
+  .plate-demo .hp i{display:block;height:100%;width:72%;background:linear-gradient(90deg,#8A3B32,#C1573F)}
+
+  .slot{
+    border:1.5px dashed rgba(169,121,58,.7);border-radius:6px;height:86px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    background:repeating-linear-gradient(135deg,rgba(42,36,24,.035) 0 6px,transparent 6px 12px);
+    font-size:10px;color:var(--brass-deep);letter-spacing:.04em;text-align:center;line-height:1.5;
+  }
+  .slot b{font-size:11px}
+
+  /* ---------- 前后对照 ---------- */
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-top:10px}
+  .ba > div{padding:12px 14px;font-size:12.5px;line-height:1.7}
+  .ba .before{background:rgba(42,36,24,.055);border-right:1px solid var(--line);color:var(--ink-2)}
+  .ba .before b{color:#9A3B32;font-size:11px;letter-spacing:.1em;display:block;margin-bottom:6px}
+  .ba .after{background:rgba(111,191,139,.10)}
+  .ba .after b{color:#3F6E52;font-size:11px;letter-spacing:.1em;display:block;margin-bottom:6px}
+
+  /* ---------- 步骤 ---------- */
+  .steps{counter-reset:st;margin-top:12px}
+  .step{
+    position:relative;padding:0 0 18px 44px;counter-increment:st;
+    border-left:1px dashed var(--line-2);margin-left:15px;
+  }
+  .step:last-child{border-left-color:transparent;padding-bottom:0}
+  .step::before{
+    content:counter(st);position:absolute;left:-15px;top:-2px;width:30px;height:30px;border-radius:50%;
+    background:var(--paper-3);border:1.5px solid var(--brass);color:var(--brass-deep);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;font-family:var(--serif);
+  }
+  .step h4{margin:2px 0 4px;font-size:13.5px;letter-spacing:.03em}
+  .step p{margin:0;font-size:12.5px;color:var(--ink-2)}
+  .step .files{margin-top:5px;font-size:11px;color:var(--ink-3)}
+
+  /* ---------- 对照表 ---------- */
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;letter-spacing:.08em;color:var(--brass-deep);font-weight:700;background:rgba(42,36,24,.04)}
+  td.n{color:var(--ink-2)}
+
+  .callout{
+    border-left:3px solid var(--brass); background:rgba(217,164,91,.13);
+    padding:11px 14px; border-radius:0 5px 5px 0; font-size:12.5px; margin:14px 0;
+  }
+  .callout.wine{border-left-color:var(--wine);background:rgba(138,59,50,.09)}
+  .callout b{letter-spacing:.03em}
+  .demos{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .demos a{
+    font-size:12px;text-decoration:none;color:var(--wine);border:1px solid rgba(138,59,50,.35);
+    border-radius:999px;padding:5px 12px;background:rgba(138,59,50,.05);
+  }
+  .demos a:hover{background:rgba(138,59,50,.12)}
+  footer{text-align:center;font-size:11px;color:var(--ink-3);padding:10px 0 0;letter-spacing:.06em}
+  @media(max-width:760px){
+    .ba{grid-template-columns:1fr}
+    .ba .before{border-right:0;border-bottom:1px solid var(--line)}
+    section{padding:18px 16px 20px}
+    header.masthead h1{font-size:24px}
+    .scale .use{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="inner">
+    <h1>星原战纪 · UI 改版总览</h1>
+    <p>设计语言 / 组件规范 / 六屏改造 / 落地计划 &nbsp;·&nbsp; v1 待确认稿</p>
+    <div class="tagline">「羊皮纸 + 墨线 + 黄铜」——把界面做成一本冒险者公会的手册。</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ========== 1 方向 ========== -->
+<section>
+  <h2><span class="num">01</span>方向：从「后台管理系统」变成「公会手册」</h2>
+  <p class="lead">当前界面最大的问题不是配色，而是<b>所有东西长得一样重</b>。</p>
+  <div class="ba">
+    <div class="before">
+      <b>现状的诊断</b>
+      深蓝底 + 灰边框 + 圆角矩形，卡片、按钮、导航、标签全是同一套皮肤；<br>
+      正文大量 9–11px（全项目 11px 出现 121 次），层级靠「字更小更灰」堆出来；<br>
+      三层导航（主导航 / 建筑栏 / 建筑内页签）选中态完全相同，用户不知道自己在第几层；<br>
+      强调色散落使用青 / 黄 / 绿 / 紫 / 红，没有语义，S-D 印章的紫红橙黄绿又和资源色打架。
+    </div>
+    <div class="after">
+      <b>改版的三条原则</b>
+      <ol style="margin:0;padding-left:18px">
+        <li><b>一屏一个主角</b>：每页只允许一个酒红主按钮，其余全部降为次级。</li>
+        <li><b>纸与墨承担层级</b>：用纸张底色深浅分「页面 / 卡片 / 浮层」，不再靠字号缩小。</li>
+        <li><b>颜色只表达含义</b>：黄铜=可交互、酒红=主要行动、绿=安全、橙=危险、紫=秘法。等级印章改为单色描边，不再抢占语义色。</li>
+      </ol>
+    </div>
+  </div>
+  <div class="callout">
+    <b>为什么是纸？</b> 这是酒馆、公会榜、手绘地图、赏金单的世界。纸面天然解释了「为什么这里有一张卡片」，也让 emoji 图标不再突兀——后续可逐步替换为线性图标。
+  </div>
+</section>
+
+<!-- ========== 2 Token ========== -->
+<section>
+  <h2><span class="num">02</span>设计 Token <span class="en">DESIGN TOKENS</span></h2>
+  <p class="lead">全部写进 <code>src/index.css</code> 的 <code>:root</code>，组件只引用变量，不再散落硬编码色值。</p>
+
+  <h3>底色三层</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#DCCDAE"><span>#DCCDAE</span></div><div class="meta"><b>桌面底</b><em>phone 外层 / 页面背景</em></div></div>
+    <div class="sw"><div class="chip dark" style="background:#EFE3C8"><span>#EFE3C8</span></div><div class="meta"><b>纸面 · page</b><em>页面主底</em></div></div>
+    <div class="sw"><div class="chip dark" style="background:#E3D3B0"><span>#E3D3B0</span></div><div class="meta"><b>纸面 · sunken</b><em>页眉条 / 输入 / 次级区</em></div></div>
+    <div class="sw"><div class="chip dark" style="background:#F7EFDD"><span>#F7EFDD</span></div><div class="meta"><b>纸面 · raised</b><em>卡片 / 浮层</em></div></div>
+  </div>
+
+  <h3>墨色与强调</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#2A2418"><span>#2A2418</span></div><div class="meta"><b>墨 · 主文字</b><em>标题 / 数值</em></div></div>
+    <div class="sw"><div class="chip" style="background:#5C513C"><span>#5C513C</span></div><div class="meta"><b>墨 · 次要</b><em>正文 / 说明</em></div></div>
+    <div class="sw"><div class="chip" style="background:#8A7B5F"><span>#8A7B5F</span></div><div class="meta"><b>墨 · 弱</b><em>角标 / 分隔文字</em></div></div>
+    <div class="sw"><div class="chip" style="background:#D9A45B"><span>#D9A45B</span></div><div class="meta"><b>黄铜</b><em>可交互 / 高亮描边</em></div></div>
+    <div class="sw"><div class="chip" style="background:#A9793A"><span>#A9793A</span></div><div class="meta"><b>黄铜 · 深</b><em>小字号黄铜（保证对比度）</em></div></div>
+    <div class="sw"><div class="chip" style="background:#8A3B32"><span>#8A3B32</span></div><div class="meta"><b>酒红 · 主行动</b><em>每屏唯一主按钮</em></div></div>
+  </div>
+
+  <h3>语义色（只用于状态，不用于装饰）</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#E8A44A"><span>#E8A44A</span></div><div class="meta"><b>城邦 / 暖</b><em>据点、日常</em></div></div>
+    <div class="sw"><div class="chip" style="background:#5CC8FF;color:#0B1A22"><span>#5CC8FF</span></div><div class="meta"><b>地牢 / 探索</b><em>路线、房间</em></div></div>
+    <div class="sw"><div class="chip" style="background:#E4573D"><span>#E4573D</span></div><div class="meta"><b>战斗 / 危险</b><em>受伤、九死一生</em></div></div>
+    <div class="sw"><div class="chip" style="background:#6FBF8B"><span>#6FBF8B</span></div><div class="meta"><b>安全 / 成功</b><em>轻松碾压、治疗</em></div></div>
+    <div class="sw"><div class="chip" style="background:#9B7BD4"><span>#9B7BD4</span></div><div class="meta"><b>秘法 / 魂晶</b><em>法术、稀有掉落</em></div></div>
+  </div>
+
+  <h3>字号刻度｜8 级就够</h3>
+  <div class="scale">
+    <div><span class="px">28 / 700</span><span class="demo" style="font-size:28px">麦浪与风车镇</span><span class="use">页面主标题（衬线）</span></div>
+    <div><span class="px">20 / 700</span><span class="demo" style="font-size:20px">在榜悬赏契约</span><span class="use">区块标题（衬线）</span></div>
+    <div><span class="px">16 / 600</span><span class="demo" style="font-size:16px;font-family:var(--sans)">麦仓地窖的赤耳群</span><span class="use">卡片标题 / 关键数值</span></div>
+    <div><span class="px">14 / 400</span><span class="demo" style="font-size:14px;font-family:var(--sans)">地窖里囤着过冬的麦子，赤耳哥布林在下面做了窝。</span><span class="use">正文（唯一允许长句的层级）</span></div>
+    <div><span class="px">12 / 400</span><span class="demo" style="font-size:12px;font-family:var(--sans)">耗时 3 天 · 声望 +18 · 特产：麦芽酒桶</span><span class="use">次要信息行</span></div>
+    <div><span class="px">11 / 600</span><span class="demo" style="font-size:11px;font-family:var(--sans);letter-spacing:.08em">D 级 · 哥布林</span><span class="use">标签 / 印章 / 角标</span></div>
+    <div><span class="px">10 / 500</span><span class="demo" style="font-size:10px;font-family:var(--sans)">第 3 间 · 共 6 间</span><span class="use">极小元信息（仅限短词）</span></div>
+  </div>
+  <div class="callout wine"><b>硬规则</b>：正文最小 12px，任何「读者需要读懂一句话」的地方不得低于 14px。10–11px 只允许出现在 2–6 个字的标签上。</div>
+
+  <h3>间距 / 圆角 / 描边 / 阴影</h3>
+  <div class="toks">
+    <div class="tok"><b>间距 — 8pt 网格</b><ul><li>4 · 图标与文字</li><li>8 · 卡内元素</li><li>12 · 卡与卡</li><li>16–20 · 区块</li></ul></div>
+    <div class="tok"><b>圆角</b><ul><li>10 · 卡片</li><li>8 · 按钮 / 输入</li><li>4 · 印章 / 纸签</li><li>999 · 标签 chip</li></ul></div>
+    <div class="tok"><b>描边</b><ul><li>弱 <code>rgba(42,36,24,.16)</code></li><li>强 <code>rgba(42,36,24,.32)</code></li><li>禁用彩色描边当装饰</li></ul></div>
+    <div class="tok"><b>阴影</b><ul><li>只给浮层 / 抽屉 / 主卡</li><li><code>0 8px 24px rgba(42,36,24,.18)</code></li><li>卡片本身用 1px 墨线，不用阴影</li></ul></div>
+  </div>
+</section>
+
+<!-- ========== 3 组件 ========== -->
+<section>
+  <h2><span class="num">03</span>组件规范 <span class="en">COMPONENTS</span></h2>
+  <p class="lead">下面这些实物就是实现时要抽出的公共组件，只做一次。</p>
+
+  <div class="gallery">
+    <div class="spec">
+      <div class="cap">PAGE HEADER · 页眉</div>
+      <div class="demo-head">
+        <div><div class="t">麦浪与风车镇</div><div class="s">平原粮仓 · 第 3 日</div></div>
+        <div class="s">⚔️ 4 / 4</div>
+      </div>
+      <div class="note">深木色 + 3px 黄铜双线。全应用统一，只在下面换标题与右上角信息。</div>
+    </div>
+
+    <div class="spec">
+      <div class="cap">CARD + SEAL · 卡片与等级印章</div>
+      <div class="demo-card">
+        <div class="rowline" style="align-items:flex-start">
+          <div class="seal d">D</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:600;letter-spacing:.02em">麦仓地窖的赤耳群</div>
+            <div class="tiny muted" style="margin-top:2px">讨伐目标 · 赤耳盾手</div>
+          </div>
+          <div style="text-align:right;font-size:13px;color:var(--brass-deep);font-weight:700">386 G</div>
+        </div>
+      </div>
+      <div class="note">印章改单色描边（S 紫 / A 酒红 / B 赭 / C 橄榄 / D 苔绿），与资源色区分开。</div>
+    </div>
+
+    <div class="spec">
+      <div class="cap">BUTTONS · 按钮层级</div>
+      <button class="btn btn-main btn-block">接取并出发</button>
+      <div style="height:8px"></div>
+      <div class="rowline">
+        <button class="btn btn-ghost" style="flex:1">换 人</button>
+        <button class="btn btn-brass" style="flex:1">打探刷新 50G</button>
+      </div>
+      <div class="note">主按钮酒红实心、全宽、44px 高；一屏只能有一个。黄铜留给「花钱」的次要行动。</div>
+    </div>
+
+    <div class="spec">
+      <div class="cap">WIN RATE · 胜率</div>
+      <div class="rowline">
+        <div class="ring"><b>68%</b></div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:#B4632A">苦战险胜</div>
+          <div class="tiny muted">预估 4 人全灭风险 32%</div>
+          <div class="tiny muted" style="margin-top:2px">史莱姆物理免伤高，建议法系破防</div>
+        </div>
+      </div>
+      <div class="note">环形只在大卡上用；列表行内退化为「百分比 + 危险度文字」，不画环。</div>
+    </div>
+
+    <div class="spec">
+      <div class="cap">STAT BAR · 属性条</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div class="statbar"><span style="width:34px">物攻</span><span class="track"><i style="width:72%"></i></span><span style="width:26px;text-align:right;color:var(--ink)">41</span></div>
+        <div class="statbar"><span style="width:34px">生命</span><span class="track"><i style="width:88%"></i></span><span style="width:26px;text-align:right;color:var(--ink)">194</span></div>
+        <div class="statbar"><span style="width:34px">暴击</span><span class="track"><i style="width:44%;background:linear-gradient(90deg,#A9793A,#D9A45B)"></i></span><span style="width:26px;text-align:right;color:var(--ink)">26%</span></div>
+      </div>
+      <div class="note">3px 细条 + 右侧数值。上限 200 归一化，避免所有条都满格。</div>
+    </div>
+
+    <div class="spec">
+      <div class="cap">BATTLE PLATE · 战场名牌</div>
+      <div class="rowline" style="gap:18px">
+        <div class="plate-demo"><span class="nm"><i>首领</i>狂暴穴居枭熊王</span><span class="hp"><i></i></span></div>
+        <div class="plate-demo"><span class="nm">赤耳盾手</span><span class="hp"><i></i></span></div>
+      </div>
+      <div class="note">纸签贴地、血条极短，不再横贯整格。</div>
+    </div>
+
+    <div class="spec">
+      <div class="cap">ART SLOT · 造型槽（三态）</div>
+      <div class="slot"><b>首领立绘槽</b>2×2 占格 · 480 × 620 · 透明底<div>剪影 / 立绘 / 模型 可切换</div></div>
+      <div class="note">现在先跑程序化剪影；接入立绘时只换 <code>&lt;img&gt;</code>，布局零改动。</div>
+    </div>
+
+    <div class="spec">
+      <div class="cap">TAGS · 标签</div>
+      <div class="rowline" style="flex-wrap:wrap;gap:6px">
+        <span class="chip-tag">坚韧</span>
+        <span class="chip-tag brass">特产 · 枭熊厚绒皮</span>
+        <span class="chip-tag wine">体力不足</span>
+      </div>
+      <div class="note">最多三种语义：默认 / 黄铜（奖励）/ 酒红（警示）。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 4 六屏 ========== -->
+<section>
+  <h2><span class="num">04</span>六个界面怎么改 <span class="en">SCREENS</span></h2>
+  <p class="lead">每个界面回答一个问题，主按钮只有一个。</p>
+
+  <h3>① 首页 · 一屏指挥 <span class="en">「现在该做什么？」</span></h3>
+  <div class="ba">
+    <div class="before"><b>改前</b>开局落在「据点」页，先看到一排建筑图标，要自己判断去哪。</div>
+    <div class="after"><b>改后</b>首屏直接给一张「今日优先」大卡：D 级史莱姆、87% 势均力敌、理由、奖励，主按钮「接取并出发」。下面才是次要悬赏、队伍状态、城镇入口。</div>
+  </div>
+
+  <h3>② 公会 · 悬赏板 + 决策抽屉 <span class="en">「今天打哪一张？」</span></h3>
+  <div class="ba">
+    <div class="before"><b>改前</b>任务卡纵向排开，胜率、战术、出战队伍分散在卡片内外，接哪张要靠自己算。</div>
+    <div class="after"><b>改后</b>上半紧凑翻阅 S–D 全部在榜契约；底部常驻抽屉实时显示「出战 4 人 → 这张 68% → 建议这么打 → 特产是这些」，接取按钮就在抽屉里。</div>
+  </div>
+
+  <h3>③ 名册 · 出征编队 <span class="en">「带谁去、扛不扛得住？」</span></h3>
+  <div class="ba">
+    <div class="before"><b>改前</b>英雄卡平铺，九维属性全部展开，看不出阵型与体能。</div>
+    <div class="after"><b>改后</b>上方 3×3 站位（前排/中坚/后卫）+ 下方选中者详情：CA/PA 星级、压力士气、四组 30 维折叠。底部固定「换人 / 出发」。</div>
+  </div>
+
+  <h3>④ 地牢 · 手绘路线图 <span class="en">「下一间走哪边？」</span></h3>
+  <div class="ba">
+    <div class="before"><b>改前</b>房间是竖排卡片列表，分支用文字描述，缺乏「在迷宫里」的感觉。</div>
+    <div class="after"><b>改后</b>纸面手绘地图 + SVG 节点连线（战斗/事件/营地/宝箱/首领），已清打勾、当前高亮、未解锁虚线；点节点，下方面板给收益与预估胜率。</div>
+  </div>
+
+  <h3>⑤ 战斗 · 隐形格战术战场 <span class="en">「这一仗怎么打？」</span></h3>
+  <div class="ba">
+    <div class="before"><b>改前</b>自走棋式 3×3 小棋盘，格子显性，单位和格子一样大，首领毫无压迫感。</div>
+    <div class="after"><b>改后</b>一整间窟室：石砖后墙 + 壁炬 + 连续地面 + 散落武器；格线平时不可见，但 Boss 真实占 2×2、英雄各占 1 格，点击才闪格提示。底部是时序条 + 四张奥义卡。</div>
+  </div>
+
+  <h3>⑥ 城镇设施（铁匠铺 / 市集 / 酒馆 / 医馆）</h3>
+  <div class="ba">
+    <div class="before"><b>改前</b>和公会任务卡同一套皮肤，信息密度高但层级平。</div>
+    <div class="after"><b>改后</b>沿用卡片语言 + 顶部材料条；四个子页（打造/重铸/洗练/分解）改用黄铜描边 segmented，不再和主导航撞脸。<b>本轮不做独立样张，直接跟随 token 落地。</b></div>
+  </div>
+
+  <div class="demos">
+    <a href="demo-d-command.html">① 首页样张</a>
+    <a href="demo-layout-v2.html">② 公会样张</a>
+    <a href="demo-b-roster.html">③ 名册样张</a>
+    <a href="demo-c-route.html">④ 地牢样张</a>
+    <a href="demo-combat-grid.html">⑤ 战斗样张</a>
+    <a href="ui-lab.html">全部原型画廊</a>
+  </div>
+</section>
+
+<!-- ========== 5 落地 ========== -->
+<section>
+  <h2><span class="num">05</span>落地计划 <span class="en">ROLLOUT</span></h2>
+  <p class="lead">五步，每步独立可跑、可回滚。不改任何游戏逻辑（<code>CombatEngine</code> / <code>guildEngine</code> / <code>blacksmithEngine</code> 全部不动）。</p>
+
+  <div class="steps">
+    <div class="step">
+      <h4>地基：设计 Token 与排版</h4>
+      <p>重写 <code>index.css</code>（现在只有 22 行）：注入全部 CSS 变量、字体栈、正文基准 14px、8pt 间距、纸纹背景与滚动条隐藏。</p>
+      <div class="files">index.css · index.html（theme-color）</div>
+    </div>
+    <div class="step">
+      <h4>公共组件</h4>
+      <p>抽出 <code>PageHeader</code> / <code>Card</code> / <code>Btn</code> / <code>Seal</code> / <code>StatBar</code> / <code>Tag</code> / <code>WinRing</code>，放在 <code>components/ui/</code>。先只被新页面使用，旧页面渐次替换。</p>
+      <div class="files">components/ui/*.tsx</div>
+    </div>
+    <div class="step">
+      <h4>城邦：首页 + 公会 + 底部导航</h4>
+      <p>把 <code>TownView</code> 拆成「首页优先卡」与「公会悬赏板 + 决策抽屉」两个视图，统一建筑子页签样式。这是玩家停留最久的地方，收益最大。</p>
+      <div class="files">TownView.tsx → TownHome.tsx / GuildBoard.tsx · App.tsx 导航</div>
+    </div>
+    <div class="step">
+      <h4>名册与地牢路线</h4>
+      <p>名册改成 3×3 编队 + 选中详情；地牢改成手绘路线图。两者共用卡片与属性条组件。</p>
+      <div class="files">App.tsx 名册段 · 新增 DungeonMap.tsx</div>
+    </div>
+    <div class="step">
+      <h4>战斗场景重写（渲染层）</h4>
+      <p>按 <code>demo-combat-grid.html</code> 重写 <code>CombatStage</code> / <code>BattlePawn</code>：隐形格、占格映射、三态造型槽、呼吸与受击。引擎输出的 9 格数据原样消费。</p>
+      <div class="files">CombatStage.tsx · BattlePawn.tsx · stageThemes.ts</div>
+    </div>
+  </div>
+
+  <div class="callout wine">
+    <b>风险与不做的事</b><br>
+    ✗ 不引入 Tailwind / 组件库（现有全 inline style，混用会更乱）<br>
+    ✗ 不加载 webfont（思源宋体 4MB+，移动端首屏不可接受）→ 走系统字体栈<br>
+    ✗ 不改战斗数值与胜负逻辑，只换渲染<br>
+    ✓ 每步结束跑 <code>npm run build</code> + 真机宽度（360 / 390 / 430）自查无溢出
+  </div>
+</section>
+
+<!-- ========== 6 待定 ========== -->
+<section>
+  <h2><span class="num">06</span>需要你拍的板</h2>
+  <table>
+    <tr><th style="width:22%">问题</th><th>选项</th><th style="width:30%">我的建议</th></tr>
+    <tr>
+      <td><b>改造范围</b></td>
+      <td class="n">A. 一次改完六个界面<br>B. 先改城镇（首页+公会）+ 战斗，名册/地牢下一轮<br>C. 只改战斗</td>
+      <td class="n">A —— 分批反而会出现「新旧两套皮」并存，观感最差</td>
+    </tr>
+    <tr>
+      <td><b>字体</b></td>
+      <td class="n">A. 系统字体栈（Songti SC / PingFang SC）<br>B. 引入思源宋体 webfont 子集</td>
+      <td class="n">A —— 零加载、零闪动；标题用 serif 栈已足够</td>
+    </tr>
+    <tr>
+      <td><b>图标</b></td>
+      <td class="n">A. 先用 emoji，后续再换<br>B. 本轮直接用已装的 lucide-react 线性图标</td>
+      <td class="n">B —— emoji 是当前「廉价感」的主要来源之一</td>
+    </tr>
+    <tr>
+      <td><b>英雄造型</b></td>
+      <td class="n">A. 统一人形剪影 + 职业武器区分<br>B. 每个职业画一套专属剪影</td>
+      <td class="n">A —— 立绘迟早要接，剪影只是占位，不必投入</td>
+    </tr>
+    <tr>
+      <td><b>旧界面</b></td>
+      <td class="n">A. 直接替换删除旧样式<br>B. 保留旧页面，用开关切换</td>
+      <td class="n">A —— 有 git，试错成本低</td>
+    </tr>
+    <tr>
+      <td><b>提交流程</b></td>
+      <td class="n">A. 五步五次提交<br>B. 全部改完一次提交</td>
+      <td class="n">A —— 每步可回滚，便于你在中间看效果</td>
+    </tr>
+  </table>
+</section>
+
+<footer>星原战纪 · UI 改版总览 v1 &nbsp;|&nbsp; 待确认后进入实现</footer>
+</div>
+</body>
+</html>

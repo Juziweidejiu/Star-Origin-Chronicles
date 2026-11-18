@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Layout v2 · 悬赏板 + 决策抽屉</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  .top{flex:none;background:linear-gradient(180deg,#3A2E1F,#2A2115);border-bottom:3px double rgba(217,164,91,.5);padding:9px 14px 10px;display:flex;align-items:center;gap:10px}
+  .top .town{flex:1;min-width:0}
+  .top .k{font-size:9px;letter-spacing:2px;color:#C9A56B}
+  .top h1{margin:1px 0 0;font-family:var(--serif);font-size:17px;letter-spacing:2px;color:#F0E2C4;font-weight:600}
+  .top .gold{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#E8B96A;border:1px solid rgba(217,164,91,.32);background:rgba(217,164,91,.10);border-radius:999px;padding:4px 8px;font-variant-numeric:tabular-nums}
+
+  .scroll{padding:12px 14px 250px}
+  .board-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+  .board-head h2{margin:0;font-family:var(--serif);font-size:14px;letter-spacing:2px;color:var(--ink)}
+  .board-head span{font-size:10px;color:#8C7A58}
+
+  .tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:none;border:1px solid rgba(42,36,24,.24);background:rgba(247,239,221,.5);color:#7C6A4A;font-family:var(--sans);font-size:10px;padding:5px 10px;border-radius:999px;cursor:pointer}
+  .tab.active{background:#7C2F27;border-color:#7C2F27;color:#F7E8D2;font-weight:700}
+
+  .list{display:flex;flex-direction:column;gap:6px}
+  .row{
+    width:100%;text-align:left;font-family:var(--sans);cursor:pointer;
+    display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:3px;
+    border:1px solid rgba(42,36,24,.20);background:rgba(247,239,221,.55);color:var(--ink);
+    position:relative;transition:border-color .15s ease,background .15s ease;
+  }
+  .row:hover{border-color:#A9793A;background:#F7EFDD}
+  .row.active{border-color:#7C2F27;background:#F7EFDD;box-shadow:inset 3px 0 0 #7C2F27}
+  .row .seal{width:30px;height:30px;font-size:14px;border-radius:3px;border-width:1px}
+  .rmain{flex:1;min-width:0}
+  .rmain b{display:block;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rmain span{display:block;font-size:9px;color:#8C7A58;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rright{text-align:right;flex:none}
+  .rright b{display:block;font-size:12px;font-variant-numeric:tabular-nums;color:#8A5A16}
+  .odds{display:inline-block;font-size:9px;padding:1px 5px;border-radius:2px;margin-top:2px;font-weight:700}
+  .odds.safe{background:rgba(53,107,73,.10);color:#356B49}
+  .odds.tough{background:rgba(169,121,58,.12);color:#8A5A16}
+  .odds.hard{background:rgba(138,59,50,.10);color:#8A3B32}
+
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;z-index:20;
+    background:#F7EFDD;border-top:1px solid rgba(42,36,24,.30);
+    box-shadow:0 -10px 26px rgba(42,36,24,.16);
+    border-radius:12px 12px 0 0;padding:7px 14px 14px;
+  }
+  .handle{width:34px;height:3px;border-radius:3px;background:rgba(42,36,24,.22);margin:0 auto 8px}
+  .sheet-top{display:flex;gap:9px;align-items:flex-start}
+  .sheet-top .seal{width:36px;height:36px;font-size:17px;border-radius:4px}
+  .sheet-title{flex:1;min-width:0}
+  .sheet-title h3{margin:0;font-family:var(--serif);font-size:16px;letter-spacing:.5px;color:var(--ink)}
+  .sheet-title span{font-size:9px;color:#8C7A58}
+  .reward{text-align:right}
+  .reward b{display:block;font-size:14px;color:#8A5A16;font-variant-numeric:tabular-nums}
+  .reward span{font-size:9px;color:#8C7A58}
+
+  .odds-block{margin-top:9px;padding:8px 9px;border:1px solid rgba(42,36,24,.18);border-radius:3px;background:#EADDBF}
+  .odds-line{display:flex;justify-content:space-between;font-size:10px;color:#8C7A58}
+  .odds-line b{color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
+  .odds-line em{font-style:normal;color:#9A5A18;font-weight:700;font-size:10px}
+  .odds-block .bar{margin-top:5px;height:4px;background:rgba(42,36,24,.15)}
+  .odds-block .bar i{background:linear-gradient(90deg,#B08A3E,#E0A64E)}
+  .tactic{margin-top:6px;font-size:10px;line-height:1.55;color:#6E5E42}
+  .tactic::before{content:"战术 · ";color:#3E6F86;font-weight:700}
+
+  .sheet-meta{display:flex;gap:10px;margin-top:8px;font-size:9px;color:#8C7A58}
+  .sheet-meta b{color:var(--ink);font-weight:600}
+  .sheet-cta{width:100%;margin-top:9px;padding:10px;border-radius:3px;font-size:13px;letter-spacing:1.5px;background:linear-gradient(180deg,#9A4438,#7C2F27);color:#F7E8D2;box-shadow:0 2px 0 rgba(42,36,24,.3)}
+  .sheet-note{margin-top:6px;text-align:center;font-size:9px;color:#8C7A58}
+</style>
+</head>
+<body class="lab">
+  <div class="phone paper">
+    <div class="statusbar"><span>9:41</span><span>第 12 天 · 晴</span></div>
+
+    <div class="top">
+      <div class="town">
+        <div class="k">冒险公会 · 在榜悬赏</div>
+        <h1>麦浪与风车镇</h1>
+      </div>
+      <div class="gold">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h5M9.5 13.5h5"/></svg>
+        1,398
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="board-head"><h2>悬赏榜单</h2><span>声望 40 · 赏金 +10%</span></div>
+
+      <div class="tabs">
+        <button class="tab active">全部</button>
+        <button class="tab">D · 1★</button>
+        <button class="tab">C · 2★</button>
+        <button class="tab">B · 3★</button>
+        <button class="tab">A · 4★</button>
+        <button class="tab">S · 5★</button>
+      </div>
+
+      <div class="list">
+        <button class="row active">
+          <div class="seal b">B</div>
+          <div class="rmain"><b>麦仓地窖的赤耳群</b><span>3★ · 赤耳盾手 · 耗时 2 天</span></div>
+          <div class="rright"><b>386 G</b><span class="odds tough">68% 苦战</span></div>
+        </button>
+
+        <button class="row">
+          <div class="seal d">D</div>
+          <div class="rmain"><b>风车下的史莱姆</b><span>1★ · 石盾史莱姆 · 耗时 1 天</span></div>
+          <div class="rright"><b>142 G</b><span class="odds safe">87% 碾压</span></div>
+        </button>
+
+        <button class="row">
+          <div class="seal c">C</div>
+          <div class="rmain"><b>商队失踪的运盐道</b><span>2★ · 劫道盾手 · 耗时 2 天</span></div>
+          <div class="rright"><b>240 G</b><span class="odds tough">57% 苦战</span></div>
+        </button>
+
+        <button class="row">
+          <div class="seal a">A</div>
+          <div class="rmain"><b>旧武库的食人魔</b><span>4★ · 双头食人魔 · 耗时 3 天</span></div>
+          <div class="rright"><b>720 G</b><span class="odds hard">34% 凶险</span></div>
+        </button>
+
+        <button class="row">
+          <div class="seal b">B</div>
+          <div class="rmain"><b>枭熊盘踞的北坡</b><span>3★ · 狂暴枭熊 · 耗时 2 天</span></div>
+          <div class="rright"><b>410 G</b><span class="odds tough">61% 苦战</span></div>
+        </button>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sheet-top">
+        <div class="seal b">B</div>
+        <div class="sheet-title">
+          <h3>麦仓地窖的赤耳群</h3>
+          <span>3★ · 讨伐目标：赤耳盾手 · 5 个房间</span>
+        </div>
+        <div class="reward"><b>386 G</b><span>声望 +18</span></div>
+      </div>
+
+      <div class="odds-block">
+        <div class="odds-line"><span>出战队伍预估胜率</span><b>68%</b></div>
+        <div class="bar"><i style="width:68%"></i></div>
+        <div class="odds-line" style="margin-top:4px"><span>4 人满编 · 战力 1,284</span><em>苦战险胜</em></div>
+        <div class="tactic">先清后排掷弹手；盾手聚堆时用穿透技能开阵，治疗留好群疗。</div>
+      </div>
+
+      <div class="sheet-meta"><span>耗时 <b>2 天</b></span><span>口粮 <b>-4</b></span><span>特产 <b>赤耳盾牌</b></span><span>魂晶 <b>+1</b></span></div>
+      <button class="btn sheet-cta">接 取 并 出 发</button>
+      <div class="sheet-note">接取后直接进入路线图，不再跳回城镇</div>
+    </div>
+  </div>
+
+  <aside class="spec">
+    <div>
+      <h4>Layout v2 · 列表 + 决策抽屉</h4>
+      <p>解决 A 版“每张契约都展开、一屏只能看两张”的问题：<b>列表负责浏览，抽屉负责决策。</b></p>
+    </div>
+    <div>
+      <h4>布局变化</h4>
+      <ul>
+        <li>契约列表压成 5 行，一屏能看全 D–A 等级分布</li>
+        <li>点击任一行，底部抽屉显示胜率、战术、奖励与主按钮</li>
+        <li>等级筛选做成胶囊页签，不再占一整行建筑栏</li>
+        <li>抽屉底部注明“接取后直接进路线图”，把 A 和 C 串起来</li>
+      </ul>
+    </div>
+    <div>
+      <h4>可落地性</h4>
+      <p>纯前端状态：`selectedContractId` + 底部抽屉。现有 `TownView` 的契约数据与 `estimateContractOdds` 可直接复用。</p>
+    </div>
+  </aside>
+</body>
+</html>

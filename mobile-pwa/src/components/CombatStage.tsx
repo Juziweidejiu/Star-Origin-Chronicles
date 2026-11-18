@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useLayoutEffect, useRef, useState } from 'react';
 import type { CombatUnit } from '../engine/combatEngine';
 import type { StageTheme } from '../config/stageThemes';
-import { STAGE_THEMES } from '../config/stageThemes';
+import { STAGE_THEMES, stageThemeVars } from '../config/stageThemes';
 import type { FloatingTextItem, UltCinematicEvent, UnitVisualState } from '../types/combatVisual';
-import type { GridSlotId, GridRow } from '../types/formation';
 import { BattlePawn } from './BattlePawn';
 import { FloatingCombatText } from './FloatingCombatText';
 import { UltCinematicOverlay } from './UltCinematicOverlay';
@@ -27,8 +26,60 @@ interface CombatStageProps {
   resultOverlay?: React.ReactNode;
 }
 
-// 棋盘格行定义：上 (top) / 中 (center) / 下 (bottom)
-const ROWS: GridRow[] = ['top', 'center', 'bottom'];
+const ROW_INDEX: Record<string, number> = { top: 1, center: 2, bottom: 3 };
+const ENEMY_COL: Record<string, number> = { back: 1, mid: 2, front: 3 };
+const PLAYER_COL: Record<string, number> = { front: 1, mid: 2, back: 3 };
+
+interface Placement {
+  unit: CombatUnit;
+  area: string;
+  cells: string[];
+}
+
+/** 把一个阵地的单位排进隐形 3×3：首领占 2×2，其余各占 1 格，冲突时就近让位 */
+function layoutSide(units: CombatUnit[], side: 'player' | 'enemy'): Placement[] {
+  const occupied = new Set<string>();
+  const out: Placement[] = [];
+
+  const boss = side === 'enemy' ? units.find(u => u.hero.name.startsWith('👑')) : undefined;
+  if (boss) {
+    const cells = ['2-2', '2-3', '3-2', '3-3'];
+    cells.forEach(c => occupied.add(c));
+    out.push({ unit: boss, area: '2 / 2 / 4 / 4', cells });
+  }
+
+  const others = units.filter(u => u !== boss);
+  const spread = others.length <= 1 ? [2] : others.length === 2 ? [1, 3] : [1, 2, 3];
+
+  others.forEach((unit, i) => {
+    const [col, row] = (unit.slotId || 'mid_center').split('_');
+    const rowIdx = ROW_INDEX[row] ?? 2;
+    // 敌人少于三人时，按列对称铺开，避免全挤在一侧
+    const colIdx = side === 'enemy' ? (spread[i] ?? ENEMY_COL[col] ?? 2) : (PLAYER_COL[col] ?? 2);
+
+    let key = `${rowIdx}-${colIdx}`;
+    if (occupied.has(key)) {
+      const candidates: Array<[number, number]> = [];
+      for (let r = 1; r <= 3; r++) for (let c = 1; c <= 3; c++) candidates.push([r, c]);
+      candidates.sort(
+        (a, b) =>
+          Math.abs(a[0] - rowIdx) + Math.abs(a[1] - colIdx) - (Math.abs(b[0] - rowIdx) + Math.abs(b[1] - colIdx)),
+      );
+      const free = candidates.find(([r, c]) => !occupied.has(`${r}-${c}`));
+      if (free) key = `${free[0]}-${free[1]}`;
+    }
+    occupied.add(key);
+    const [r, c] = key.split('-').map(Number);
+    out.push({ unit, area: `${r} / ${c} / ${r + 1} / ${c + 1}`, cells: [key] });
+  });
+  return out;
+}
+
+const CELLS: Array<[number, number]> = [
+  [1, 1], [1, 2], [1, 3],
+  [2, 1], [2, 2], [2, 3],
+  [3, 1], [3, 2], [3, 3],
+];
 
 export const CombatStage: React.FC<CombatStageProps> = ({
   theme,
@@ -43,259 +94,193 @@ export const CombatStage: React.FC<CombatStageProps> = ({
   isScreenShaking = false,
   onSelectTarget,
   onTriggerUlt,
-  resultOverlay
+  resultOverlay,
 }) => {
-  const currentTheme = useMemo(() => STAGE_THEMES[theme] || STAGE_THEMES.catacomb, [theme]);
+  const env = useMemo(() => STAGE_THEMES[theme] || STAGE_THEMES.catacomb, [theme]);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [anchors, setAnchors] = useState<Record<string, { x: number; y: number }>>({});
 
-  // 根据 slotId 索引单位
-  const playerUnitMap = useMemo(() => {
-    const map: Record<GridSlotId, CombatUnit> = {} as any;
-    playerUnits.forEach(u => {
-      if (u.slotId) map[u.slotId] = u;
+  const playerLayout = useMemo(() => layoutSide(playerUnits, 'player'), [playerUnits]);
+  const enemyLayout = useMemo(() => layoutSide(enemyUnits, 'enemy'), [enemyUnits]);
+
+  // 集火目标占的格子：点亮提示，但格线仍然不画出来
+  const focusCells = useMemo(() => {
+    if (!focusedTargetId) return new Set<string>();
+    const hit = [...playerLayout, ...enemyLayout].find(p => p.unit.hero.id === focusedTargetId);
+    return new Set(hit ? hit.cells : []);
+  }, [focusedTargetId, playerLayout, enemyLayout]);
+
+  // 量一次棋子中心，作为远程弹道的起点与终点
+  useLayoutEffect(() => {
+    const root = stageRef.current;
+    if (!root) return;
+    const box = root.getBoundingClientRect();
+    const next: Record<string, { x: number; y: number }> = {};
+    [...playerLayout, ...enemyLayout].forEach(({ unit }) => {
+      if (!unit.slotId) return;
+      const el = root.querySelector<HTMLElement>(`[data-anchor="${unit.slotId}"]`);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      next[unit.slotId] = {
+        x: r.left - box.left + r.width / 2,
+        y: r.top - box.top + r.height * 0.55,
+      };
     });
-    return map;
-  }, [playerUnits]);
+    setAnchors(next);
+  }, [playerLayout, enemyLayout]);
 
-  const enemyUnitMap = useMemo(() => {
-    const map: Record<GridSlotId, CombatUnit> = {} as any;
-    enemyUnits.forEach(u => {
-      if (u.slotId) map[u.slotId] = u;
-    });
-    return map;
-  }, [enemyUnits]);
+  const resolvedProjectiles = useMemo(
+    () =>
+      projectiles.map(p => ({
+        ...p,
+        startX: anchors[p.sourceSlotId]?.x ?? p.startX,
+        startY: anchors[p.sourceSlotId]?.y ?? p.startY,
+        targetX: anchors[p.targetSlotId]?.x ?? p.targetX,
+        targetY: anchors[p.targetSlotId]?.y ?? p.targetY,
+      })),
+    [projectiles, anchors],
+  );
 
-  // 渲染单个棋盘格子 (纵向 3x3 自走棋微缩方格)
-  const renderSlot = (slotId: GridSlotId, side: 'player' | 'enemy') => {
-    const unit = side === 'player' ? playerUnitMap[slotId] : enemyUnitMap[slotId];
-    const isFocused = unit && focusedTargetId === unit.hero.id;
+  const enemyAlive = enemyUnits.filter(u => !u.isDead).length;
+  const playerAlive = playerUnits.filter(u => !u.isDead).length;
 
+  const renderUnit = ({ unit, area }: Placement) => {
+    const isFocus = focusedTargetId === unit.hero.id;
     return (
       <div
-        key={slotId}
-        id={`slot_${side}_${slotId}`}
-        style={{
-          width: '74px',
-          height: '66px',
-          borderRadius: '8px',
-          background: side === 'player' ? 'rgba(15, 23, 42, 0.5)' : 'rgba(30, 15, 20, 0.5)',
-          border: `1px dashed ${side === 'player' ? 'rgba(56, 189, 248, 0.22)' : 'rgba(248, 113, 113, 0.22)'}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative'
-        }}
+        key={`${unit.side}_${unit.slotId}_${unit.hero.id}`}
+        data-anchor={unit.slotId}
+        style={{ gridArea: area, position: 'relative' }}
       >
-        {unit ? (
-          <div style={{ position: 'relative' }}>
-            <BattlePawn
-              unit={unit}
-              visualState={{
-                ...visualStates[unit.hero.id],
-                focused: isFocused
-              }}
-              onFocus={() => {
-                if (side === 'enemy') {
-                  onSelectTarget(unit);
-                } else if (!isAutoUlt && unit.resource >= 100) {
-                  onTriggerUlt(unit);
-                }
-              }}
-            />
-            {/* 伤害与治疗浮动跳字挂载点 */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '-6px',
-                left: '50%',
-                pointerEvents: 'none',
-                zIndex: 100
-              }}
-            >
-              <FloatingCombatText
-                items={floatingTexts.filter(t => t.targetId === unit.hero.id)}
-              />
-            </div>
-          </div>
-        ) : (
-          <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.08)', userSelect: 'none' }}>
-            {slotId.split('_')[1] === 'center' ? '•' : ''}
-          </span>
-        )}
+        <BattlePawn
+          unit={unit}
+          visualState={{ ...visualStates[unit.hero.id], focused: isFocus }}
+          onFocus={() => {
+            if (unit.side === 'enemy') {
+              onSelectTarget(unit);
+            } else if (!isAutoUlt && unit.resource >= 100) {
+              onTriggerUlt(unit);
+            }
+          }}
+        />
+        <div style={{ position: 'absolute', top: -4, left: '50%', zIndex: 100, pointerEvents: 'none' }}>
+          <FloatingCombatText items={floatingTexts.filter(t => t.targetId === unit.hero.id)} />
+        </div>
       </div>
     );
   };
 
   return (
     <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        background: currentTheme.bgGradient,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6)',
-        marginBottom: '10px',
-        transform: isScreenShaking ? 'translate(2px, -2px)' : 'none',
-        transition: 'transform 0.08s ease-in-out',
-        userSelect: 'none'
-      }}
+      ref={stageRef}
+      className={`cs-stage${isScreenShaking ? ' is-shaking' : ''}`}
+      style={stageThemeVars(env)}
     >
-      {/* 1. 地牢环境暗角 */}
+      <div className="cs-backwall" />
+
+      {/* 顶部细信息条：贴在墙上，不占战场高度 */}
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          background: currentTheme.vignetteColor,
-          pointerEvents: 'none'
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 4,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '3px 10px',
+          fontSize: '9px',
+          color: 'rgba(243,233,209,.62)',
+          pointerEvents: 'none',
+          letterSpacing: '.04em',
         }}
-      />
+      >
+        <span>敌方 {enemyAlive} 名</span>
+        <span>我方 {playerAlive}/{playerUnits.length || 4} · 点敌人锁定集火</span>
+      </div>
 
-      {/* 2. 环境微光流动 */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '-20%',
-          left: '20%',
-          width: '60%',
-          height: '60%',
-          borderRadius: '50%',
-          background: currentTheme.ambientGlow,
-          filter: 'blur(35px)',
-          pointerEvents: 'none'
-        }}
-      />
+      {/* 敌方阵地 */}
+      <div className="cs-zone cs-zone--enemy">
+        {CELLS.map(([r, c]) => (
+          <div
+            key={`e_${r}_${c}`}
+            className={`cs-cell${focusCells.has(`${r}-${c}`) ? ' is-aim' : ''}`}
+            style={{ gridArea: `${r} / ${c} / ${r + 1} / ${c + 1}` }}
+          />
+        ))}
+        {enemyLayout.map(renderUnit)}
+      </div>
 
-      {/* 3. 投射物与弹道飞弹层 */}
-      <CombatProjectiles projectiles={projectiles} />
+      {/* 中间空地：打过仗的同一块地面 */}
+      <div className="cs-clash" aria-hidden="true">
+        <svg viewBox="0 0 390 56" preserveAspectRatio="none">
+          <g stroke="rgba(42,36,24,.20)" fill="none" strokeWidth="1.2" strokeLinecap="round">
+            <path d="M226 44 l16 5 l-6 6" />
+            <path d="M262 46 l10 4" />
+            <path d="M96 47 l14 4" />
+          </g>
+          <g stroke="rgba(42,36,24,.36)" strokeLinecap="round" fill="none">
+            <path d="M30 46 L88 33" strokeWidth="2.4" />
+            <path d="M318 50 L330 14" strokeWidth="2.2" />
+          </g>
+          <path d="M88 33 l9 -3.2 l-3.2 8 Z" fill="rgba(42,36,24,.34)" />
+          <path d="M330 14 l5.4 -9 l2.6 10.4 Z" fill="rgba(42,36,24,.30)" />
+          <ellipse cx="58" cy="46" rx="26" ry="2.4" fill="rgba(42,36,24,.09)" />
+          <ellipse cx="318" cy="51" rx="9" ry="2.6" fill="rgba(42,36,24,.18)" />
+          <path
+            d="M146 47 q13 -13 26 -1 q-13 7 -26 1 Z"
+            fill="rgba(138,59,50,.16)"
+            stroke="rgba(138,59,50,.30)"
+            strokeWidth="1.2"
+          />
+          <path d="M159 34 l0 12" stroke="rgba(138,59,50,.26)" strokeWidth="1" />
+          <path d="M196 46 q22 5 44 2" stroke="rgba(138,59,50,.18)" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+          <g fill="rgba(42,36,24,.24)">
+            <ellipse cx="112" cy="40" rx="2.4" ry="1.4" />
+            <ellipse cx="204" cy="43" rx="1.8" ry="1" />
+            <ellipse cx="248" cy="36" rx="1.5" ry=".9" />
+            <ellipse cx="352" cy="41" rx="2.1" ry="1.2" />
+          </g>
+        </svg>
+        <span className="cs-mote" style={{ left: '22%', bottom: '26%', animationDelay: '.2s' }} />
+        <span className="cs-mote" style={{ left: '47%', bottom: '40%', animationDelay: '2.6s' }} />
+        <span className="cs-mote" style={{ left: '71%', bottom: '22%', animationDelay: '4.4s' }} />
+      </div>
 
-      {/* 4. 终极大招黑幕与特写 */}
+      {/* 我方阵地 */}
+      <div className="cs-zone cs-zone--player">
+        {CELLS.map(([r, c]) => (
+          <div key={`p_${r}_${c}`} className="cs-cell" style={{ gridArea: `${r} / ${c} / ${r + 1} / ${c + 1}` }} />
+        ))}
+        {playerLayout.map(renderUnit)}
+      </div>
+
+      {/* 特效层 */}
+      <div className="cs-fx">
+        <CombatProjectiles projectiles={resolvedProjectiles} />
+      </div>
+
       {ultEvent && <UltCinematicOverlay event={ultEvent} />}
 
-      {/* 战役结束中央结算卡片 (居中浮层悬浮于战场棋盘正中央) */}
       {resultOverlay && (
         <div
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 40,
+            inset: 0,
+            zIndex: 45,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(5, 10, 20, 0.72)',
-            backdropFilter: 'blur(3px)',
-            padding: '16px',
-            animation: 'fadeIn 0.25s ease-out'
+            padding: '14px',
+            background: 'rgba(42,36,24,.45)',
+            backdropFilter: 'blur(2px)',
+            animation: 'fadeIn .22s ease-out',
           }}
         >
-          <div style={{ width: '100%', maxWidth: '320px' }}>
-            {resultOverlay}
-          </div>
+          <div style={{ width: '100%', maxWidth: '320px' }}>{resultOverlay}</div>
         </div>
       )}
-
-      {/* 5. 战场头部信息栏：红方据守阵 */}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '6px 12px',
-          borderBottom: '1px solid rgba(248, 113, 113, 0.15)',
-          background: 'rgba(20, 10, 15, 0.6)',
-          zIndex: 10
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#f87171' }}>⚔️ 红方据守阵</span>
-          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
-            ({enemyUnits.filter(u => !u.isDead).length} 敌对)
-          </span>
-        </div>
-        <span style={{ fontSize: '9px', color: '#eab308' }}>点击敌军可锁定集火 🎯</span>
-      </div>
-
-      {/* 6. 纵向垂直对垒战场容器 */}
-      <div
-        style={{
-          position: 'relative',
-          padding: '10px 8px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          zIndex: 10,
-          gap: '8px'
-        }}
-      >
-        {/* 上半区：敌方 3x3 阵地 (从上至下：后排 back -> 中排 mid -> 前排 front 向交火线推进) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
-          {(['back', 'mid', 'front'] as const).map(col => (
-            <div key={`enemy_col_${col}`} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span style={{ fontSize: '9px', color: 'rgba(248,113,113,0.5)', width: '22px', textAlign: 'right' }}>
-                {col === 'back' ? '后卫' : col === 'mid' ? '中坚' : '前锋'}
-              </span>
-              {ROWS.map(row => renderSlot(`${col}_${row}` as GridSlotId, 'enemy'))}
-            </div>
-          ))}
-        </div>
-
-        {/* 中央战术交火线 (No Man's Land) */}
-        <div
-          style={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: '300px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2px 0',
-            borderTop: '1px dashed rgba(234, 179, 8, 0.3)',
-            borderBottom: '1px dashed rgba(234, 179, 8, 0.3)',
-            background: 'linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.12), transparent)'
-          }}
-        >
-          <span style={{ fontSize: '9px', color: '#f59e0b', fontWeight: 'bold', letterSpacing: '2px' }}>
-            ⚔️ 战术交锋线 ⚔️
-          </span>
-        </div>
-
-        {/* 下半区：我方 3x3 阵地 (从上至下：前排 front -> 中排 mid -> 后排 back 迎击敌阵) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center' }}>
-          {(['front', 'mid', 'back'] as const).map(col => (
-            <div key={`player_col_${col}`} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span style={{ fontSize: '9px', color: 'rgba(56,189,248,0.6)', width: '22px', textAlign: 'right' }}>
-                {col === 'front' ? '前锋' : col === 'mid' ? '中坚' : '后卫'}
-              </span>
-              {ROWS.map(row => renderSlot(`${col}_${row}` as GridSlotId, 'player'))}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 底部战场阵列标注：蓝方先遣阵 */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '6px 12px',
-          background: 'rgba(10, 20, 30, 0.65)',
-          borderTop: '1px solid rgba(56, 189, 248, 0.15)',
-          zIndex: 10
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8' }}>🛡️ 蓝方先遣阵</span>
-          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
-            ({playerUnits.filter(u => !u.isDead).length}/4 存活)
-          </span>
-        </div>
-        <span style={{ fontSize: '9px', color: '#64748b' }}>迎击前突 ➔ 稳健防守</span>
-      </div>
     </div>
   );
 };

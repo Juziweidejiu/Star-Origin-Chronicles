@@ -891,16 +891,40 @@ export function App() {
         {activeTab === 'combat' && (
           <div>
             {currentContract && (
-              <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px', border: '1px solid #334155', marginBottom: '8px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ color: '#eab308', fontWeight: 'bold' }}>战场：</span> {activeDungeonRoom?.title || currentContract.title}
-                  <span style={{ color: '#38bdf8', marginLeft: '6px' }}>({currentContract.stars}★)</span>
+              <div
+                className="pz-between"
+                style={{
+                  background: 'var(--pz-raised)',
+                  padding: '8px 10px',
+                  borderRadius: 'var(--pz-r-btn)',
+                  border: '1px solid var(--pz-line)',
+                  marginBottom: '8px',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ color: 'var(--pz-ink-2)', fontSize: '11px' }}>战场 · </span>
+                  <span style={{ color: 'var(--pz-ink)', fontWeight: 600 }}>
+                    {activeDungeonRoom?.title || currentContract.title}
+                  </span>
+                  <span className="pz-mono" style={{ color: 'var(--pz-brass-deep)', marginLeft: '6px', fontSize: '11px' }}>
+                    {currentContract.stars}★
+                  </span>
                 </div>
                 <button
                   onClick={() => setShowFormationModal(true)}
-                  style={{ fontSize: '10px', padding: '2px 8px', background: '#334155', border: '1px solid #475569', borderRadius: '4px', color: '#fde047', cursor: 'pointer' }}
+                  style={{
+                    fontSize: '11px',
+                    padding: '3px 8px',
+                    background: 'transparent',
+                    border: '1px solid var(--pz-line-2)',
+                    borderRadius: 'var(--pz-r-seal)',
+                    color: 'var(--pz-ink-2)',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
-                  📐 阵型: {FORMATION_PRESETS[currentFormationPreset]?.name}
+                  阵型 · {FORMATION_PRESETS[currentFormationPreset]?.name}
                 </button>
               </div>
             )}
@@ -981,17 +1005,18 @@ export function App() {
                 ) : (
                   <div style={{
                     padding: '16px',
-                    borderRadius: '12px',
-                    background: engine.winner === 'player' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(30, 15, 20, 0.95)',
-                    border: engine.winner === 'player' ? '2px solid #10b981' : '2px solid #ef4444',
-                    boxShadow: engine.winner === 'player' ? '0 10px 25px -5px rgba(16, 185, 129, 0.4)' : '0 10px 25px -5px rgba(239, 68, 68, 0.4)',
-                    textAlign: 'center'
+                    borderRadius: 'var(--pz-r-card)',
+                    background: 'var(--pz-raised)',
+                    border: `1px solid ${engine.winner === 'player' ? 'rgba(74,122,94,.5)' : 'rgba(138,59,50,.5)'}`,
+                    boxShadow: '0 8px 24px rgba(42,36,24,.28)',
+                    textAlign: 'center',
+                    animation: 'popIn .22s ease-out'
                   }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '15px', color: engine.winner === 'player' ? '#34d399' : '#f87171', marginBottom: '6px' }}>
-                      {engine.winner === 'player' ? '🎉 房间肃清！斩杀所有强敌！' : '💀 战役惨败，先遣队溃退！'}
+                    <div style={{ fontFamily: 'var(--pz-serif)', fontSize: '16px', color: engine.winner === 'player' ? '#3F6E52' : 'var(--pz-wine)', marginBottom: '5px' }}>
+                      {engine.winner === 'player' ? '房间肃清' : '先遣队溃退'}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>
-                      {engine.winner === 'player' ? '战术阵地已清除，可整队推进至下一节点。' : '全队士气动荡，需紧急撤回城邦修整治疗。'}
+                    <div style={{ fontSize: '12px', color: 'var(--pz-ink-2)', marginBottom: '12px', lineHeight: 1.6 }}>
+                      {engine.winner === 'player' ? '阵地已清，可整队推进至下一节点。' : '全队士气动荡，需撤回城邦修整。'}
                     </div>
                     {engine.winner === 'player' ? (
                       <button
@@ -1004,18 +1029,17 @@ export function App() {
                         }}
                         style={{
                           width: '100%',
-                          padding: '10px 16px',
-                          background: '#38bdf8',
-                          color: '#0f172a',
-                          fontWeight: 'bold',
+                          padding: '11px 16px',
+                          background: 'var(--pz-wine)',
+                          color: '#F6EFDF',
+                          fontWeight: 600,
                           border: 'none',
-                          borderRadius: '8px',
+                          borderRadius: 'var(--pz-r-btn)',
                           cursor: 'pointer',
-                          fontSize: '13px',
-                          boxShadow: '0 4px 12px rgba(56, 189, 248, 0.35)'
+                          fontSize: '13px'
                         }}
                       >
-                        {activeDungeonRoom?.isBoss ? '夺得最终胜利 · 离开地牢 🏆' : '返回探险沙盘 · 推进路线 🧭'}
+                        {activeDungeonRoom?.isBoss ? '夺得最终胜利 · 离开地牢' : '返回路线图 · 继续推进'}
                       </button>
                     ) : (
                       <button
@@ -1024,18 +1048,17 @@ export function App() {
                         }}
                         style={{
                           width: '100%',
-                          padding: '10px 16px',
-                          background: '#ef4444',
-                          color: '#fff',
-                          fontWeight: 'bold',
+                          padding: '11px 16px',
+                          background: 'var(--pz-wine)',
+                          color: '#F6EFDF',
+                          fontWeight: 600,
                           border: 'none',
-                          borderRadius: '8px',
+                          borderRadius: 'var(--pz-r-btn)',
                           cursor: 'pointer',
-                          fontSize: '13px',
-                          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)'
+                          fontSize: '13px'
                         }}
                       >
-                        撤回城邦医馆 🏥
+                        撤回城邦医馆
                       </button>
                     )}
                   </div>
@@ -1047,15 +1070,36 @@ export function App() {
             <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
               <button
                 onClick={() => setIsRunning(!isRunning)}
-                style={{ flex: 1.2, padding: '7px', background: '#334155', color: '#fff', border: '1px solid #475569', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  background: 'transparent',
+                  color: 'var(--pz-ink-2)',
+                  border: '1px solid var(--pz-line-2)',
+                  borderRadius: 'var(--pz-r-btn)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
               >
-                {isRunning ? '⏸️ 暂停' : '▶️ 演练'}
+                {isRunning ? '暂停' : '继续'}
               </button>
               <button
-                onClick={() => setCombatSpeed(s => s === 1 ? 2 : 1)}
-                style={{ flex: 1, padding: '7px', background: combatSpeed === 2 ? '#0284c7' : '#1e293b', color: '#fff', border: '1px solid #38bdf8', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                onClick={() => setCombatSpeed(s => (s === 1 ? 2 : 1))}
+                className="pz-mono"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  background: combatSpeed === 2 ? 'rgba(169,121,58,.14)' : 'transparent',
+                  color: combatSpeed === 2 ? 'var(--pz-brass-deep)' : 'var(--pz-ink-2)',
+                  border: `1px solid ${combatSpeed === 2 ? 'var(--pz-brass-deep)' : 'var(--pz-line-2)'}`,
+                  borderRadius: 'var(--pz-r-btn)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
               >
-                ⚡ {combatSpeed}x 倍速
+                {combatSpeed}x 倍速
               </button>
               <button
                 onClick={() => {
@@ -1067,18 +1111,28 @@ export function App() {
                     });
                   }
                 }}
-                style={{ flex: 1.4, padding: '7px', background: isAutoUlt ? '#ca8a04' : '#1e293b', color: '#fff', border: '1px solid #eab308', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                style={{
+                  flex: 1.3,
+                  padding: '8px',
+                  background: isAutoUlt ? 'rgba(111,191,139,.14)' : 'transparent',
+                  color: isAutoUlt ? '#3F6E52' : 'var(--pz-ink-2)',
+                  border: `1px solid ${isAutoUlt ? 'rgba(74,122,94,.55)' : 'var(--pz-line-2)'}`,
+                  borderRadius: 'var(--pz-r-btn)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
               >
-                {isAutoUlt ? '🤖 自动大招: 开' : '✋ 手动释放'}
+                {isAutoUlt ? '大招 · 自动' : '大招 · 手动'}
               </button>
             </div>
 
             {/* 战况日志：默认折叠以节约移动端屏幕高度，点击展开 */}
             <div
               style={{
-                background: '#0b1329',
-                borderRadius: '8px',
-                border: '1px solid #1e293b',
+                background: 'var(--pz-sunken)',
+                borderRadius: 'var(--pz-r-btn)',
+                border: '1px solid var(--pz-line)',
                 overflow: 'hidden',
                 transition: 'all 0.2s ease-in-out'
               }}
@@ -1090,38 +1144,46 @@ export function App() {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '7px 10px',
-                  background: 'rgba(255, 255, 255, 0.03)',
                   cursor: 'pointer',
                   userSelect: 'none'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold' }}>
-                    📜 战术推演日志
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                  <span style={{ fontSize: '11px', color: 'var(--pz-ink-2)', fontWeight: 600 }}>
+                    战况简报
                   </span>
                   {logs.length > 0 && (
-                    <span style={{ fontSize: '9px', color: '#64748b' }}>
-                      ({logs.length} 条记录 · 最新: {logs[logs.length - 1]?.text?.slice(0, 14)}...)
+                    <span
+                      style={{ fontSize: '10px', color: 'var(--pz-ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {logs.length} 条 · {logs[logs.length - 1]?.text?.slice(0, 16)}
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: '10px', color: '#38bdf8' }}>
-                  {showCombatLogs ? '收起 ▲' : '展开日志 ▼'}
+                <div style={{ fontSize: '10px', color: 'var(--pz-brass-deep)', whiteSpace: 'nowrap' }}>
+                  {showCombatLogs ? '收起' : '展开'}
                 </div>
               </div>
 
               {showCombatLogs && (
-                <div style={{ padding: '6px 10px', maxHeight: '140px', overflowY: 'auto', borderTop: '1px solid #1e293b' }}>
+                <div style={{ padding: '6px 10px', maxHeight: '140px', overflowY: 'auto', borderTop: '1px solid var(--pz-line)' }}>
                   {logs.length === 0 ? (
-                    <div style={{ fontSize: '10px', color: '#64748b', textAlign: 'center', padding: '6px 0' }}>暂无战况数据</div>
+                    <div style={{ fontSize: '11px', color: 'var(--pz-ink-3)', textAlign: 'center', padding: '6px 0' }}>暂无战况数据</div>
                   ) : (
                     logs.map(log => (
                       <div
                         key={log.id}
                         style={{
-                          fontSize: '10px',
+                          fontSize: '11px',
                           margin: '2px 0',
-                          color: log.type === 'ult' ? '#eab308' : log.type === 'heal' ? '#34d399' : log.type === 'death' ? '#f87171' : '#cbd5e1'
+                          color:
+                            log.type === 'ult'
+                              ? 'var(--pz-brass-deep)'
+                              : log.type === 'heal'
+                                ? '#3F6E52'
+                                : log.type === 'death'
+                                  ? 'var(--pz-wine)'
+                                  : 'var(--pz-ink-2)',
                         }}
                       >
                         {log.text}

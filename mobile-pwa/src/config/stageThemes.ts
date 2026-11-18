@@ -1,8 +1,10 @@
 /**
- * 地牢与战场主题环境配置
- * 适配 Milestone 13：可无缝继承探索副本的主题背景、光影与地面粒子
+ * 战场环境主题
+ * 羊皮纸 / 墨线 / 黄铜的纸面语言下，各副本只调整石色、壁炬与浮尘，
+ * 不改变战场结构与占格逻辑。
  */
 
+import type { CSSProperties } from 'react';
 import type { DungeonInstance } from '../types/dungeon';
 
 export type StageTheme = DungeonInstance['theme'];
@@ -10,86 +12,91 @@ export type StageTheme = DungeonInstance['theme'];
 export interface StageEnvironment {
   id: StageTheme;
   name: string;
-  // 渐变天空与远景背景
-  bgGradient: string;
-  // 地面网格/地坪材质渐变
-  groundGradient: string;
-  // 环境光氛围色 (RGBA)
-  ambientGlow: string;
-  // 暗角氛围 (Vignette)
-  vignetteColor: string;
-  // 环境微粒标识与颜色
-  particleColor: string;
-  particleType: 'dust' | 'sparks' | 'leaves' | 'frost' | 'fog';
-  // 地坪材质纹理微透明线
-  gridBorderColor: string;
+  /** 远处地面石色 */
+  floorTop: string;
+  /** 近处地面石色 */
+  floorBottom: string;
+  /** 后墙石色 */
+  wall: string;
+  /** 壁炬暖光 */
+  torch: string;
+  /** 该副本的氛围色（散落物、暗角） */
+  accent: string;
+  /** 空中浮尘颜色 */
+  mote: string;
 }
 
 export const STAGE_THEMES: Record<StageTheme, StageEnvironment> = {
   catacomb: {
     id: 'catacomb',
-    name: '幽暗矿道与暗河',
-    bgGradient: 'linear-gradient(180deg, #090e17 0%, #0c1626 60%, #0f2038 100%)',
-    groundGradient: 'linear-gradient(180deg, #111d2e 0%, #0a111a 100%)',
-    ambientGlow: 'rgba(56, 189, 248, 0.08)', // 萤石幽蓝
-    vignetteColor: 'radial-gradient(ellipse at center, transparent 40%, rgba(3, 7, 18, 0.85) 100%)',
-    particleColor: '#38bdf8',
-    particleType: 'dust',
-    gridBorderColor: 'rgba(56, 189, 248, 0.15)',
+    name: '矿道与暗河',
+    floorTop: '#C9B491',
+    floorBottom: '#EDE1C5',
+    wall: '#AF9873',
+    torch: 'rgba(92, 200, 255, .20)',
+    accent: 'rgba(47, 110, 143, .18)',
+    mote: '#DCEFF6',
   },
   ruins: {
     id: 'ruins',
-    name: '残破关隘与古墟',
-    bgGradient: 'linear-gradient(180deg, #150f14 0%, #1f141a 60%, #2a1622 100%)',
-    groundGradient: 'linear-gradient(180deg, #22141c 0%, #11090d 100%)',
-    ambientGlow: 'rgba(239, 68, 68, 0.08)', // 战火残焰暗红
-    vignetteColor: 'radial-gradient(ellipse at center, transparent 40%, rgba(10, 4, 8, 0.9) 100%)',
-    particleColor: '#f97316',
-    particleType: 'sparks',
-    gridBorderColor: 'rgba(244, 63, 94, 0.18)',
+    name: '关隘与旧墟',
+    floorTop: '#CFB295',
+    floorBottom: '#F0E2C9',
+    wall: '#B99A78',
+    torch: 'rgba(228, 87, 61, .22)',
+    accent: 'rgba(138, 59, 50, .18)',
+    mote: '#F7DFC8',
   },
   wilds: {
     id: 'wilds',
-    name: '幽暗深林与猎场',
-    bgGradient: 'linear-gradient(180deg, #07130e 0%, #0d1e16 60%, #132b1f 100%)',
-    groundGradient: 'linear-gradient(180deg, #12281d 0%, #060e0a 100%)',
-    ambientGlow: 'rgba(16, 185, 129, 0.08)', // 碧落流萤幽绿
-    vignetteColor: 'radial-gradient(ellipse at center, transparent 45%, rgba(2, 8, 5, 0.88) 100%)',
-    particleColor: '#34d399',
-    particleType: 'leaves',
-    gridBorderColor: 'rgba(16, 185, 129, 0.16)',
+    name: '深林与猎场',
+    floorTop: '#BEC0A0',
+    floorBottom: '#E9E6C9',
+    wall: '#A9A883',
+    torch: 'rgba(232, 164, 74, .26)',
+    accent: 'rgba(78, 122, 90, .18)',
+    mote: '#E4F0CD',
   },
   crypt: {
     id: 'crypt',
-    name: '极夜覆雪古战场',
-    bgGradient: 'linear-gradient(180deg, #0d1117 0%, #131a26 60%, #1a2333 100%)',
-    groundGradient: 'linear-gradient(180deg, #151e2e 0%, #0a0d14 100%)',
-    ambientGlow: 'rgba(147, 197, 253, 0.09)', // 极夜霜白
-    vignetteColor: 'radial-gradient(ellipse at center, transparent 40%, rgba(5, 8, 13, 0.9) 100%)',
-    particleColor: '#93c5fd',
-    particleType: 'frost',
-    gridBorderColor: 'rgba(147, 197, 253, 0.15)',
+    name: '覆雪古战场',
+    floorTop: '#C8C6C0',
+    floorBottom: '#EDEBE4',
+    wall: '#B2AFA8',
+    torch: 'rgba(147, 197, 253, .24)',
+    accent: 'rgba(47, 110, 143, .14)',
+    mote: '#EAF4FF',
   },
   forest: {
     id: 'forest',
-    name: '迷雾山丘与兽林',
-    bgGradient: 'linear-gradient(180deg, #0a110f 0%, #101c18 60%, #182823 100%)',
-    groundGradient: 'linear-gradient(180deg, #14221d 0%, #080d0b 100%)',
-    ambientGlow: 'rgba(52, 211, 153, 0.08)',
-    vignetteColor: 'radial-gradient(ellipse at center, transparent 45%, rgba(3, 7, 5, 0.85) 100%)',
-    particleColor: '#a7f3d0',
-    particleType: 'fog',
-    gridBorderColor: 'rgba(52, 211, 153, 0.15)',
+    name: '山丘与兽林',
+    floorTop: '#C3C2A2',
+    floorBottom: '#EBE7CB',
+    wall: '#A8A882',
+    torch: 'rgba(240, 200, 120, .28)',
+    accent: 'rgba(78, 122, 90, .20)',
+    mote: '#E8F3D2',
   },
   citadel: {
     id: 'citadel',
-    name: '霜月堡垒与要塞',
-    bgGradient: 'linear-gradient(180deg, #0f172a 0%, #1e293b 60%, #334155 100%)',
-    groundGradient: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
-    ambientGlow: 'rgba(234, 179, 8, 0.08)',
-    vignetteColor: 'radial-gradient(ellipse at center, transparent 40%, rgba(15, 23, 42, 0.9) 100%)',
-    particleColor: '#fde047',
-    particleType: 'sparks',
-    gridBorderColor: 'rgba(234, 179, 8, 0.18)',
+    name: '堡垒与要塞',
+    floorTop: '#CFBB97',
+    floorBottom: '#F1E5CB',
+    wall: '#B79F7B',
+    torch: 'rgba(217, 164, 91, .34)',
+    accent: 'rgba(169, 121, 58, .20)',
+    mote: '#F8E9C6',
   },
 };
+
+/** 把主题写进 CSS 变量，供 .cs-stage 使用 */
+export function stageThemeVars(env: StageEnvironment): CSSProperties {
+  return {
+    ['--cs-floor-a' as string]: env.floorTop,
+    ['--cs-floor-b' as string]: env.floorBottom,
+    ['--cs-wall' as string]: env.wall,
+    ['--cs-torch' as string]: env.torch,
+    ['--cs-accent' as string]: env.accent,
+    ['--cs-mote' as string]: env.mote,
+  } as CSSProperties;
+}

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo A · 公会悬赏板</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  .board-head{
+    padding:16px 18px 14px;
+    background:linear-gradient(180deg,#3A2E1F,#2A2115);
+    color:#F0E2C4;border-bottom:3px double rgba(217,164,91,.55);
+    position:relative;
+  }
+  .board-head .kicker{font-size:10px;letter-spacing:2px;color:#C9A56B}
+  .board-head h1{margin:4px 0 8px;font-family:var(--serif);font-size:26px;letter-spacing:5px;font-weight:600}
+  .board-head .rep{font-size:11px;color:#D8C39A}
+  .board-head .rep b{color:#E8B96A}
+  .rank-tabs{display:flex;border-bottom:1px solid rgba(42,36,24,.25);background:#E3D3B0;position:sticky;top:0;z-index:5}
+  .rank-tab{
+    flex:1;border:0;background:transparent;padding:9px 0 8px;font-family:var(--serif);font-size:15px;font-weight:700;
+    color:#7C6B4C;cursor:pointer;position:relative;letter-spacing:1px;
+  }
+  .rank-tab small{display:block;font-family:var(--sans);font-size:9px;font-weight:400;letter-spacing:0;margin-top:1px;color:#9A8766}
+  .rank-tab.active{color:#F6E7CF;background:var(--wine)}
+  .rank-tab.active small{color:#E8C9A8}
+  .rank-tab.active::after{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--wine)}
+
+  main{padding:14px 14px 20px;display:flex;flex-direction:column;gap:12px}
+  .quest{
+    position:relative;background:#F7EFDD;border:1px solid rgba(42,36,24,.38);
+    box-shadow:3px 3px 0 rgba(42,36,24,.14);border-radius:3px;padding:13px 13px 12px;
+    display:flex;flex-direction:column;gap:9px;overflow:hidden;
+  }
+  .quest::before{
+    content:"";position:absolute;inset:4px;border:1px solid rgba(42,36,24,.10);pointer-events:none;border-radius:2px;
+  }
+  .ink{position:absolute;right:-12px;top:2px;width:132px;height:132px;opacity:.10;pointer-events:none}
+  .q-top{display:flex;gap:10px;align-items:flex-start;position:relative}
+  .q-title{margin:1px 0 3px;font-family:var(--serif);font-size:17px;font-weight:700;letter-spacing:.5px;line-height:1.3}
+  .q-sub{font-size:10px;color:var(--ink-2);letter-spacing:.3px}
+  .stars{color:#A9793A;font-size:11px;letter-spacing:1.5px;font-family:var(--serif)}
+  .q-target{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);margin-top:2px}
+  .q-target b{font-weight:700}
+  .q-desc{font-size:12px;line-height:1.7;color:#5C513C;position:relative}
+  .divider{height:1px;background:rgba(42,36,24,.16)}
+  .rewards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;position:relative}
+  .reward{padding:2px 0}
+  .reward span{display:block;font-size:9px;color:#8C7A58;letter-spacing:.5px}
+  .reward b{font-size:14px;color:#3A2E1F;font-variant-numeric:tabular-nums}
+  .reward b.gold{color:#8A5A16}
+  .reward small{font-size:9px;color:#8C7A58}
+  .readiness{background:#EADDBF;border:1px solid rgba(42,36,24,.16);border-radius:3px;padding:8px 9px}
+  .ready-top{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#6B5C42}
+  .ready-top b{font-size:15px;color:#2A2418;font-variant-numeric:tabular-nums}
+  .danger{font-size:10px;font-weight:700;letter-spacing:.5px}
+  .danger.tough{color:#9A5A18}
+  .danger.safe{color:#3F7A55}
+  .party-dots{display:flex;gap:3px;align-items:center}
+  .dot{
+    width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-family:var(--serif);color:#F0E2C4;background:#4A3B26;border:1px solid rgba(42,36,24,.4);
+  }
+  .tactic{margin-top:6px;font-size:10px;line-height:1.6;color:#6B5C42}
+  .tactic b{color:#2A2418}
+  .cta{
+    width:100%;padding:11px;font-size:14px;letter-spacing:2px;border-radius:3px;
+    background:linear-gradient(180deg,#9A4438,#7C2F27);color:#F7E8D2;
+    box-shadow:0 2px 0 rgba(42,36,24,.35);
+  }
+  .cta:active{transform:translateY(1px);box-shadow:none}
+  .also{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 0}
+  .also h2{margin:0;font-family:var(--serif);font-size:13px;letter-spacing:2px;color:#3A2E1F}
+  .also span{font-size:10px;color:#8C7A58}
+
+  .row-quest{
+    display:flex;align-items:center;gap:9px;background:rgba(247,239,221,.55);
+    border:1px solid rgba(42,36,24,.22);border-radius:3px;padding:8px 9px;
+  }
+  .row-quest .seal{width:30px;height:30px;font-size:14px;border-radius:4px}
+  .rq-main{flex:1;min-width:0}
+  .rq-title{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rq-sub{font-size:9px;color:#8C7A58;margin-top:2px}
+  .rq-odds{text-align:right;flex:none}
+  .rq-odds b{display:block;font-size:13px;font-variant-numeric:tabular-nums}
+  .rq-odds span{font-size:9px}
+
+  .party-strip{
+    flex:none;display:flex;align-items:center;gap:8px;padding:9px 12px;
+    background:#2A2115;color:#F0E2C4;border-top:2px solid rgba(217,164,91,.5);position:relative;z-index:3;
+  }
+  .party-strip .dot{width:24px;height:24px;font-size:11px;background:#4A3B26}
+  .ps-main{flex:1;min-width:0}
+  .ps-main b{font-size:11px;letter-spacing:.5px}
+  .ps-main span{display:block;font-size:9px;color:#C9A56B;margin-top:1px}
+  .ps-btn{padding:7px 11px;font-size:10px;background:#C9A56B;color:#2A2115;border-radius:3px}
+</style>
+</head>
+<body class="lab">
+  <div class="phone paper">
+    <div class="statusbar"><span>9:41</span><span>星原历 · 晴</span></div>
+
+    <div class="scroll">
+      <header class="board-head">
+        <div class="kicker">冒险公会 · 麦浪与风车镇</div>
+        <h1>悬赏板</h1>
+        <div class="rep">声望 <b>40</b> · 友善 · 今日赏金 +10%</div>
+      </header>
+
+      <div class="rank-tabs">
+        <button class="rank-tab">D<small>2 张</small></button>
+        <button class="rank-tab">C<small>3 张</small></button>
+        <button class="rank-tab active">B<small>2 张</small></button>
+        <button class="rank-tab">A<small>1 张</small></button>
+        <button class="rank-tab">S<small>未解锁</small></button>
+      </div>
+
+      <main>
+        <article class="quest">
+          <svg class="ink" viewBox="0 0 120 120" fill="none" stroke="#2A2418" stroke-width="2">
+            <path d="M60 16c-14 0-24 10-24 24 0 5 2 9 4 12l-14 6 10 12-2 14 26 18 26-18-2-14 10-12-14-6c2-3 4-7 4-12 0-14-10-24-24-24z"/>
+            <path d="M48 42c4-3 8-4 12-4s8 1 12 4"/>
+            <circle cx="50" cy="47" r="3" fill="#2A2418" stroke="none"/>
+            <circle cx="70" cy="47" r="3" fill="#2A2418" stroke="none"/>
+            <path d="M52 62c5 3 11 3 16 0"/>
+            <path d="M60 76v20M48 86h24"/>
+          </svg>
+
+          <div class="q-top">
+            <div class="seal b">B</div>
+            <div style="flex:1;min-width:0">
+              <h2 class="q-title">麦仓地窖的赤耳群</h2>
+              <div class="stars">★★★☆☆ <span style="font-family:var(--sans);font-size:9px;color:#8C7A58;letter-spacing:0">推荐 Lv.7</span></div>
+            </div>
+          </div>
+
+          <div class="q-target">讨伐目标 · <b>赤耳盾手</b> <span class="tag" style="margin-left:auto">3 人小队</span></div>
+          <p class="q-desc">赤耳哥布林在麦仓地窖筑了窝，夜里搬空三户存粮。清窝，带回它们的盾牌。</p>
+
+          <div class="divider"></div>
+
+          <div class="rewards">
+            <div class="reward"><span>赏金</span><b class="gold">386 G</b></div>
+            <div class="reward"><span>声望</span><b>+18</b></div>
+            <div class="reward"><span>特产</span><b style="font-size:11px">赤耳盾牌</b><small> 可分解</small></div>
+          </div>
+
+          <div class="readiness">
+            <div class="ready-top">
+              <span>队伍胜算 · 68%</span>
+              <span class="danger tough">苦战险胜</span>
+            </div>
+            <div class="bar" style="margin:6px 0 7px;background:rgba(42,36,24,.15)"><i style="width:68%;background:linear-gradient(90deg,#B0731F,#D9A45B)"></i></div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="party-dots">
+                <div class="dot">沈</div><div class="dot">萧</div><div class="dot">叶</div><div class="dot">季</div>
+              </div>
+              <span style="font-size:9px;color:#8C7A58">总战力 428</span>
+            </div>
+            <div class="tactic"><b>战术</b> · 先清后排掷弹手；盾手聚堆时用穿透技能开阵。</div>
+          </div>
+
+          <button class="btn cta">接 下 这 张 悬 赏</button>
+        </article>
+
+        <div class="also"><h2>其他在榜</h2><span>完成一张后刷新 1 张</span></div>
+
+        <div class="row-quest">
+          <div class="seal c">C</div>
+          <div class="rq-main">
+            <div class="rq-title">商队失踪的运盐道</div>
+            <div class="rq-sub">劫道盾手 · 2★ · 240 G</div>
+          </div>
+          <div class="rq-odds"><b>57%</b><span class="danger tough">苦战</span></div>
+        </div>
+
+        <div class="row-quest">
+          <div class="seal d">D</div>
+          <div class="rq-main">
+            <div class="rq-title">风车下的史莱姆</div>
+            <div class="rq-sub">石盾史莱姆 · 1★ · 142 G</div>
+          </div>
+          <div class="rq-odds"><b>87%</b><span class="danger safe">轻松</span></div>
+        </div>
+      </main>
+    </div>
+
+    <div class="party-strip">
+      <div class="dot">沈</div>
+      <div class="ps-main"><b>出战 4 / 4</b><span>沈素问 · 萧凌霄 · 叶云舒 · 季秋水</span></div>
+      <button class="btn ps-btn">整队</button>
+    </div>
+  </div>
+
+  <aside class="spec">
+    <div>
+      <h4>A · 悬赏板</h4>
+      <p>回答一个问题：<b>今天打哪一张？</b> 整屏只保留一个主 CTA，奖励、胜率、目标怪物按固定顺序排列。</p>
+    </div>
+    <div>
+      <h4>参考坐标</h4>
+      <ul>
+        <li>Monster Hunter 的任务柜台：等级分区 + 单张任务主卡</li>
+        <li>Octopath CotC 的任务详情：奖励先行、推荐等级</li>
+        <li>白皮书：ability stars 直接作为契约星级与推荐等级</li>
+      </ul>
+    </div>
+    <div>
+      <h4>取舍</h4>
+      <p>没有资源条、没有底部导航、没有城镇装饰。进入公会就只看悬赏，退出再回城镇。</p>
+    </div>
+  </aside>
+</body>
+</html>

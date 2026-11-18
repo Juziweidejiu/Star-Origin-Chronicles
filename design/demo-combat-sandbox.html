@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>战斗方案一 · 羊皮纸战术沙盘 (3×3 棋盘微缩对垒)</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  /* 战斗页专用样式 */
+  .combat-header {
+    flex: none;
+    background: linear-gradient(180deg, #3A2E1F, #2A2115);
+    border-bottom: 2px solid rgba(217,164,91,.4);
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #F0E2C4;
+  }
+  .combat-header .title {
+    font-family: var(--serif);
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .combat-header .wave-tag {
+    font-size: 10px;
+    background: rgba(217,164,91,.15);
+    border: 1px solid rgba(217,164,91,.35);
+    color: #E8B96A;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--sans);
+  }
+  .combat-header .controls {
+    display: flex;
+    gap: 6px;
+  }
+  .combat-header button {
+    background: rgba(247,239,221,.1);
+    border: 1px solid rgba(217,164,91,.3);
+    color: #F0E2C4;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  /* 战役沙盘主区域 */
+  .sandbox-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 敌方阵容 (俯瞰 3×3) */
+  .board-container {
+    background: rgba(247,239,221,.45);
+    border: 1px solid rgba(42,36,24,.2);
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: inset 0 2px 6px rgba(42,36,24,.06);
+    position: relative;
+  }
+  .board-label {
+    position: absolute;
+    top: -8px;
+    left: 12px;
+    background: #E3D3B0;
+    padding: 1px 8px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    font-weight: 700;
+    color: #6C5D40;
+    border: 1px solid rgba(42,36,24,.25);
+    border-radius: 999px;
+  }
+  .grid-3x3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  /* 格子与立体棋子 */
+  .cell {
+    aspect-ratio: 1.1;
+    background: rgba(227,211,176,.4);
+    border: 1px dashed rgba(42,36,24,.25);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .cell.enemy-cell {
+    background: rgba(138,59,50,.04);
+  }
+  .cell.player-cell {
+    background: rgba(53,107,73,.04);
+  }
+
+  /* 战术棋子 Pawn */
+  .pawn {
+    width: 90%;
+    height: 90%;
+    background: #FAF5EB;
+    border: 1.5px solid #2A2418;
+    border-radius: 6px;
+    box-shadow: 0 4px 0 #2A2418, 0 6px 8px rgba(42,36,24,.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 2px 3px;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .pawn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #2A2418, 0 3px 4px rgba(42,36,24,.15);
+  }
+  .pawn.enemy {
+    border-color: #8A3B32;
+    box-shadow: 0 4px 0 #8A3B32, 0 6px 8px rgba(138,59,50,.2);
+  }
+  .pawn.boss {
+    background: #FFF7ED;
+    border-color: #B45309;
+    box-shadow: 0 4px 0 #B45309, 0 6px 12px rgba(180,83,9,.3);
+  }
+  .pawn-role {
+    font-size: 8px;
+    font-weight: 700;
+    color: #6C5D40;
+  }
+  .pawn-avatar {
+    font-size: 16px;
+    line-height: 1;
+    margin: 1px 0;
+  }
+  .pawn-name {
+    font-size: 9px;
+    font-weight: 700;
+    color: #2A2418;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* 血条与怒气条 */
+  .pawn-bars {
+    width: 85%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5px;
+  }
+  .hp-bar-bg {
+    width: 100%;
+    height: 3px;
+    background: rgba(42,36,24,.2);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .hp-bar-fill {
+    height: 100%;
+    background: #356B49;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+  .pawn.enemy .hp-bar-fill {
+    background: #8A3B32;
+  }
+  .rage-bar-fill {
+    height: 2px;
+    background: #D9A45B;
+    border-radius: 999px;
+  }
+
+  /* 战场中央碰撞线 (交锋区域) */
+  .clash-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #8C7A58;
+    font-size: 10px;
+    font-family: var(--serif);
+    margin: -4px 0;
+  }
+  .clash-divider::before, .clash-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(42,36,24,.25), transparent);
+  }
+
+  /* 战斗动态弹跳浮字动画 */
+  .dmg-number {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 900;
+    color: #8A3B32;
+    text-shadow: 1px 1px 0 #FFF;
+    pointer-events: none;
+    animation: floatUp 0.8s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translate(-50%, 6px) scale(0.8); }
+    30% { opacity: 1; transform: translate(-50%, -8px) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -24px) scale(1); }
+  }
+
+  /* 底部行动时序与英雄大招指令 */
+  .combat-footer {
+    flex: none;
+    background: #E3D3B0;
+    border-top: 1px solid rgba(42,36,24,.3);
+    padding: 10px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 -4px 12px rgba(42,36,24,.08);
+  }
+  .timeline-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(247,239,221,.6);
+    border: 1px solid rgba(42,36,24,.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 10px;
+    color: #6C5D40;
+    overflow-x: auto;
+  }
+  .timeline-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #FFF;
+    border: 1px solid #2A2418;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex: none;
+  }
+  .timeline-icon.next {
+    border-color: #8A3B32;
+    transform: scale(1.15);
+    box-shadow: 0 0 6px rgba(138,59,50,.4);
+  }
+
+  /* 英雄指令卡 (4名出战人员) */
+  .hero-deck {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .hero-card {
+    background: #FAF5EB;
+    border: 1px solid rgba(42,36,24,.3);
+    border-radius: 6px;
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(42,36,24,.06);
+    transition: transform 0.15s ease;
+  }
+  .hero-card:hover {
+    transform: translateY(-2px);
+    border-color: #7C2F27;
+  }
+  .hero-card.ready-ult {
+    border: 1.5px solid #D9A45B;
+    background: #FFFBF2;
+    box-shadow: 0 0 8px rgba(217,164,91,.4);
+  }
+  .ult-badge {
+    position: absolute;
+    top: -5px;
+    right: -4px;
+    background: #7C2F27;
+    color: #FFF;
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .hero-card .name {
+    font-size: 9px;
+    font-weight: 700;
+    color: #2A2418;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .hero-card .ult-name {
+    font-size: 8px;
+    color: #7C6A4A;
+    background: rgba(227,211,176,.5);
+    padding: 1px 4px;
+    border-radius: 3px;
+    width: 90%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- 手机演示容器 -->
+  <div class="phone paper">
+    
+    <!-- 顶部状态栏 -->
+    <div class="combat-header">
+      <div class="title">
+        <span>⚔️ 第 2/3 波 · 赤耳先锋阵</span>
+        <span class="wave-tag">3★ B级悬赏</span>
+      </div>
+      <div class="controls">
+        <button onclick="toggleSpeed(this)">1.0x</button>
+        <button onclick="toggleAuto(this)">自动</button>
+        <button onclick="triggerAttack()">模拟交锋 💥</button>
+      </div>
+    </div>
+
+    <!-- 战役沙盘主舞台 -->
+    <div class="sandbox-stage">
+      
+      <!-- 敌方 3×3 棋盘 -->
+      <div class="board-container">
+        <div class="board-label">敌方军阵 (赤耳盗贼团)</div>
+        <div class="grid-3x3">
+          <!-- 前排 -->
+          <div class="cell enemy-cell">
+            <div class="pawn enemy" id="e1">
+              <span class="pawn-role">前排·盾手</span>
+              <span class="pawn-avatar">🛡️</span>
+              <span class="pawn-name">赤耳铁盾兵</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:75%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cell enemy-cell">
+            <div class="pawn enemy boss" id="e2">
+              <span class="pawn-role" style="color:#B45309">头目·狂暴</span>
+              <span class="pawn-avatar">🧌</span>
+              <span class="pawn-name">狂暴巨枭熊</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:90%"></div></div>
+                <div class="hp-bar-bg"><div class="rage-bar-fill" style="width:60%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cell enemy-cell">
+            <div class="pawn enemy" id="e3">
+              <span class="pawn-role">前排·利刃</span>
+              <span class="pawn-avatar">🗡️</span>
+              <span class="pawn-name">断道刀客</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:40%"></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- 中坚 -->
+          <div class="cell enemy-cell"></div>
+          <div class="cell enemy-cell">
+            <div class="pawn enemy" id="e4">
+              <span class="pawn-role">中排·巫术</span>
+              <span class="pawn-avatar">🔮</span>
+              <span class="pawn-name">地脉咒术师</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:85%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cell enemy-cell"></div>
+          <!-- 后卫 -->
+          <div class="cell enemy-cell"></div>
+          <div class="cell enemy-cell"></div>
+          <div class="cell enemy-cell"></div>
+        </div>
+      </div>
+
+      <!-- 战线交锋线 -->
+      <div class="clash-divider">
+        <span>⚔️ 兵线交锋距离 1.2 格 🛡️</span>
+      </div>
+
+      <!-- 我方 3×3 棋盘 -->
+      <div class="board-container">
+        <div class="board-label" style="background:#DFEFE3;color:#356B49">出征佣兵连队</div>
+        <div class="grid-3x3">
+          <!-- 前排 -->
+          <div class="cell player-cell">
+            <div class="pawn" id="p1">
+              <span class="pawn-role">铁壁护卫</span>
+              <span class="pawn-avatar">🛡️</span>
+              <span class="pawn-name">沈素问</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:85%"></div></div>
+                <div class="hp-bar-bg"><div class="rage-bar-fill" style="width:100%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cell player-cell">
+            <div class="pawn" id="p2">
+              <span class="pawn-role">重甲禁卫</span>
+              <span class="pawn-avatar">⚔️</span>
+              <span class="pawn-name">萧凌霄</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:50%"></div></div>
+                <div class="hp-bar-bg"><div class="rage-bar-fill" style="width:40%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cell player-cell"></div>
+          <!-- 中坚 -->
+          <div class="cell player-cell"></div>
+          <div class="cell player-cell">
+            <div class="pawn" id="p3">
+              <span class="pawn-role">秘法奥术</span>
+              <span class="pawn-avatar">🪄</span>
+              <span class="pawn-name">叶云舒</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:95%"></div></div>
+                <div class="hp-bar-bg"><div class="rage-bar-fill" style="width:80%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cell player-cell"></div>
+          <!-- 后卫 -->
+          <div class="cell player-cell"></div>
+          <div class="cell player-cell">
+            <div class="pawn" id="p4">
+              <span class="pawn-role">圣泉医师</span>
+              <span class="pawn-avatar">🌿</span>
+              <span class="pawn-name">季秋水</span>
+              <div class="pawn-bars">
+                <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:100%"></div></div>
+                <div class="hp-bar-bg"><div class="rage-bar-fill" style="width:90%"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cell player-cell"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部：时序行动条 + 英雄大招指令卡 -->
+    <div class="combat-footer">
+      <!-- 行动先后时序 (Timeline) -->
+      <div class="timeline-bar">
+        <span style="font-size:9px;font-weight:700">行动序:</span>
+        <div class="timeline-icon next" title="下个行动">🛡️</div>
+        <div class="timeline-icon" title="狂暴巨枭熊" style="border-color:#8A3B32">🧌</div>
+        <div class="timeline-icon" title="叶云舒">🪄</div>
+        <div class="timeline-icon" title="赤耳铁盾兵" style="border-color:#8A3B32">🛡️</div>
+        <div class="timeline-icon" title="季秋水">🌿</div>
+      </div>
+
+      <!-- 英雄大招指令卡 -->
+      <div class="hero-deck">
+        <div class="hero-card ready-ult" onclick="castUlt('沈素问', '不动金钟')">
+          <div class="ult-badge">READY</div>
+          <span style="font-size:16px">🛡️</span>
+          <span class="name">沈素问</span>
+          <span class="ult-name">不动金钟</span>
+        </div>
+        <div class="hero-card" onclick="castUlt('萧凌霄', '破阵横扫')">
+          <span style="font-size:16px">⚔️</span>
+          <span class="name">萧凌霄</span>
+          <span class="ult-name">破阵横扫</span>
+        </div>
+        <div class="hero-card" onclick="castUlt('叶云舒', '天火燎原')">
+          <span style="font-size:16px">🪄</span>
+          <span class="name">叶云舒</span>
+          <span class="ult-name">天火燎原</span>
+        </div>
+        <div class="hero-card ready-ult" onclick="castUlt('季秋水', '生命清泉')">
+          <div class="ult-badge">READY</div>
+          <span style="font-size:16px">🌿</span>
+          <span class="name">季秋水</span>
+          <span class="ult-name">生命清泉</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 右侧架构说明栏 -->
+  <div class="spec">
+    <h3>战斗方案一 · 羊皮纸战术沙盘</h3>
+    <p><b>设计灵魂</b>：桌面兵棋（Tabletop Wargame）与手账式微缩沙盘，让 3×3 站位的距离、克制与切后排一目了然。</p>
+    <ul>
+      <li><b>双 3×3 阵列投影</b>：上方敌阵、下方我阵，立体浮雕木棋子（Pawn）自带血条与怒气槽。</li>
+      <li><b>真实战术克制</b>：前排盾兵阻挡近战弹道，后排法师直穿后方，棋子受击轻微后仰震颤。</li>
+      <li><b>行动时序条 (Timeline)</b>：底部实时展示敌我出手先后，清晰掌握战局节奏。</li>
+      <li><b>大招卡组点按</b>：怒气集满时卡牌高亮并冒出 READY 金章，点击即可施放大招黑幕特写。</li>
+      <li><b>与全局风格 100% 融合</b>：完全继承羊皮纸与墨线美学，不产生任何割裂感。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function toggleSpeed(btn) {
+    if (btn.innerText === '1.0x') btn.innerText = '1.5x';
+    else if (btn.innerText === '1.5x') btn.innerText = '2.0x';
+    else btn.innerText = '1.0x';
+  }
+  function toggleAuto(btn) {
+    if (btn.innerText === '自动') {
+      btn.innerText = '手动';
+      btn.style.background = 'rgba(124,47,39,.3)';
+      btn.style.color = '#F7E8D2';
+    } else {
+      btn.innerText = '自动';
+      btn.style.background = 'rgba(247,239,221,.1)';
+      btn.style.color = '#F0E2C4';
+    }
+  }
+
+  // 模拟交锋动画与跳字
+  function triggerAttack() {
+    const p1 = document.getElementById('p1');
+    const e2 = document.getElementById('e2');
+    
+    // 冲锋微动
+    p1.style.transform = 'translateY(-6px) scale(1.05)';
+    setTimeout(() => {
+      p1.style.transform = '';
+      
+      // 敌方受击震动
+      e2.style.transform = 'translate(3px, -3px)';
+      setTimeout(() => e2.style.transform = '', 150);
+
+      // 跳出伤害字
+      const dmg = document.createElement('div');
+      dmg.className = 'dmg-number';
+      dmg.innerText = '-148 暴击!';
+      e2.appendChild(dmg);
+      setTimeout(() => dmg.remove(), 800);
+    }, 150);
+  }
+
+  function castUlt(name, skill) {
+    alert(`【${name}】施放大招【${skill}】！\n全屏暗角特写，对敌方前排造成巨额伤害并附加护盾！`);
+  }
+</script>
+
+</body>
+</html>

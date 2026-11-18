@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo D · 一屏指挥（纸面版）</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  .hub-head{flex:none;display:flex;align-items:center;gap:10px;padding:10px 16px 11px;background:linear-gradient(180deg,#3A2E1F,#2A2115);border-bottom:3px double rgba(217,164,91,.5)}
+  .hub-town{flex:1;min-width:0}
+  .hub-town .k{font-size:9px;letter-spacing:2px;color:#C9A56B}
+  .hub-town h1{margin:2px 0 0;font-family:var(--serif);font-size:18px;letter-spacing:2px;font-weight:600;color:#F0E2C4}
+  .hub-gold{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#E8B96A;background:rgba(217,164,91,.10);border:1px solid rgba(217,164,91,.32);border-radius:999px;padding:5px 9px;font-variant-numeric:tabular-nums}
+
+  .scroll{padding:13px 14px 18px;display:flex;flex-direction:column;gap:13px}
+  .sec{display:flex;align-items:baseline;justify-content:space-between}
+  .sec h2{margin:0;font-family:var(--serif);font-size:13px;letter-spacing:2px;font-weight:600;color:var(--ink)}
+  .sec span{font-size:10px;color:#8C7A58}
+
+  .focus{
+    border:1px solid rgba(124,47,39,.34);border-radius:4px;overflow:hidden;
+    background:#F7EFDD;
+    box-shadow:3px 3px 0 rgba(42,36,24,.12);
+  }
+  .focus-top{display:flex;align-items:flex-start;gap:10px;padding:13px 13px 0}
+  .focus-title{flex:1;min-width:0}
+  .focus-title h3{margin:0;font-family:var(--serif);font-size:17px;letter-spacing:.5px;font-weight:600;color:var(--ink)}
+  .focus-title .sub{font-size:10px;color:#8C7A58;margin-top:3px}
+  .ring{
+    width:62px;height:62px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:conic-gradient(#4F8563 0 87%, rgba(42,36,24,.12) 87% 100%);
+    position:relative;
+  }
+  .ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#F7EFDD}
+  .ring b{position:relative;font-size:16px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .ring b small{font-size:9px;color:#8C7A58}
+  .focus-reason{display:flex;gap:5px;flex-wrap:wrap;padding:9px 13px 0}
+  .tag{font-size:9px;border-color:rgba(42,36,24,.24);color:var(--ink-2)}
+  .tag.good{color:#356B49;border-color:rgba(53,107,73,.35);background:rgba(53,107,73,.06)}
+  .focus-rewards{display:flex;align-items:center;justify-content:space-between;padding:10px 13px 0}
+  .rw{display:flex;gap:12px;font-size:10px;color:#8C7A58}
+  .rw b{display:block;font-size:14px;color:#8A5A16;font-variant-numeric:tabular-nums}
+  .rw span{font-size:9px}
+  .focus-cta{margin:11px 13px 13px;width:calc(100% - 26px);padding:11px;font-size:13px;letter-spacing:1.5px;border-radius:3px;background:linear-gradient(180deg,#9A4438,#7C2F27);color:#F7E8D2;box-shadow:0 2px 0 rgba(42,36,24,.3)}
+
+  .alt{display:flex;flex-direction:column;gap:7px}
+  .alt-row{display:flex;align-items:center;gap:9px;border:1px solid rgba(42,36,24,.22);border-radius:3px;background:rgba(247,239,221,.6);padding:9px 10px}
+  .alt-row .seal{width:30px;height:30px;font-size:14px;border-radius:3px}
+  .alt-main{flex:1;min-width:0}
+  .alt-main b{display:block;font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .alt-main span{font-size:9px;color:#8C7A58}
+  .alt-odds{text-align:right}
+  .alt-odds b{display:block;font-size:13px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .alt-odds span{font-size:9px;color:#9A5A18}
+
+  .party{display:flex;gap:6px}
+  .hm{flex:1;border:1px solid rgba(42,36,24,.22);border-radius:3px;background:rgba(247,239,221,.6);padding:6px 6px 5px;text-align:center}
+  .hm .face{width:26px;height:26px;margin:0 auto 3px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:12px;color:var(--ink);background:#EADDBF;border:1px solid rgba(42,36,24,.28)}
+  .hm b{display:block;font-size:9px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hm .bar{margin-top:4px;height:2px;background:rgba(42,36,24,.15)}
+  .hm .bar i{background:#4F8563}
+  .hm.low .bar i{background:#B08A3E}
+  .hm .hp{font-size:8px;color:#8C7A58;margin-top:2px;font-variant-numeric:tabular-nums}
+
+  .quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .qa{
+    border:1px solid rgba(42,36,24,.22);border-radius:3px;background:rgba(247,239,221,.6);padding:10px;
+    display:flex;align-items:center;gap:8px;cursor:pointer;text-align:left;color:var(--ink);font-family:var(--sans);
+  }
+  .qa:hover{border-color:#A9793A}
+  .qa .ic{width:30px;height:30px;flex:none;border-radius:3px;display:flex;align-items:center;justify-content:center;background:#EADDBF;color:#7C2F27;border:1px solid rgba(42,36,24,.22)}
+  .qa .ic svg{width:16px;height:16px}
+  .qa b{display:block;font-size:11px;font-weight:700}
+  .qa span{display:block;font-size:8px;color:#8C7A58;margin-top:1px}
+  .qa .badge{margin-left:auto;font-size:8px;color:#F7E8D2;background:#7C2F27;border-radius:999px;padding:2px 5px;font-weight:700}
+
+  nav{flex:none;height:62px;display:flex;border-top:1px solid rgba(42,36,24,.25);background:#E3D3B0}
+  .nav-item{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#8C7A58;font-size:9px;font-family:var(--sans);cursor:pointer;position:relative}
+  .nav-item svg{width:18px;height:18px}
+  .nav-item.active{color:#7C2F27}
+  .nav-item.active::before{content:"";position:absolute;top:0;width:24px;height:2px;background:#7C2F27;border-radius:0 0 2px 2px}
+</style>
+</head>
+<body class="lab">
+  <div class="phone paper">
+    <div class="statusbar"><span>9:41</span><span>星原历 · 晴</span></div>
+
+    <div class="hub-head">
+      <div class="hub-town">
+        <div class="k">第 12 天 · 平原粮仓</div>
+        <h1>麦浪与风车镇</h1>
+      </div>
+      <div class="hub-gold">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5h5M9.5 13.5h5"/></svg>
+        1,398
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="sec"><h2>今日优先</h2><span>队伍状态良好</span></div>
+
+      <article class="focus">
+        <div class="focus-top">
+          <div class="seal d">D</div>
+          <div class="focus-title">
+            <h3>风车下的史莱姆</h3>
+            <div class="sub">讨伐 · 石盾史莱姆 · 1★ · 预计 1 天</div>
+          </div>
+          <div class="ring"><b>87<small>%</small></b></div>
+        </div>
+        <div class="focus-reason">
+          <span class="tag good">轻松碾压</span>
+          <span class="tag">4 人满编</span>
+          <span class="tag">口粮充足</span>
+          <span class="tag">低声望风险</span>
+        </div>
+        <div class="focus-rewards">
+          <div class="rw">
+            <div><b>142 G</b><span>赏金</span></div>
+            <div><b>+6</b><span>声望</span></div>
+            <div><b>凝胶</b><span>特产</span></div>
+          </div>
+          <span style="font-size:9px;color:#8C7A58">耗时 1 天 · 压力 +2</span>
+        </div>
+        <button class="btn focus-cta">接 取 并 出 发</button>
+      </article>
+
+      <div class="sec"><h2>也可以看看</h2><span>完成当前悬赏后刷新</span></div>
+      <div class="alt">
+        <div class="alt-row">
+          <div class="seal b">B</div>
+          <div class="alt-main"><b>麦仓地窖的赤耳群</b><span>3★ · 赤耳盾手 · 386 G</span></div>
+          <div class="alt-odds"><b>68%</b><span>苦战险胜</span></div>
+        </div>
+        <div class="alt-row">
+          <div class="seal c">C</div>
+          <div class="alt-main"><b>商队失踪的运盐道</b><span>2★ · 劫道盾手 · 240 G</span></div>
+          <div class="alt-odds"><b>57%</b><span>苦战险胜</span></div>
+        </div>
+      </div>
+
+      <div class="sec"><h2>队伍状态</h2><span>压力 42 / 100 · 无伤病</span></div>
+      <div class="party">
+        <div class="hm"><div class="face">沈</div><b>沈素问</b><div class="bar"><i style="width:100%"></i></div><div class="hp">271 / 271</div></div>
+        <div class="hm low"><div class="face">萧</div><b>萧凌霄</b><div class="bar"><i style="width:61%"></i></div><div class="hp">96 / 158</div></div>
+        <div class="hm"><div class="face">叶</div><b>叶云舒</b><div class="bar"><i style="width:92%"></i></div><div class="hp">148 / 161</div></div>
+        <div class="hm"><div class="face">季</div><b>季秋水</b><div class="bar"><i style="width:74%"></i></div><div class="hp">118 / 159</div></div>
+      </div>
+
+      <div class="sec"><h2>城镇</h2><span>麦浪与风车镇 · 声望 40</span></div>
+      <div class="quick">
+        <button class="qa">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15 20a5 5 0 0 1 6-4.6"/></svg></span>
+          <span><b>出征名册</b><span>站位 · 特质 · 装备</span></span>
+        </button>
+        <button class="qa">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 8l4 4"/></svg></span>
+          <span><b>铁匠铺</b><span>打造 · 重铸 · 分解</span></span>
+          <span class="badge">2</span>
+        </button>
+        <button class="qa">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 4h12l-1 7a5 5 0 0 1-10 0z"/><path d="M8 20h8M12 16v4"/></svg></span>
+          <span><b>佣兵酒馆</b><span>今日可招募 1 人</span></span>
+          <span class="badge">1</span>
+        </button>
+        <button class="qa">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h16l-1.5 11h-13z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></svg></span>
+          <span><b>补给市集</b><span>口粮 35 · 药剂 3</span></span>
+        </button>
+      </div>
+    </div>
+
+    <nav>
+      <button class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/></svg>据点
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>地牢
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20l7-7M20 4l-7 7"/><path d="M4 4l4 1-3 3zM20 20l-4-1 3-3z"/></svg>战役
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15 20a5 5 0 0 1 6-4.6"/></svg>名册
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5a3 3 0 0 1 3-2h13v18H7a3 3 0 0 1-3-3z"/><path d="M8 3v18M11 8h6M11 12h6"/></svg>物语
+      </button>
+    </nav>
+  </div>
+
+  <aside class="spec">
+    <div>
+      <h4>D · 一屏指挥（纸面版）</h4>
+      <p>回答一个问题：<b>现在该做什么？</b> 一个主推荐 + 一条明确理由 + 一个主按钮，其余内容全部降级为次要信息。</p>
+    </div>
+    <div>
+      <h4>参考坐标</h4>
+      <ul>
+        <li>Octopath CotC 的主界面：单任务焦点 + 资源与队伍常驻</li>
+        <li>AFK Arena 的成长主线：永远有一个“下一步”按钮</li>
+        <li>白皮书：压力/生命/补给作为“能不能打”的前置判断</li>
+      </ul>
+    </div>
+    <div>
+      <h4>这次改了什么</h4>
+      <p>去掉整屏深色底，只保留 A 同款木牌页眉。主推荐卡、队伍状态与城镇入口全部回到纸面。</p>
+    </div>
+  </aside>
+</body>
+</html>

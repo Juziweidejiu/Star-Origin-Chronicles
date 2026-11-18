@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>星原战纪 · UI & 战斗实验室</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  body.lab{display:block;padding:32px 28px 64px}
+  .lab-head{max-width:1120px;margin:0 auto 26px}
+  .lab-head .k{font-size:10px;letter-spacing:3px;color:var(--brass)}
+  .lab-head h1{margin:6px 0 8px;font-family:var(--serif);font-size:30px;letter-spacing:4px;font-weight:600}
+  .lab-head p{max-width:760px;margin:0;font-size:12px;line-height:1.8;color:var(--muted)}
+  .lab-head p b{color:var(--text-2);font-weight:500}
+  
+  .section-title {
+    max-width: 1120px;
+    margin: 36px auto 16px;
+    font-family: var(--serif);
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--brass);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-tag {
+    font-size: 10px;
+    background: rgba(217,164,91,.15);
+    border: 1px solid rgba(217,164,91,.35);
+    padding: 2px 8px;
+    border-radius: 999px;
+    color: #F0E2C4;
+    font-family: var(--sans);
+    letter-spacing: 1px;
+  }
+
+  .grid{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+  .grid-3{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+
+  .card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(160deg,rgba(27,41,66,.72),rgba(10,16,28,.5));overflow:hidden;display:flex;flex-direction:column}
+  .card-top{display:flex;gap:12px;padding:16px 16px 10px;align-items:flex-start}
+  .letter{width:34px;height:34px;flex:none;border-radius:9px;border:1px solid rgba(217,164,91,.4);background:rgba(217,164,91,.08);color:var(--brass);font-family:var(--serif);font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .ct-main{flex:1;min-width:0}
+  .ct-main h2{margin:0;font-family:var(--serif);font-size:17px;letter-spacing:1px;font-weight:600}
+  .ct-main .q{font-size:11px;color:var(--text-2);margin-top:3px}
+  .ct-main .q b{color:var(--brass);font-weight:600}
+  .shot{height:440px;overflow:hidden;position:relative;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#070C15}
+  .shot iframe{
+    width:390px;height:800px;border:0;transform:scale(.54);transform-origin:top left;
+    position:absolute;left:50%;margin-left:-105.3px;top:0;pointer-events:none;
+  }
+  .card-foot{padding:11px 16px 14px;display:flex;align-items:flex-start;gap:10px}
+  .ref{flex:1;font-size:10px;line-height:1.65;color:var(--muted)}
+  .ref b{color:var(--text-2);font-weight:500}
+  .open{
+    flex:none;text-decoration:none;font-size:11px;font-weight:600;color:#1A1207;background:var(--brass);
+    border-radius:7px;padding:7px 11px;letter-spacing:.5px;
+  }
+  .open:hover{filter:brightness(1.07)}
+
+  .compare{max-width:1120px;margin:30px auto 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .compare h3{margin:0;padding:13px 16px;font-family:var(--serif);font-size:13px;letter-spacing:2px;border-bottom:1px solid var(--line);background:rgba(27,41,66,.55)}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;background:rgba(10,16,28,.4)}
+  td{color:var(--text-2);line-height:1.6}
+  td:first-child{color:var(--text);font-weight:600;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  .pick{color:var(--brass);font-weight:600}
+  .note{max-width:1120px;margin:18px auto 0;font-size:11px;line-height:1.8;color:var(--muted)}
+  .note b{color:var(--text-2)}
+
+  @media (max-width:760px){
+    body.lab{padding:20px 14px 40px}
+    .grid, .grid-3{grid-template-columns:1fr}
+    .shot{height:500px}
+    .shot iframe{transform:scale(.62);margin-left:-120.9px}
+  }
+</style>
+</head>
+<body class="lab">
+  <header class="lab-head">
+    <div class="k">UI & COMBAT LAB · 2026.11</div>
+    <h1>星原战纪 · 全局布局与战斗场景原型集</h1>
+    <p>全部采用<b>羊皮纸底色、墨线手绘与酒红点睛</b>设计语言。上方为<b>两种战斗场景演进</b>，下方为<b>进阶整体布局 (悬赏+抽屉)</b> 与原四大系统模块。</p>
+  </header>
+
+  <!-- 专区 1: 战斗场景两大方案 -->
+  <div class="section-title">
+    <span>⚔️ 战斗场景专项原型</span>
+    <span class="section-tag">四向对决选型</span>
+  </div>
+
+  <div class="grid">
+    <article class="card" style="grid-column:1 / -1;border-color:rgba(217,164,91,.85);box-shadow:0 0 26px rgba(217,164,91,.28)">
+      <div class="card-top">
+        <div class="letter" style="background:#A9793A;color:#FFF7ED;border-color:#EFD9A8">3</div>
+        <div class="ct-main">
+          <h2>方案三 v2 · 隐形格战术战场 ★ 最新</h2>
+          <div class="q">核心体验：<b>双方各自一块 3×3，格线不画出来但真实占格 —— Boss 占 2×2 向上越界，英雄按阵型各占一格，全员预留立绘 / 模型槽</b></div>
+        </div>
+      </div>
+      <div class="shot" style="height:560px">
+        <iframe src="demo-combat-grid.html" title="Combat 3b" style="height:900px;transform:scale(.62);margin-left:-120.9px"></iframe>
+      </div>
+      <div class="card-foot">
+        <div class="ref"><b>特点</b> 真实 <code>grid-area</code> 占格（首领 2×2 / 英雄 1×1）· 接地阴影 + 三排 1.0 / .94 / .87 缩放压暗 + 前排遮挡后排 · 点单位闪金格 / 「网格」临时显形 / AoE 标红 · 7 个造型槽剪影↔立绘↔模型切换</div>
+        <a class="open" href="demo-combat-grid.html" target="_blank">进入隐形格战场</a>
+      </div>
+    </article>
+
+    <article class="card" style="border-color:rgba(217,164,91,.5);box-shadow:0 0 16px rgba(217,164,91,.15)">
+      <div class="card-top">
+        <div class="letter" style="background:#7C2F27;color:#F0E2C4;border-color:#D9A45B">1</div>
+        <div class="ct-main">
+          <h2>方案一 · 羊皮纸战术沙盘 (推荐)</h2>
+          <div class="q">核心体验：<b>3×3 棋盘微缩对垒，兵棋站位克制一目了然</b></div>
+        </div>
+      </div>
+      <div class="shot"><iframe src="demo-combat-sandbox.html" title="Combat 1"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>特点</b> 俯瞰 3×3 沙盘 · 立体浮雕木棋子 · 兵线交锋距离 · 行动时序条 (Timeline) · 英雄大招卡组</div>
+        <a class="open" href="demo-combat-sandbox.html" target="_blank">进入沙盘对决</a>
+      </div>
+    </article>
+
+    <article class="card" style="border-color:rgba(217,164,91,.5);box-shadow:0 0 16px rgba(217,164,91,.15)">
+      <div class="card-top">
+        <div class="letter" style="background:#7C2F27;color:#F0E2C4;border-color:#D9A45B">2</div>
+        <div class="ct-main">
+          <h2>方案二 · 经典横版卷轴剧场</h2>
+          <div class="q">核心体验：<b>左4右4侧身对峙，魔物体型压迫与斩击打击感</b></div>
+        </div>
+      </div>
+      <div class="shot"><iframe src="demo-combat-theater.html" title="Combat 2"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>特点</b> 参考《Darkest Dungeon》与《八方旅人》· 景深手绘地下城 · 巨大化首领呼吸动效 · 刀芒斩击与暴击震屏</div>
+        <a class="open" href="demo-combat-theater.html" target="_blank">进入剧场对峙</a>
+      </div>
+    </article>
+
+    <article class="card" style="grid-column:1 / -1;border-color:rgba(217,164,91,.7);box-shadow:0 0 22px rgba(217,164,91,.22)">
+      <div class="card-top">
+        <div class="letter" style="background:#A9793A;color:#FFF7ED;border-color:#D9A45B">3a</div>
+        <div class="ct-main">
+          <h2>方案三 v1 · 沙盘 + 巨型首领 (上下分区)</h2>
+          <div class="q">核心体验：<b>下有 3×3 战术沙盘可操作，上有大尺寸独立首领平缓呼吸，并为立绘 / 模型预留造型槽</b></div>
+        </div>
+      </div>
+      <div class="shot" style="height:540px"><iframe src="demo-combat-hybrid.html" title="Combat 3" style="transform:scale(.62);margin-left:-120.9px"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>特点</b> 上层 262px 首领巢穴 (独立造型 / 随行小怪 / 三段血条) · 4.8s 平缓呼吸 · 受击抖动不打断呼吸 · 三层造型槽 <code>silhouette / portrait / model</code> 一键切换 · 下层保留前排/中坚/后卫站位与行动时序条</div>
+        <a class="open" href="demo-combat-hybrid.html" target="_blank">进入融合战斗</a>
+      </div>
+    </article>
+  </div>
+
+  <!-- 专区 2: 演进布局 v2 -->
+  <div class="section-title">
+    <span>🧭 进阶整体布局原型</span>
+    <span class="section-tag">单手操作沉浸感</span>
+  </div>
+
+  <div class="grid">
+    <article class="card" style="grid-column: 1 / -1">
+      <div class="card-top">
+        <div class="letter" style="background:#D9A45B;color:#1A1207">V2</div>
+        <div class="ct-main">
+          <h2>Layout v2 · 悬赏看板 + 底部常驻决策抽屉 (Decision Sheet)</h2>
+          <div class="q">核心突破：<b>上半部单手快速翻阅契约，底部抽屉立即算出胜率、战力、战术与直达路线</b></div>
+        </div>
+      </div>
+      <div class="shot" style="height:480px"><iframe src="demo-layout-v2.html" title="Layout v2" style="transform:scale(.58);margin-left:-113px"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>交互精髓</b> 解决了任务列表与队伍决策来回跳的问题，点任意契约，抽屉动态联动胜率条（87% 势均力敌）、战术锦囊、4人战力与特产掉落，主按钮「接取并出发」一键直达！</div>
+        <a class="open" href="demo-layout-v2.html" target="_blank">体验抽屉联动</a>
+      </div>
+    </article>
+  </div>
+
+  <!-- 专区 3: 原四模块单屏原型 -->
+  <div class="section-title">
+    <span>📜 基础职能模块原型</span>
+    <span class="section-tag">羊皮纸全家桶</span>
+  </div>
+
+  <div class="grid">
+    <article class="card">
+      <div class="card-top">
+        <div class="letter">A</div>
+        <div class="ct-main">
+          <h2>公会悬赏板</h2>
+          <div class="q">核心问题：<b>今天打哪一张？</b></div>
+        </div>
+      </div>
+      <div class="shot"><iframe src="demo-a-questboard.html" title="Demo A"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>参考</b> Monster Hunter 任务柜台 · Octopath CotC 任务详情</div>
+        <a class="open" href="demo-a-questboard.html" target="_blank">打开原型</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-top">
+        <div class="letter">B</div>
+        <div class="ct-main">
+          <h2>出征名册 (纸面版)</h2>
+          <div class="q">核心问题：<b>带谁去，扛不扛得住？</b></div>
+        </div>
+      </div>
+      <div class="shot"><iframe src="demo-b-roster.html" title="Demo B"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>参考</b> Darkest Dungeon 站位 · 白皮书 30 维分组与星级</div>
+        <a class="open" href="demo-b-roster.html" target="_blank">打开原型</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-top">
+        <div class="letter">C</div>
+        <div class="ct-main">
+          <h2>地牢路线图</h2>
+          <div class="q">核心问题：<b>下一间走哪边？</b></div>
+        </div>
+      </div>
+      <div class="shot"><iframe src="demo-c-route.html" title="Demo C"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>参考</b> Slay the Spire 分支手绘地图 · 节点取舍决策</div>
+        <a class="open" href="demo-c-route.html" target="_blank">打开原型</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-top">
+        <div class="letter">D</div>
+        <div class="ct-main">
+          <h2>一屏指挥 (纸面版)</h2>
+          <div class="q">核心问题：<b>现在该做什么？</b></div>
+        </div>
+      </div>
+      <div class="shot"><iframe src="demo-d-command.html" title="Demo D"></iframe></div>
+      <div class="card-foot">
+        <div class="ref"><b>参考</b> Octopath CotC 主线 · 唯一强引导聚焦推荐</div>
+        <a class="open" href="demo-d-command.html" target="_blank">打开原型</a>
+      </div>
+    </article>
+  </div>
+
+  <div class="compare">
+    <h3>战斗场景两套方案对比与选型建议</h3>
+    <table>
+      <tr><th>方案</th><th>视觉特征</th><th>最适合的玩法体验</th><th>与现行代码契合度</th></tr>
+      <tr>
+        <td class="pick">方案一 · 战术沙盘 (3×3 棋盘)</td>
+        <td>桌面兵棋俯瞰微缩、立体木棋子、行动时序条</td>
+        <td>注重 3×3 站位距离、前后排阻挡、集火后排等战术决策</td>
+        <td><b>极高（100%）</b>：我们的 `CombatEngine` 原生就是 3×3 坐标系与九宫格伤害计算，直接契合</td>
+      </tr>
+      <tr>
+        <td>方案二 · 横版卷轴剧场 (左4右4)</td>
+        <td>地下城手绘景深背景、巨大化魔物 Boss、刀芒斩击特效</td>
+        <td>注重动作打击感、首领体型压迫感与战斗临场感</td>
+        <td><b>较高（85%）</b>：需将 3×3 站位压缩为前后景深排布，表现力更华丽</td>
+      </tr>
+    </table>
+  </div>
+
+  <p class="note"><b>全局推荐链路：Layout v2 (悬赏+抽屉) → Demo C (地牢手绘路线) → 方案一 (3×3战术沙盘) / 方案二 (横版剧场)</b>。所有原型均已跑在本地静态服务器中，可随意点击进行交互体验！</p>
+</body>
+</html>

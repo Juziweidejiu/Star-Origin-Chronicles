@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>战斗方案三 · 沙盘 + 巨型首领 (呼吸立绘融合)</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  /* ========== 顶部战斗条 ========== */
+  .combat-header{
+    flex:none;
+    background:linear-gradient(180deg,#3A2E1F,#2A2115);
+    border-bottom:2px solid rgba(217,164,91,.4);
+    padding:7px 12px;
+    display:flex;justify-content:space-between;align-items:center;
+    color:#F0E2C4;
+    position:relative;z-index:3;
+  }
+  .combat-header .title{
+    font-family:var(--serif);font-size:13px;letter-spacing:1.2px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .combat-header .wave{
+    font-size:9px;
+    background:rgba(217,164,91,.15);
+    border:1px solid rgba(217,164,91,.35);
+    color:#E8B96A;padding:2px 6px;border-radius:4px;letter-spacing:.5px;
+  }
+  .hdr-btns{display:flex;gap:5px}
+  .hdr-btns button{
+    background:rgba(247,239,221,.08);
+    border:1px solid rgba(217,164,91,.3);
+    color:#F0E2C4;padding:3px 7px;border-radius:4px;font-size:9px;cursor:pointer;
+    font-family:var(--sans);
+  }
+  .hdr-btns button:active{background:rgba(247,239,221,.18)}
+
+  /* ========== 首领巢穴 (大尺寸独立造型区) ========== */
+  .lair{
+    flex:1.35 1 0;min-height:210px;position:relative;overflow:hidden;
+    background:
+      radial-gradient(78% 58% at 50% 30%, rgba(255,246,224,.88) 0%, rgba(233,215,180,.55) 46%, transparent 74%),
+      linear-gradient(180deg,#D5C094 0%,#C7AF7E 60%,#B09868 100%);
+    border-bottom:2px solid rgba(42,36,24,.35);
+  }
+  /* 石窟拱顶与岩壁 */
+  .lair::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background:
+      radial-gradient(120px 90px at 8% 0%, rgba(42,36,24,.28), transparent 70%),
+      radial-gradient(140px 100px at 92% 0%, rgba(42,36,24,.26), transparent 70%),
+      radial-gradient(200px 60px at 50% 100%, rgba(42,36,24,.22), transparent 70%);
+  }
+  /* 岩壁裂纹 */
+  .lair::after{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;
+    background-image:
+      repeating-linear-gradient(64deg, rgba(90,70,40,.16) 0 1px, transparent 1px 26px),
+      repeating-linear-gradient(-58deg, rgba(90,70,40,.12) 0 1px, transparent 1px 34px);
+  }
+  .torch{
+    position:absolute;top:34px;width:44px;height:44px;border-radius:50%;
+    background:radial-gradient(circle, rgba(232,164,74,.55) 0%, rgba(232,164,74,.18) 45%, transparent 72%);
+    filter:blur(5px);
+    animation:flicker 2.6s ease-in-out infinite alternate;
+  }
+  .torch.l{left:16px}
+  .torch.r{right:16px;animation-delay:-1.1s}
+  @keyframes flicker{
+    0%{transform:scale(.92);opacity:.62}
+    100%{transform:scale(1.08);opacity:.95}
+  }
+  /* 地面 */
+  .lair-ground{
+    position:absolute;left:0;right:0;bottom:0;height:56px;
+    background:linear-gradient(180deg, rgba(42,36,24,.05), rgba(42,36,24,.26));
+    border-top:1px dashed rgba(42,36,24,.28);
+  }
+
+  /* ========== 首领本体 (呼吸动效 + 可替换造型) ========== */
+  .boss-stand{
+    position:absolute;left:50%;bottom:50px;
+    height:clamp(150px, 64%, 226px);
+    aspect-ratio:144 / 176;
+    transform:translateX(-50%);
+    transform-origin:50% 100%;
+    animation:breathe 4.8s ease-in-out infinite;
+    z-index:2;
+  }
+  /* 平缓呼吸：轻微缩放 + 上下浮动，绝不做剧烈抖动 */
+  @keyframes breathe{
+    0%,100%{transform:translateX(-50%) scale(1) translateY(0)}
+    50%{transform:translateX(-50%) scale(1.028) translateY(-3.5px)}
+  }
+  .boss-stand.hit{animation:hitShake .28s ease-out}
+  @keyframes hitShake{
+    0%{transform:translateX(-50%) translateX(0)}
+    25%{transform:translateX(-50%) translateX(-5px) rotate(-1deg)}
+    55%{transform:translateX(-50%) translateX(4px) rotate(.8deg)}
+    100%{transform:translateX(-50%) translateX(0)}
+  }
+
+  /* --- 造型槽 A：剪影占位（当前默认） --- */
+  .art{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center}
+  .art-silhouette{
+    width:100%;height:100%;
+    display:flex;align-items:flex-end;justify-content:center;
+    filter:drop-shadow(0 10px 12px rgba(42,36,24,.35));
+  }
+  .art-silhouette svg{width:100%;height:100%}
+
+  /* --- 造型槽 B：立绘占位（竖幅） --- */
+  .art-portrait{
+    width:84%;height:94%;
+    border:1.5px dashed rgba(138,59,50,.55);
+    border-radius:10px;
+    background:
+      repeating-linear-gradient(45deg, rgba(138,59,50,.06) 0 6px, transparent 6px 12px),
+      rgba(255,247,237,.55);
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:4px;color:#8A3B32;text-align:center;
+  }
+  .art-portrait .ph-glyph{font-size:34px;line-height:1;opacity:.75}
+  .art-portrait .ph-label{font-size:9px;letter-spacing:.8px;font-weight:700}
+  .art-portrait .ph-size{font-size:8px;opacity:.7}
+
+  /* --- 造型槽 C：3D 模型占位（落地透视格） --- */
+  .art-model{
+    width:96%;height:94%;display:none;position:relative;
+    align-items:center;justify-content:center;
+  }
+  .art-model .wire{
+    position:absolute;inset:8px 14px 26px;
+    border:1px dashed rgba(138,59,50,.5);
+    border-radius:6px;
+    background:rgba(255,247,237,.35);
+  }
+  .art-model .wire::before,
+  .art-model .wire::after{
+    content:"";position:absolute;left:50%;top:50%;
+    background:rgba(138,59,50,.28);
+  }
+  .art-model .wire::before{width:1px;height:100%;transform:translate(-50%,-50%)}
+  .art-model .wire::after{height:1px;width:100%;transform:translate(-50%,-50%)}
+  .art-model .floor{
+    position:absolute;bottom:6px;left:4px;right:4px;height:34px;
+    border:1px dashed rgba(138,59,50,.42);
+    border-radius:50%/34%;
+    background:repeating-linear-gradient(90deg, rgba(138,59,50,.18) 0 1px, transparent 1px 11px);
+    transform:perspective(60px) rotateX(52deg);
+  }
+  .art-model .ph-label{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:9px;font-weight:700;color:#8A3B32;letter-spacing:.6px;
+    background:rgba(255,247,237,.85);padding:3px 7px;border-radius:4px;
+    border:1px solid rgba(138,59,50,.35);white-space:nowrap;
+  }
+
+  /* 三种造型显示切换 */
+  .phone[data-art="silhouette"] .art-silhouette{display:flex}
+  .phone[data-art="silhouette"] .art-portrait,
+  .phone[data-art="silhouette"] .art-model{display:none}
+
+  .phone[data-art="portrait"] .art-silhouette{display:none}
+  .phone[data-art="portrait"] .art-portrait{display:flex}
+  .phone[data-art="portrait"] .art-model{display:none}
+
+  .phone[data-art="model"] .art-silhouette{display:none}
+  .phone[data-art="model"] .art-portrait{display:none}
+  .phone[data-art="model"] .art-model{display:flex}
+
+  /* ========== 首领铭牌与分段血条 ========== */
+  .boss-hud{
+    position:absolute;left:12px;right:12px;bottom:7px;z-index:3;
+  }
+  .boss-hud .name-row{
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    margin-bottom:4px;
+  }
+  .boss-hud .name{
+    font-family:var(--serif);font-size:13px;font-weight:700;color:#3A2E1F;
+    letter-spacing:.8px;text-shadow:0 1px 0 rgba(255,247,237,.7);
+  }
+  .boss-hud .name .crown{color:#B45309;margin-right:3px}
+  .boss-hud .meta{font-size:9px;color:#6C5D40;letter-spacing:.4px;white-space:nowrap}
+  /* 三段式血条：体现多阶段 Boss */
+  .boss-segs{display:flex;gap:3px}
+  .boss-segs .seg{
+    flex:1;height:7px;border-radius:2px;
+    background:rgba(42,36,24,.18);
+    border:1px solid rgba(42,36,24,.3);
+    overflow:hidden;position:relative;
+  }
+  .boss-segs .seg i{
+    display:block;height:100%;
+    background:linear-gradient(180deg,#C0523C,#8A3B32);
+    transition:width .35s ease;
+  }
+  .boss-segs .seg.done i{background:linear-gradient(180deg,#8C7A58,#6C5D40);opacity:.45}
+
+  /* ========== 随行小怪 (立在首领两侧，同样带立绘/模型槽) ========== */
+  .minion{
+    position:absolute;bottom:46px;z-index:2;
+    width:46px;display:flex;flex-direction:column;align-items:center;gap:2px;
+    animation:idle 3.6s ease-in-out infinite;
+  }
+  .minion.m1{left:14px}
+  .minion.m2{right:14px;animation-delay:-1.4s}
+  @keyframes idle{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-2px)}
+  }
+  .minion .m-art{
+    position:relative;width:42px;height:50px;
+    filter:drop-shadow(0 3px 4px rgba(42,36,24,.28));
+  }
+  .minion .m-art svg{width:100%;height:100%}
+  /* 小怪立绘槽：与首领共用 .art-portrait / .art-model，仅改尺寸 */
+  .minion .art-portrait{
+    width:100%;height:100%;border-radius:5px;gap:0;padding:0;
+  }
+  .minion .art-portrait .ph-glyph{font-size:14px}
+  .minion .art-portrait .ph-label{font-size:6.5px;letter-spacing:0}
+  .minion .art-portrait .ph-size{display:none}
+  .minion .art-model .floor{height:9px;bottom:2px}
+  .minion .art-model .wire{inset:4px 6px 12px}
+  .minion .art-model .ph-label{
+    font-size:6px;padding:1px 3px;letter-spacing:0;
+  }
+  .minion .nm{font-size:8px;font-weight:700;color:#7A3A32;white-space:nowrap}
+  .minion .hp{width:32px;height:2.5px;background:rgba(42,36,24,.2);border-radius:2px;overflow:hidden}
+  .minion .hp i{display:block;height:100%;background:#8A3B32}
+
+  /* ========== 交锋分隔 ========== */
+  .clash{
+    flex:none;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:4px 0;color:#8C7A58;font-size:9px;letter-spacing:1.6px;
+    background:linear-gradient(180deg, rgba(42,36,24,.06), transparent);
+  }
+  .clash .ln{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(42,36,24,.3),transparent)}
+
+  /* ========== 己方 3×3 战术沙盘 ========== */
+  .board-wrap{flex:1;min-height:0;display:flex;padding:2px 12px 0}
+  .board{
+    flex:1;
+    display:grid;
+    grid-template-columns:22px repeat(3,1fr);
+    grid-template-rows:repeat(3,minmax(0,1fr));
+    gap:5px;
+    background:rgba(247,239,221,.42);
+    border:1px solid rgba(42,36,24,.2);
+    border-radius:8px;
+    padding:7px 8px;
+    box-shadow:inset 0 2px 6px rgba(42,36,24,.05);
+  }
+  .rowlbl{
+    display:flex;align-items:center;justify-content:center;
+    font-size:8px;color:#8C7A58;letter-spacing:.5px;
+    writing-mode:vertical-rl;text-orientation:upright;
+  }
+  .cell{
+    min-height:0;
+    border:1px dashed rgba(42,36,24,.2);
+    border-radius:5px;
+    background:rgba(227,211,176,.3);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .cell.zone-front{background:rgba(53,107,73,.07)}
+  .cell.zone-mid{background:rgba(53,107,73,.04)}
+  /* 棋子 */
+  .pawn{
+    width:96%;height:94%;
+    background:#FAF5EB;
+    border:1.5px solid #2A2418;
+    border-radius:5px;
+    box-shadow:0 3px 0 #2A2418, 0 5px 7px rgba(42,36,24,.14);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;padding:2px;cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+    position:relative;
+  }
+  .pawn:active{transform:translateY(2px);box-shadow:0 1px 0 #2A2418, 0 2px 4px rgba(42,36,24,.14)}
+  .pawn.sel{border-color:#8A3B32;box-shadow:0 3px 0 #8A3B32, 0 0 0 2px rgba(138,59,50,.28)}
+  .pawn .g{font-size:14px;line-height:1}
+  .pawn .n{font-size:8px;font-weight:700;color:#2A2418;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pawn .hp{width:86%;height:2.5px;background:rgba(42,36,24,.18);border-radius:2px;overflow:hidden}
+  .pawn .hp i{display:block;height:100%;background:#356B49;transition:width .3s}
+  .pawn .rage{width:86%;height:1.5px;background:rgba(42,36,24,.12);border-radius:2px;overflow:hidden}
+  .pawn .rage i{display:block;height:100%;background:#D9A45B;transition:width .3s}
+  .pawn.full{border-color:#B45309;box-shadow:0 3px 0 #B45309, 0 0 8px rgba(217,164,91,.55)}
+  .pawn.low .hp i{background:#8A3B32}
+
+  /* ========== 行动时序条 ========== */
+  .timeline{
+    flex:none;display:flex;align-items:center;gap:5px;
+    padding:6px 12px 0;overflow:hidden;
+  }
+  .timeline .lbl{
+    font-size:8px;color:#8C7A58;letter-spacing:.8px;flex:none;
+  }
+  .ti{
+    display:flex;align-items:center;justify-content:center;
+    width:20px;height:20px;border-radius:4px;font-size:10px;flex:none;
+    background:#FAF5EB;border:1.4px solid #2A2418;
+    box-shadow:0 2px 0 rgba(42,36,24,.6);
+  }
+  .ti.foe{background:#FDF2F0;border-color:#8A3B32;box-shadow:0 2px 0 rgba(138,59,50,.6)}
+  .ti.now{border-color:#B45309;box-shadow:0 2px 0 #B45309, 0 0 0 2px rgba(217,164,91,.4);transform:translateY(-2px)}
+
+  /* ========== 底部奥义卡 + 控制 ========== */
+  .ult-row{
+    flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;
+    padding:6px 12px 0;
+  }
+  .ult{
+    background:#FAF5EB;border:1.4px solid rgba(42,36,24,.55);
+    border-radius:6px;padding:4px 2px;text-align:center;cursor:pointer;
+    box-shadow:0 2px 0 rgba(42,36,24,.35);
+  }
+  .ult .u{font-size:13px;line-height:1.1}
+  .ult .un{font-size:8px;font-weight:700;color:#2A2418;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ult .cd{font-size:7px;color:#8C7A58}
+  .ult.ready{background:linear-gradient(180deg,#FFF6E2,#F3E2BB);border-color:#B45309;box-shadow:0 2px 0 #B45309, 0 0 8px rgba(217,164,91,.45)}
+  .ult.ready .cd{color:#B45309;font-weight:700}
+
+  .foot{
+    flex:none;display:flex;gap:6px;padding:7px 12px 10px;
+  }
+  .foot .btn{flex:1;padding:7px 0;font-size:11px;border-radius:6px}
+  .foot .btn-ghost{background:rgba(247,239,221,.5)}
+
+  /* ========== 战斗特效层 ========== */
+  .fx{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+  .dmg{
+    position:absolute;font-family:var(--serif);font-weight:700;
+    font-size:19px;color:#8A3B32;text-shadow:0 2px 0 rgba(255,247,237,.85);
+    animation:floatUp .95s ease-out forwards;white-space:nowrap;
+  }
+  .dmg.crit{font-size:25px;color:#B45309;text-shadow:0 2px 0 #FFF7ED, 0 0 10px rgba(217,164,91,.7)}
+  .dmg.heal{color:#356B49}
+  @keyframes floatUp{
+    0%{opacity:0;transform:translateY(6px) scale(.85)}
+    22%{opacity:1;transform:translateY(-4px) scale(1.06)}
+    100%{opacity:0;transform:translateY(-34px) scale(1)}
+  }
+  .slash{
+    position:absolute;width:130px;height:130px;pointer-events:none;
+    background:conic-gradient(from 210deg, transparent 0 38%, rgba(217,164,91,.85) 46%, rgba(255,247,237,.95) 50%, rgba(217,164,91,.8) 54%, transparent 62%);
+    border-radius:50%;opacity:0;
+    animation:slashIn .4s ease-out forwards;
+  }
+  @keyframes slashIn{
+    0%{opacity:0;transform:rotate(-24deg) scale(.6)}
+    40%{opacity:.95;transform:rotate(0deg) scale(1.05)}
+    100%{opacity:0;transform:rotate(16deg) scale(1.2)}
+  }
+  .stage-tint{position:absolute;inset:0;background:rgba(138,59,50,.16);opacity:0;pointer-events:none;z-index:4}
+  .stage-tint.on{animation:tintFlash .3s ease-out}
+  @keyframes tintFlash{0%{opacity:.55}100%{opacity:0}}
+
+  /* ========== 右侧说明栏 ========== */
+  .spec{width:300px;flex:none;color:#C9D3E4;font-size:12px;line-height:1.7;padding-top:8px}
+  .spec h1{font-family:var(--serif);font-size:17px;color:#F0E2C4;letter-spacing:1px;margin:0 0 4px}
+  .spec .sub{font-size:11px;color:#8C9AB2;margin-bottom:14px}
+  .spec h2{font-size:11px;color:#D9A45B;letter-spacing:1.2px;margin:16px 0 6px;text-transform:uppercase}
+  .spec ul{margin:0;padding-left:16px}
+  .spec li{margin-bottom:5px}
+  .spec code{background:rgba(217,164,91,.14);color:#E8B96A;padding:1px 4px;border-radius:3px;font-size:11px}
+  .spec .note{border-left:2px solid var(--brass);padding-left:10px;color:#A9B6CC;font-size:11px;margin-top:10px}
+  @media (max-width:880px){.spec{display:none}}
+  @media (max-width:420px){
+    body.lab{padding:0;gap:0}
+    .phone{width:100%;height:100vh;border-radius:0;border:0;box-shadow:none;min-height:0}
+  }
+</style>
+</head>
+<body class="lab">
+
+<div class="phone paper" id="phone" data-art="silhouette">
+  <div class="statusbar"><span>星原战纪 · 战斗</span><span>第 3 波 / 首领</span></div>
+
+  <!-- ===== 顶部条 ===== -->
+  <div class="combat-header">
+    <div class="title">⚔️ 麦仓地窖 · 首领</div>
+    <div class="hdr-btns">
+      <button id="artBtn">造型：剪影</button>
+      <button id="replayBtn">重放斩击</button>
+    </div>
+  </div>
+
+  <!-- ===== 首领巢穴：大尺寸独立造型 + 平缓呼吸 ===== -->
+  <div class="lair" id="lair">
+    <div class="torch l"></div>
+    <div class="torch r"></div>
+    <div class="lair-ground"></div>
+
+    <!-- 随行小怪（同样具备剪影/立绘/模型三态） -->
+    <div class="minion m1">
+      <div class="m-art">
+        <!-- ① 剪影：举盾哥布林 -->
+        <div class="art art-silhouette">
+          <svg viewBox="0 0 42 50" aria-hidden="true">
+            <path d="M21 4 C14 4 10 9 10 15 C10 19 12 21 12 22 C8 25 6 32 7 40 C7 45 9 48 12 48 L30 48 C33 48 35 45 35 40 C36 32 34 25 30 22 C30 21 32 19 32 15 C32 9 28 4 21 4 Z" fill="#4A3826"/>
+            <!-- 耳 -->
+            <path d="M10 14 L3 10 L9 19 Z" fill="#4A3826"/>
+            <path d="M32 14 L39 10 L33 19 Z" fill="#4A3826"/>
+            <!-- 眼 -->
+            <ellipse cx="16" cy="15" rx="2.6" ry="1.7" fill="#E8A44A"/>
+            <ellipse cx="26" cy="15" rx="2.6" ry="1.7" fill="#E8A44A"/>
+            <!-- 獠牙 -->
+            <path d="M18 22 l2 3 l1 -3 Z" fill="#E8DCC0" opacity=".8"/>
+            <path d="M24 22 l-2 3 l-1 -3 Z" fill="#E8DCC0" opacity=".8"/>
+            <!-- 盾 -->
+            <path d="M8 26 q-4 12 4 20 q4 -2 6 -6 q-6 -6 -4 -14 Z" fill="#6C5D40" opacity=".9"/>
+          </svg>
+        </div>
+        <!-- ② 立绘槽 -->
+        <div class="art art-portrait">
+          <div class="ph-glyph">🖼️</div>
+          <div class="ph-label">立绘槽</div>
+        </div>
+        <!-- ③ 模型槽 -->
+        <div class="art art-model">
+          <div class="floor"></div>
+          <div class="wire"></div>
+          <div class="ph-label">模型</div>
+        </div>
+      </div>
+      <div class="nm">赤耳盾手</div>
+      <div class="hp"><i style="width:72%"></i></div>
+    </div>
+
+    <div class="minion m2">
+      <div class="m-art">
+        <!-- ① 剪影：持斧哥布林 -->
+        <div class="art art-silhouette">
+          <svg viewBox="0 0 42 50" aria-hidden="true">
+            <path d="M21 5 C14 5 10 10 10 16 C10 20 12 22 12 23 C8 26 6 33 7 41 C7 46 9 49 12 49 L30 49 C33 49 35 46 35 41 C36 33 34 26 30 23 C30 22 32 20 32 16 C32 10 28 5 21 5 Z" fill="#4A3826"/>
+            <path d="M10 15 L3 11 L9 20 Z" fill="#4A3826"/>
+            <path d="M32 15 L39 11 L33 20 Z" fill="#4A3826"/>
+            <ellipse cx="16" cy="16" rx="2.6" ry="1.7" fill="#E8A44A"/>
+            <ellipse cx="26" cy="16" rx="2.6" ry="1.7" fill="#E8A44A"/>
+            <path d="M18 23 l2 3 l1 -3 Z" fill="#E8DCC0" opacity=".8"/>
+            <path d="M24 23 l-2 3 l-1 -3 Z" fill="#E8DCC0" opacity=".8"/>
+            <!-- 斧 -->
+            <path d="M34 12 L37 30 L34.5 30 L31.5 13 Z" fill="#6C5D40"/>
+            <path d="M33 8 q9 2 8 10 q-6 -4 -9 -4 Z" fill="#8A7350"/>
+          </svg>
+        </div>
+        <div class="art art-portrait">
+          <div class="ph-glyph">🖼️</div>
+          <div class="ph-label">立绘槽</div>
+        </div>
+        <div class="art art-model">
+          <div class="floor"></div>
+          <div class="wire"></div>
+          <div class="ph-label">模型</div>
+        </div>
+      </div>
+      <div class="nm">赤耳劈砍者</div>
+      <div class="hp"><i style="width:45%"></i></div>
+    </div>
+
+    <!-- 首领本体：外部只负责位移与呼吸，内部为可替换造型槽 -->
+    <div class="boss-stand" id="bossStand">
+
+      <!-- ① 剪影占位：程序化生成的巨兽轮廓（无需美术资源即可上线） -->
+      <div class="art art-silhouette">
+        <svg viewBox="0 0 160 186" aria-hidden="true">
+          <defs>
+            <linearGradient id="furGrad" x1="0.2" y1="0" x2="0.85" y2="1">
+              <stop offset="0%" stop-color="#7A6146"/>
+              <stop offset="42%" stop-color="#54402B"/>
+              <stop offset="100%" stop-color="#2B2014"/>
+            </linearGradient>
+            <linearGradient id="headGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6B5238"/>
+              <stop offset="100%" stop-color="#372818"/>
+            </linearGradient>
+            <radialGradient id="eyeGlow">
+              <stop offset="0%" stop-color="#FFE7A8"/>
+              <stop offset="45%" stop-color="#E8A44A"/>
+              <stop offset="100%" stop-color="#B45309" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="blurGlow"><feGaussianBlur stdDeviation="4"/></filter>
+            <filter id="softDrop" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#2A2418" flood-opacity="0.42"/>
+            </filter>
+          </defs>
+
+          <g filter="url(#softDrop)">
+            <!-- 地面投影 -->
+            <ellipse cx="80" cy="180" rx="52" ry="7" fill="#2A2418" opacity="0.28"/>
+
+            <!-- 双角 -->
+            <path d="M56 44 C46 30 40 14 34 4 C46 14 56 26 62 38 Z" fill="#6C5D40"/>
+            <path d="M104 44 C114 30 120 14 126 4 C114 14 104 26 98 38 Z" fill="#6C5D40"/>
+            <path d="M58 42 C50 30 46 18 42 10 C50 20 56 30 61 38 Z" fill="#8A7350" opacity=".55"/>
+            <path d="M102 42 C110 30 114 18 118 10 C110 20 104 30 99 38 Z" fill="#8A7350" opacity=".55"/>
+
+            <!-- 躯干（前倾驼背） -->
+            <path d="M80 34
+                     C 52 34 30 56 24 92
+                     C 20 118 26 150 34 166
+                     C 46 172 62 174 80 174
+                     C 98 174 114 172 126 166
+                     C 134 150 140 118 136 92
+                     C 130 56 108 34 80 34 Z"
+                  fill="url(#furGrad)"/>
+
+            <!-- 肩背隆起（枭类圆背） -->
+            <ellipse cx="80" cy="72" rx="50" ry="30" fill="#5D4830"/>
+            <ellipse cx="80" cy="66" rx="42" ry="22" fill="#6B5339" opacity=".75"/>
+
+            <!-- 胸腹羽片（锯齿分层） -->
+            <path d="M46 118 q8 12 0 22 q8 -3 12 6 q5 -11 13 -6 q-4 -12 6 -18 Z" fill="#3E2F20" opacity=".55"/>
+            <path d="M114 118 q-8 12 0 22 q-8 -3 -12 6 q-5 -11 -13 -6 q4 -12 -6 -18 Z" fill="#3E2F20" opacity=".55"/>
+            <path d="M58 146 q10 10 22 10 q12 0 22 -10 q-6 16 -22 16 q-16 0 -22 -16 Z" fill="#241A0F" opacity=".6"/>
+
+            <!-- 头部（低伏） -->
+            <ellipse cx="80" cy="56" rx="33" ry="27" fill="url(#headGrad)"/>
+            <!-- 耳簇 -->
+            <path d="M50 42 C42 34 40 26 46 24 C52 26 56 34 58 42 Z" fill="#4C3A26"/>
+            <path d="M110 42 C118 34 120 26 114 24 C108 26 104 34 102 42 Z" fill="#4C3A26"/>
+            <!-- 颈部羽刺 -->
+            <path d="M44 62 q-10 -2 -12 8 q8 -4 14 0 Z" fill="#3B2C1D"/>
+            <path d="M116 62 q10 -2 12 8 q-8 -4 -14 0 Z" fill="#3B2C1D"/>
+
+            <!-- 眼部辉光 -->
+            <ellipse cx="66" cy="58" rx="12" ry="9" fill="url(#eyeGlow)" filter="url(#blurGlow)" opacity=".8"/>
+            <ellipse cx="94" cy="58" rx="12" ry="9" fill="url(#eyeGlow)" filter="url(#blurGlow)" opacity=".8"/>
+            <!-- 眼窝 -->
+            <ellipse cx="66" cy="58" rx="7.6" ry="5" fill="#1C1208"/>
+            <ellipse cx="94" cy="58" rx="7.6" ry="5" fill="#1C1208"/>
+            <!-- 瞳仁（细竖，凶相） -->
+            <ellipse cx="66" cy="58" rx="2.1" ry="4.1" fill="#FFC85C"/>
+            <ellipse cx="94" cy="58" rx="2.1" ry="4.1" fill="#FFC85C"/>
+            <!-- 压低的眉骨 -->
+            <path d="M56 50 L75 55 L74 51 Z" fill="#241A0F"/>
+            <path d="M104 50 L85 55 L86 51 Z" fill="#241A0F"/>
+
+            <!-- 钩喙 -->
+            <path d="M80 64 L88 76 Q80 84 72 76 Z" fill="#C79A55"/>
+            <path d="M72 76 Q80 84 88 76 Q80 79 72 76 Z" fill="#8A6632"/>
+            <path d="M80 78 q3 6 1 8 q-4 -3 -1 -8 Z" fill="#E8DCC0" opacity=".75"/>
+            <!-- 下颌利齿 -->
+            <path d="M70 82 l4 6 l-1 -7 Z" fill="#E8DCC0" opacity=".8"/>
+            <path d="M90 82 l-4 6 l1 -7 Z" fill="#E8DCC0" opacity=".8"/>
+
+            <!-- 前肢（粗壮带爪） -->
+            <path d="M34 108 C24 128 26 152 32 166 C40 170 48 170 52 166 C44 148 44 126 48 110 Z" fill="#3B2C1D"/>
+            <path d="M126 108 C136 128 134 152 128 166 C120 170 112 170 108 166 C116 148 116 126 112 110 Z" fill="#3B2C1D"/>
+            <!-- 爪 -->
+            <path d="M32 166 l7 10 l2 -10 Z" fill="#E8DCC0" opacity=".65"/>
+            <path d="M41 168 l6 10 l1 -10 Z" fill="#E8DCC0" opacity=".65"/>
+            <path d="M51 166 l6 9 l1 -9 Z" fill="#E8DCC0" opacity=".55"/>
+            <path d="M128 166 l-7 10 l-2 -10 Z" fill="#E8DCC0" opacity=".65"/>
+            <path d="M119 168 l-6 10 l-1 -10 Z" fill="#E8DCC0" opacity=".65"/>
+            <path d="M109 166 l-6 9 l-1 -9 Z" fill="#E8DCC0" opacity=".55"/>
+
+            <!-- 左上边缘受光 -->
+            <path d="M80 34 C 52 34 30 56 24 92 C 30 62 52 42 80 42 Z" fill="#C9AE84" opacity=".35"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- ② 立绘占位：后续 <img src="boss_owlbear.webp"> 直接塞进这里 -->
+      <div class="art art-portrait" id="slotPortrait">
+        <div class="ph-glyph">🖼️</div>
+        <div class="ph-label">首领立绘槽</div>
+        <div class="ph-size">建议 560 × 800 · 透明底</div>
+        <!-- 接入立绘时替换为：
+             <img src="./arts/boss_owlbear.webp" alt="" style="width:100%;height:100%;object-fit:contain" /> -->
+      </div>
+
+      <!-- ③ 模型占位：后续 three.js / canvas 挂载点 -->
+      <div class="art art-model" id="slotModel">
+        <div class="floor"></div>
+        <div class="wire"></div>
+        <div class="ph-label">模型槽 · &lt;canvas&gt;</div>
+        <!-- 接入模型时把 <canvas id="bossCanvas"> 放进来，动画由呼吸 keyframes 驱动即可 -->
+      </div>
+
+    </div>
+
+    <!-- 首领铭牌 + 三段血条 -->
+    <div class="boss-hud">
+      <div class="name-row">
+        <div class="name"><span class="crown">👑</span>狂暴穴居枭熊王</div>
+        <div class="meta">A 级 · 首领 · 物防厚</div>
+      </div>
+      <div class="boss-segs" id="bossSegs">
+        <div class="seg"><i style="width:100%"></i></div>
+        <div class="seg"><i style="width:100%"></i></div>
+        <div class="seg"><i style="width:100%"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 交锋分隔 ===== -->
+  <div class="clash"><span class="ln"></span>交 锋 线<span class="ln"></span></div>
+
+  <!-- ===== 己方 3×3 战术沙盘 ===== -->
+  <div class="board-wrap">
+    <div class="board">
+      <div class="rowlbl">前排</div>
+      <div class="cell zone-front"></div>
+      <div class="cell zone-front">
+        <div class="pawn sel" data-hp="82" data-rage="100">
+          <div class="g">🛡️</div><div class="n">沈素问</div>
+          <div class="hp"><i style="width:82%"></i></div>
+          <div class="rage"><i style="width:100%"></i></div>
+        </div>
+      </div>
+      <div class="cell zone-front"></div>
+
+      <div class="rowlbl">中坚</div>
+      <div class="cell zone-mid">
+        <div class="pawn" data-hp="64" data-rage="45">
+          <div class="g">🗡️</div><div class="n">萧凌霄</div>
+          <div class="hp"><i style="width:64%"></i></div>
+          <div class="rage"><i style="width:45%"></i></div>
+        </div>
+      </div>
+      <div class="cell zone-mid">
+        <div class="pawn" data-hp="91" data-rage="20">
+          <div class="g">🏹</div><div class="n">叶云舒</div>
+          <div class="hp"><i style="width:91%"></i></div>
+          <div class="rage"><i style="width:20%"></i></div>
+        </div>
+      </div>
+      <div class="cell zone-mid"></div>
+
+      <div class="rowlbl">后卫</div>
+      <div class="cell zone-mid">
+        <div class="pawn" data-hp="55" data-rage="78">
+          <div class="g">✨</div><div class="n">季秋水</div>
+          <div class="hp"><i style="width:55%"></i></div>
+          <div class="rage"><i style="width:78%"></i></div>
+        </div>
+      </div>
+      <div class="cell zone-mid"></div>
+      <div class="cell zone-mid"></div>
+    </div>
+  </div>
+
+  <!-- ===== 行动时序 ===== -->
+  <div class="timeline">
+    <span class="lbl">行动</span>
+    <div class="ti now">🛡️</div>
+    <div class="ti foe">🛡️</div>
+    <div class="ti">🗡️</div>
+    <div class="ti">🏹</div>
+    <div class="ti foe">🪓</div>
+    <div class="ti">✨</div>
+    <div class="ti foe">👑</div>
+  </div>
+
+  <!-- ===== 奥义卡 ===== -->
+  <div class="ult-row">
+    <div class="ult ready"><div class="u">🛡️</div><div class="un">铁壁坚守</div><div class="cd">就绪</div></div>
+    <div class="ult"><div class="u">🗡️</div><div class="un">连斩</div><div class="cd">3 回合</div></div>
+    <div class="ult"><div class="u">🏹</div><div class="un">贯穿箭</div><div class="cd">5 回合</div></div>
+    <div class="ult ready"><div class="u">✨</div><div class="un">群愈祷</div><div class="cd">就绪</div></div>
+  </div>
+
+  <div class="foot">
+    <button class="btn btn-ghost">🌀 撤退</button>
+    <button class="btn btn-brass">⚡ 自动战斗</button>
+    <button class="btn btn-wine">🎯 集火首领</button>
+  </div>
+
+  <div class="fx" id="fx"></div>
+  <div class="stage-tint" id="tint"></div>
+</div>
+
+<!-- ===== 右侧说明 ===== -->
+<div class="spec">
+  <h1>方案三 · 沙盘 + 巨型首领</h1>
+  <div class="sub">保留方案一的下方 3×3 站位操作，把方案二的大尺寸独立首领与呼吸动效搬到上方舞台。</div>
+
+  <h2>布局分工</h2>
+  <ul>
+    <li><b>上层 262px</b> — 首领巢穴：独立大造型、随行小怪、铭牌与三段血条</li>
+    <li><b>下层棋盘</b> — 前排 / 中坚 / 后卫，保留拖拽换位与射程判定</li>
+    <li><b>时序条</b> — 敌我出手顺序一览，Boss 也在队列中</li>
+  </ul>
+
+  <h2>呼吸动效</h2>
+  <ul>
+    <li>周期 <code>4.8s</code> ease-in-out，缩放仅 <code>1.028</code>、上浮 <code>3.5px</code></li>
+    <li>呼吸挂在 <code>.boss-stand</code> 外层，内部造型槽随便换，动效不受影响</li>
+    <li>受击只叠加 <code>hitShake</code> 短抖动，不打断呼吸节奏</li>
+  </ul>
+
+  <h2>给立绘 / 模型留的接口</h2>
+  <ul>
+    <li><code>[data-art]</code> 三个状态：<code>silhouette</code> / <code>portrait</code> / <code>model</code></li>
+    <li><b>首领与两名小弟共用同一套造型槽开关</b>，点右上角按钮三态同步切换</li>
+    <li>首领立绘建议 560×800、小弟 160×200，均为透明底 <code>&lt;img&gt;</code></li>
+    <li>模型槽留了透视落地格与 <code>&lt;canvas&gt;</code> 位置，three.js 只管渲染，位移仍由外层 CSS 控制</li>
+  </ul>
+
+  <div class="note">当前 Boss 与小弟都还是程序化剪影占位，立绘资源做好后直接替换对应槽位即可，动效与布局无需改动。</div>
+</div>
+
+<script>
+  const phone = document.getElementById('phone');
+  const fx = document.getElementById('fx');
+  const tint = document.getElementById('tint');
+  const bossStand = document.getElementById('bossStand');
+  const segs = Array.from(document.querySelectorAll('#bossSegs .seg'));
+  const hpFill = segs.map(s => s.querySelector('i'));
+
+  /* ---------- 造型槽切换 ---------- */
+  const ART_MODES = [
+    { key: 'silhouette', label: '剪影' },
+    { key: 'portrait', label: '立绘' },
+    { key: 'model', label: '模型' }
+  ];
+  let artIdx = 0;
+  const artBtn = document.getElementById('artBtn');
+  artBtn.addEventListener('click', () => {
+    artIdx = (artIdx + 1) % ART_MODES.length;
+    const m = ART_MODES[artIdx];
+    phone.dataset.art = m.key;
+    artBtn.textContent = '造型：' + m.label;
+  });
+
+  /* ---------- 首领受击 ---------- */
+  let bossHp = 100;
+  function damageBoss(amount, crit) {
+    bossHp = Math.max(0, bossHp - amount);
+    // 三段血条：100-66 / 66-33 / 33-0
+    const each = 100 / 3;
+    hpFill.forEach((bar, i) => {
+      const segStart = 100 - each * (i + 1);
+      const ratio = (bossHp - segStart) / each;
+      bar.style.width = Math.max(0, Math.min(1, ratio)) * 100 + '%';
+      segs[i].classList.toggle('done', ratio <= 0);
+    });
+    if (bossHp === 0) {
+      setTimeout(() => { bossHp = 100; damageBoss(0, false); }, 900);
+    }
+  }
+
+  function spawnDamage(text, cls, x, y) {
+    const el = document.createElement('div');
+    el.className = 'dmg ' + (cls || '');
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    fx.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  function playSlash() {
+    const s = document.createElement('div');
+    s.className = 'slash';
+    s.style.left = (phone.clientWidth / 2 - 65) + 'px';
+    s.style.top = '70px';
+    fx.appendChild(s);
+    setTimeout(() => s.remove(), 420);
+  }
+
+  function bossHit() {
+    bossStand.classList.remove('hit');
+    void bossStand.offsetWidth;
+    bossStand.classList.add('hit');
+    playSlash();
+    tint.classList.remove('on');
+    void tint.offsetWidth;
+    tint.classList.add('on');
+
+    const crit = Math.random() < 0.35;
+    const dmg = crit ? 180 + Math.floor(Math.random() * 90) : 70 + Math.floor(Math.random() * 45);
+    damageBoss(crit ? 12 : 6, crit);
+    spawnDamage(
+      (crit ? '暴击 ' : '-') + dmg,
+      crit ? 'crit' : '',
+      phone.clientWidth / 2 - 34 + (Math.random() * 40 - 20),
+      96
+    );
+  }
+
+  bossStand.addEventListener('click', bossHit);
+  document.getElementById('replayBtn').addEventListener('click', bossHit);
+
+  /* ---------- 棋子选择 ---------- */
+  document.querySelectorAll('.pawn').forEach(p => {
+    p.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.pawn').forEach(x => x.classList.remove('sel'));
+      p.classList.add('sel');
+    });
+  });
+
+  /* ---------- 开局自动演示一次 ---------- */
+  setTimeout(bossHit, 1400);
+  setTimeout(bossHit, 3200);
+</script>
+</body>
+</html>

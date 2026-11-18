@@ -1,15 +1,110 @@
 import React from 'react';
 import type { CombatUnit } from '../engine/combatEngine';
 import type { UnitVisualState } from '../types/combatVisual';
-import { CLASS_ICONS } from '../engine/heroFactory';
+import type { ClassId } from '../types/hero';
 import { heroRoleLabel } from '../engine/heroFactory';
 
 interface BattlePawnProps {
   unit: CombatUnit;
   visualState?: UnitVisualState;
   onFocus?: (unitId: string) => void;
-  isInteractable?: boolean; // 战前可点击选择或互换
+  isInteractable?: boolean;
   isSelected?: boolean;
+}
+
+/** 职业武器：只区分剪影轮廓，接立绘时整体替换即可 */
+const CLASS_WEAPON: Record<ClassId, 'shield' | 'sword' | 'bow' | 'staff' | 'axe'> = {
+  guardian: 'shield',
+  warden: 'axe',
+  paladin: 'shield',
+  blademaster: 'sword',
+  ranger: 'bow',
+  arcanist: 'staff',
+  cleric: 'staff',
+  druid: 'staff',
+  bard: 'staff',
+};
+
+const HERO_BODY = (
+  <g>
+    <circle cx="30" cy="13" r="8.4" />
+    <path d="M20.6 23.4 q9.4 -3.4 18.8 0 l2.2 26.4 q-11.6 3 -23.2 0 Z" />
+    <path d="M22.6 49.4 l-3 45.6 h7.4 l3 -29 3 29 h7.4 l-3 -45.6 Z" />
+  </g>
+);
+
+const MOB_BODY = (
+  <g>
+    <path d="M10 30 q0 -16 18 -16 q18 0 18 16 l2 22 q-20 5 -40 0 Z" />
+    <circle cx="28" cy="15" r="10.4" />
+    <path d="M14 5 l3.4 -2 l5 6.2 l-3.6 2 Z" />
+    <path d="M42 5 l-3.4 -2 l-5 6.2 l3.6 2 Z" />
+    <path d="M17 52 l-1.6 20 h6.6 l1.6 -14 l1.8 14 h6.6 l-1.6 -20 Z" />
+  </g>
+);
+
+const BOSS_BODY = (
+  <g>
+    {/* 双耳 */}
+    <path d="M40 34 q-4 -22 3 -26 q10 4 12 24 Z" />
+    <path d="M104 34 q4 -22 -3 -26 q-10 4 -12 24 Z" />
+    {/* 头颅 */}
+    <path d="M72 12 q30 0 30 26 q0 20 -30 22 q-30 -2 -30 -22 q0 -26 30 -26 Z" />
+    {/* 拱形眉骨 */}
+    <path d="M46 32 q12 -10 26 -6 q14 -4 26 6 q-4 -12 -26 -13 q-22 1 -26 13 Z" opacity=".55" />
+    {/* 钩喙 */}
+    <path d="M72 40 l7 9 l-7 12 l-7 -12 Z" />
+    {/* 胸腹羽片 */}
+    <path d="M52 62 q20 -8 40 0 q4 8 0 14 q-20 7 -40 0 q-4 -6 0 -14 Z" opacity=".5" />
+    {/* 躯干 */}
+    <path d="M72 58 q30 3 32 34 q2 34 -4 50 q-28 8 -56 0 q-6 -16 -4 -50 q2 -31 32 -34 Z" />
+    {/* 前肢 */}
+    <path d="M40 78 q-8 14 -6 30 q1 10 8 12 q7 2 9 -6 q2 -20 4 -28 Z" />
+    <path d="M104 78 q8 14 6 30 q-1 10 -8 12 q-7 2 -9 -6 q-2 -20 -4 -28 Z" />
+    {/* 爪 */}
+    <path d="M35 120 l-6 12 l5 2 l4 -11 Z" />
+    <path d="M109 120 l6 12 l-5 2 l-4 -11 Z" />
+  </g>
+);
+
+function WeaponGlyph({ kind }: { kind: 'shield' | 'sword' | 'bow' | 'staff' | 'axe' }) {
+  switch (kind) {
+    case 'shield':
+      return (
+        <g>
+          <path d="M9 36 q10 2 14 8 q-1 18 -7 24 q-6 -6 -7 -24 q-1 -5 0 -8 Z" />
+          <rect x="45" y="20" width="3" height="42" rx="1.4" />
+        </g>
+      );
+    case 'sword':
+      return (
+        <g>
+          <rect x="46.4" y="8" width="3.4" height="46" rx="1.6" />
+          <rect x="41.6" y="52" width="13" height="3" rx="1.4" />
+        </g>
+      );
+    case 'bow':
+      return (
+        <g>
+          <path d="M48 18 q12 20 0 40" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M48 18 l0 40" fill="none" stroke="currentColor" strokeWidth="1" />
+        </g>
+      );
+    case 'staff':
+      return (
+        <g>
+          <rect x="48" y="16" width="3" height="52" rx="1.5" />
+          <circle cx="49.5" cy="13" r="5" />
+        </g>
+      );
+    case 'axe':
+      return (
+        <g>
+          <rect x="46.4" y="14" width="3.4" height="50" rx="1.6" />
+          <path d="M47 20 q12 -4 12 8 q-8 4 -12 2 Z" />
+        </g>
+      );
+  }
 }
 
 export const BattlePawn: React.FC<BattlePawnProps> = ({
@@ -17,208 +112,88 @@ export const BattlePawn: React.FC<BattlePawnProps> = ({
   visualState,
   onFocus,
   isInteractable = true,
-  isSelected = false
+  isSelected = false,
 }) => {
   const { hero, side, currentHp, maxHp, resource, isDead } = unit;
   const isPlayer = side === 'player';
-  const hpPercent = Math.max(0, Math.min(100, Math.round((currentHp / maxHp) * 100)));
-  const energyPercent = Math.max(0, Math.min(100, Math.round(resource)));
-  const role = hero.role || 'dps';
+  const isBoss = !isPlayer && hero.name.startsWith('👑');
+  const hpPercent = Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
+  const energyPercent = Math.max(0, Math.min(100, resource));
 
-  // 角色职能颜色
-  const roleColors = {
-    tank: { bg: '#1e3a5f', border: '#60a5fa', text: '#93c5fd', badge: '盾' },
-    dps: { bg: '#581c1c', border: '#f87171', text: '#fca5a5', badge: '刃' },
-    healer: { bg: '#144127', border: '#4ade80', text: '#86efac', badge: '医' }
-  }[role];
+  const slotCol = unit.slotId?.split('_')[0];
+  const depthCol = slotCol === 'mid' ? 'mid' : slotCol === 'back' ? 'back' : 'front';
 
-  // 动作类名判断
-  const isAttacking = visualState?.isAttacking;
-  const attackMotion = visualState?.attackMotion;
-  const isHit = visualState?.isHit;
-  const isCritHit = visualState?.isCritHit;
-  const isHealing = visualState?.isHealing;
-  const isFocused = visualState?.focused;
+  const shortName = hero.name.replace(/^(敌·|👑)/, '').slice(0, 4);
+  const weapon = CLASS_WEAPON[hero.classId] || 'sword';
 
-  // 计算动态位移 (自走棋近战冲锋对撞/远程蓄力后仰/受击震颤 - 上下纵向对决)
-  let transform = 'translate(0, 0) scale(1)';
-  let filter = 'none';
+  const cls = [
+    'cs-unit',
+    isPlayer ? 'cs-unit--hero' : isBoss ? 'cs-unit--boss' : 'cs-unit--mob',
+    isBoss ? 'cs-unit--enemy' : isPlayer ? 'cs-unit--player' : 'cs-unit--enemy',
+    visualState?.isAttacking ? 'is-attack' : '',
+    visualState?.isHit ? 'is-hit' : '',
+    visualState?.isHit && visualState?.isCritHit ? 'is-crit' : '',
+    visualState?.isHealing ? 'is-heal' : '',
+    isDead ? 'is-dead' : '',
+    visualState?.focused || isSelected ? 'is-focus' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-  if (isDead) {
-    transform = 'scale(0.85)';
-    filter = 'grayscale(100%) opacity(0.35)';
-  } else if (isAttacking) {
-    if (attackMotion === 'lunge') {
-      // 玩家在下方，向上突进 -18px；敌人在上方，向下突进 +18px
-      transform = isPlayer ? 'translateY(-18px) scale(1.08)' : 'translateY(18px) scale(1.08)';
-    } else {
-      // 远程/法术蓄力浮起
-      transform = 'scale(1.08)';
-    }
-  } else if (isHit) {
-    // 受击后退震颤：玩家向后下退 +6px，敌人向后上退 -6px
-    transform = isPlayer ? 'translateY(6px) scale(0.96)' : 'translateY(-6px) scale(0.96)';
-    filter = isCritHit ? 'drop-shadow(0 0 10px #ef4444) brightness(1.6)' : 'brightness(1.3)';
-  } else if (isHealing) {
-    filter = 'drop-shadow(0 0 8px #22c55e) brightness(1.2)';
-    transform = 'scale(1.04)';
-  }
-
-  // 棋子外圈光晕
-  const pawnGlow = isFocused
-    ? '0 0 14px #eab308, 0 0 4px #fef08a'
-    : isSelected
-    ? '0 0 14px #38bdf8, 0 0 4px #bae6fd'
-    : isPlayer
-    ? '0 4px 12px rgba(0,0,0,0.6), inset 0 0 6px rgba(56, 189, 248, 0.4)'
-    : '0 4px 12px rgba(0,0,0,0.6), inset 0 0 6px rgba(248, 113, 113, 0.4)';
-
-  const shortName = hero.name.replace(/^(敌·|👑首领·)/, '').slice(0, 3);
+  const ink = isBoss ? '#3D2C20' : isPlayer ? '#3A3428' : '#463225';
 
   return (
     <div
+      className={cls}
+      data-depth={depthCol}
       onClick={() => isInteractable && onFocus?.(hero.id)}
-      style={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '74px',
-        cursor: isInteractable ? 'pointer' : 'default',
-        userSelect: 'none',
-        transition: 'transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.14s ease',
-        transform,
-        filter,
-        zIndex: isAttacking ? 30 : isFocused ? 20 : 10
-      }}
-      title={`${hero.name} (${heroRoleLabel(hero)}) - HP: ${currentHp}/${maxHp}`}
+      title={`${hero.name}（${heroRoleLabel(hero)}）· 生命 ${currentHp}/${maxHp}`}
+      style={
+        {
+          '--lunge': isPlayer ? '-16px' : '16px',
+          '--knock': isPlayer ? '6px' : '-6px',
+        } as React.CSSProperties
+      }
     >
-      {/* 顶部微型指示器：集火标记 or 选中光标 */}
-      {isFocused && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '-18px',
-            fontSize: '11px',
-            color: '#fbbf24',
-            fontWeight: 900,
-            animation: 'pulse 1s infinite alternate',
-            textShadow: '0 0 6px #b45309'
-          }}
-        >
-          ▼ 集火
-        </div>
-      )}
+      <div className="cs-ground" />
 
-      {/* 棋子主体：微缩自走棋战斗圆形徽章 Token */}
-      <div
-        style={{
-          position: 'relative',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: `radial-gradient(circle at 35% 30%, ${roleColors.bg}, #090d16)`,
-          border: `2.5px solid ${isFocused ? '#eab308' : isSelected ? '#38bdf8' : isPlayer ? '#38bdf8' : '#f87171'}`,
-          boxShadow: pawnGlow,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden'
-        }}
-      >
-        {/* 角色立体光感底座 */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            width: '100%',
-            height: '40%',
-            background: `linear-gradient(to top, ${isPlayer ? 'rgba(14, 165, 233, 0.25)' : 'rgba(239, 68, 68, 0.25)'}, transparent)`
-          }}
-        />
-
-        {/* 职业与性别符号图腾 */}
-        <span style={{ fontSize: '20px', lineHeight: 1, zIndex: 2, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }}>
-          {CLASS_ICONS[hero.classId] || '🗡️'}
-        </span>
-
-        {/* 极简二字短名 */}
-        <span
-          style={{
-            fontSize: '10px',
-            fontWeight: 800,
-            color: isPlayer ? '#f8fafc' : '#fecaca',
-            zIndex: 2,
-            marginTop: '2px',
-            textShadow: '0 1px 3px #000'
-          }}
-        >
-          {shortName}
-        </span>
-
-        {/* 职能角标 Badge (盾/刃/医) */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '0',
-            right: '0',
-            width: '16px',
-            height: '16px',
-            borderRadius: '50%',
-            background: roleColors.border,
-            color: '#000',
-            fontSize: '9px',
-            fontWeight: 900,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.8)',
-            zIndex: 3
-          }}
-        >
-          {roleColors.badge}
+      <div className="cs-fig">
+        <div className="cs-art" style={{ color: ink, width: '100%', height: '100%' }}>
+          {isBoss ? (
+            <svg viewBox="0 0 144 176" width="100%" height="100%" preserveAspectRatio="xMidYMax meet" fill="currentColor">
+              {BOSS_BODY}
+              <circle cx="61" cy="34" r="4.4" fill="#E4573D" />
+              <circle cx="83" cy="34" r="4.4" fill="#E4573D" />
+              <circle cx="61" cy="34" r="1.6" fill="#F6D79A" />
+              <circle cx="83" cy="34" r="1.6" fill="#F6D79A" />
+            </svg>
+          ) : isPlayer ? (
+            <svg viewBox="0 0 60 100" width="100%" height="100%" preserveAspectRatio="xMidYMax meet" fill="currentColor">
+              {HERO_BODY}
+              <WeaponGlyph kind={weapon} />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 56 76" width="100%" height="100%" preserveAspectRatio="xMidYMax meet" fill="currentColor">
+              {MOB_BODY}
+              <rect x="44" y="26" width="3" height="34" rx="1.5" />
+            </svg>
+          )}
         </div>
       </div>
 
-      {/* 棋子底部血条与气力条 */}
-      <div
-        style={{
-          width: '58px',
-          marginTop: '4px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-          background: 'rgba(0,0,0,0.7)',
-          padding: '2px',
-          borderRadius: '4px',
-          border: '1px solid rgba(255,255,255,0.08)'
-        }}
-      >
-        {/* HP 进度条 */}
-        <div style={{ position: 'relative', width: '100%', height: '5px', background: '#334155', borderRadius: '2px', overflow: 'hidden' }}>
-          <div
-            style={{
-              width: `${hpPercent}%`,
-              height: '100%',
-              background: hpPercent > 50 ? 'linear-gradient(to right, #22c55e, #4ade80)' : hpPercent > 20 ? 'linear-gradient(to right, #f59e0b, #fbbf24)' : 'linear-gradient(to right, #ef4444, #f87171)',
-              transition: 'width 0.2s ease-out'
-            }}
-          />
-        </div>
-
-        {/* 气力/战技条 (满额金色大招就绪) */}
-        <div style={{ position: 'relative', width: '100%', height: '3px', background: '#1e293b', borderRadius: '1.5px', overflow: 'hidden' }}>
-          <div
-            style={{
-              width: `${energyPercent}%`,
-              height: '100%',
-              background: energyPercent >= 100 ? 'linear-gradient(to right, #eab308, #fef08a)' : 'linear-gradient(to right, #3b82f6, #60a5fa)',
-              boxShadow: energyPercent >= 100 ? '0 0 6px #eab308' : 'none'
-            }}
-          />
-        </div>
+      <div className="cs-plate">
+        <span className="cs-nm">
+          {isBoss ? <i>首领</i> : null}
+          {shortName}
+        </span>
+        <span className="cs-hp">
+          <i style={{ width: `${hpPercent}%` }} />
+        </span>
+        {isPlayer && (
+          <span className={`cs-en${energyPercent >= 100 ? ' is-full' : ''}`}>
+            <i style={{ width: `${energyPercent}%` }} />
+          </span>
+        )}
       </div>
     </div>
   );

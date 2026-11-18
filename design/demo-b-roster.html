@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Demo B · 出征名册（纸面版）</title>
+<link rel="stylesheet" href="lab.css" />
+<style>
+  .prep-head{flex:none;padding:10px 16px 12px;border-bottom:1px solid rgba(42,36,24,.28);display:flex;align-items:center;gap:10px;background:#E3D3B0}
+  .back{width:28px;height:28px;border-radius:6px;border:1px solid rgba(42,36,24,.28);background:rgba(255,255,255,.28);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
+  .prep-title{flex:1;min-width:0}
+  .prep-title h1{margin:0;font-family:var(--serif);font-size:17px;letter-spacing:2px;font-weight:600;color:var(--ink)}
+  .prep-title span{display:block;font-size:10px;color:var(--ink-2);margin-top:2px}
+  .rank-pill{font-family:var(--serif);font-size:13px;color:#7C2F27;border:1px solid rgba(124,47,39,.42);border-radius:4px;padding:3px 9px;background:rgba(124,47,39,.06)}
+
+  .form-wrap{padding:12px 16px 6px}
+  .form-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:5px}
+  .form-cols span{text-align:center;font-size:10px;letter-spacing:2px;color:#8C7A58}
+  .formation{
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,54px);gap:8px;
+    padding:10px;border:1px solid rgba(42,36,24,.26);border-radius:4px;
+    background:
+      radial-gradient(220px 120px at 50% 50%, rgba(169,121,58,.09), transparent 70%),
+      #EADDBF;
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.18);
+  }
+  .slot{display:flex;align-items:center;justify-content:center;border:1px dashed rgba(42,36,24,.20);border-radius:3px}
+  .slot.empty{color:rgba(42,36,24,.22);font-size:16px}
+  .unit{
+    width:100%;height:100%;border-radius:3px;border:1px solid rgba(42,36,24,.32);
+    background:linear-gradient(160deg,#FBF5E7,#EFE3C8);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;cursor:pointer;position:relative;transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .unit:hover{border-color:#A9793A}
+  .unit.selected{border-color:#7C2F27;box-shadow:0 0 0 1px rgba(124,47,39,.35),0 2px 6px rgba(42,36,24,.12)}
+  .unit .face{font-family:var(--serif);font-size:17px;color:var(--ink)}
+  .unit .nm{font-size:9px;color:var(--ink-2);transform:scale(.95)}
+  .unit .role-badge{position:absolute;top:3px;right:4px;font-size:8px;color:#8C7A58}
+  .unit.low .face{color:#9A4A3A}
+  .unit.mid .face{color:#8A6A2E}
+
+  .detail{padding:2px 16px 0}
+  .hero-card{border:1px solid rgba(42,36,24,.28);border-radius:4px;background:#F7EFDD;padding:11px 12px;display:flex;flex-direction:column;gap:9px;box-shadow:2px 2px 0 rgba(42,36,24,.10)}
+  .hero-head{display:flex;align-items:center;gap:10px}
+  .portrait{width:46px;height:46px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:19px;color:var(--ink);background:linear-gradient(145deg,#EADDBF,#DCC9A4);border:1px solid rgba(42,36,24,.30)}
+  .hh-main{flex:1;min-width:0}
+  .hh-main h2{margin:0;font-family:var(--serif);font-size:16px;letter-spacing:1px;font-weight:600;color:var(--ink)}
+  .hh-main span{font-size:10px;color:#8C7A58}
+  .lvbox{text-align:right;flex:none}
+  .lvbox b{display:block;font-size:14px;color:#7C2F27;font-variant-numeric:tabular-nums}
+  .lvbox span{font-size:9px;color:#8C7A58}
+
+  .ca-row{display:flex;gap:6px}
+  .ca-cell{flex:1;background:#EADDBF;border:1px solid rgba(42,36,24,.16);border-radius:3px;padding:6px 8px}
+  .ca-cell span{display:block;font-size:9px;color:#8C7A58;letter-spacing:.5px}
+  .ca-cell b{font-size:13px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .ca-cell .stars{display:block;color:#A9793A;font-size:10px;letter-spacing:1px;font-family:var(--serif);margin-top:1px}
+
+  .stress-top{display:flex;justify-content:space-between;font-size:9px;color:#8C7A58}
+  .stress-top b{color:var(--ink);font-weight:600}
+  .stress-bar{height:5px;border-radius:4px;background:rgba(42,36,24,.14);overflow:hidden;margin-top:4px}
+  .stress-bar i{display:block;height:100%;background:linear-gradient(90deg,#4F8563,#B08A3E 65%,#8A3B32)}
+
+  .chips{display:flex;gap:4px;flex-wrap:wrap}
+  .chip{font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid rgba(42,36,24,.24);color:var(--ink-2)}
+  .chip.good{color:#356B49;border-color:rgba(53,107,73,.35);background:rgba(53,107,73,.06)}
+  .chip.bad{color:#8A3B32;border-color:rgba(138,59,50,.35);background:rgba(138,59,50,.06)}
+
+  .attr-tabs{display:flex;gap:4px;margin-top:2px}
+  .attr-tab{flex:1;border:1px solid rgba(42,36,24,.22);background:transparent;color:#8C7A58;font-family:var(--sans);font-size:10px;padding:5px 0;border-radius:3px;cursor:pointer}
+  .attr-tab.active{background:#7C2F27;border-color:#7C2F27;color:#F7E8D2}
+  .attrs{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:7px}
+  .attr{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ink-2)}
+  .attr span{width:28px;flex:none;color:#8C7A58}
+  .attr .bar{flex:1}
+  .attr b{width:18px;text-align:right;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  .supply{display:flex;gap:6px;padding:10px 16px 0}
+  .sup{flex:1;display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(42,36,24,.20);border-radius:3px;padding:6px 8px;background:rgba(247,239,221,.55);font-size:10px;color:#8C7A58}
+  .sup b{color:var(--ink);font-size:12px}
+
+  .prep-foot{flex:none;padding:10px 16px 14px;display:flex;gap:8px;border-top:1px solid rgba(42,36,24,.25);background:#E3D3B0}
+  .prep-foot .btn{flex:1;padding:11px;font-size:13px;border-radius:3px}
+  .prep-foot .swap{flex:0 0 88px;background:rgba(255,255,255,.28);border:1px solid rgba(42,36,24,.28);color:var(--ink-2)}
+  .prep-foot .btn-wine{background:linear-gradient(180deg,#9A4438,#7C2F27);color:#F7E8D2;box-shadow:0 2px 0 rgba(42,36,24,.30)}
+</style>
+</head>
+<body class="lab">
+  <div class="phone paper">
+    <div class="statusbar"><span>9:41</span><span>出征准备</span></div>
+
+    <div class="prep-head">
+      <button class="back">‹</button>
+      <div class="prep-title">
+        <h1>沉陷边关旧武库</h1>
+        <span>B 级悬赏 · 3★ · 预计 2 天 · 5 个房间</span>
+      </div>
+      <span class="rank-pill">B</span>
+    </div>
+
+    <div class="scroll">
+      <div class="form-wrap">
+        <div class="form-cols"><span>前 排</span><span>中 坚</span><span>后 卫</span></div>
+        <div class="formation" id="formation">
+          <div class="slot empty">+</div>
+          <div class="slot empty">+</div>
+          <div class="slot empty">+</div>
+
+          <div class="slot">
+            <button class="unit selected" data-hero="shen">
+              <span class="role-badge">剑</span><span class="face">沈</span><span class="nm">沈素问</span>
+            </button>
+          </div>
+          <div class="slot">
+            <button class="unit low" data-hero="xiao">
+              <span class="role-badge">盾</span><span class="face">萧</span><span class="nm">萧凌霄</span>
+            </button>
+          </div>
+          <div class="slot">
+            <button class="unit" data-hero="ye">
+              <span class="role-badge">弓</span><span class="face">叶</span><span class="nm">叶云舒</span>
+            </button>
+          </div>
+
+          <div class="slot empty">+</div>
+          <div class="slot">
+            <button class="unit mid" data-hero="ji">
+              <span class="role-badge">医</span><span class="face">季</span><span class="nm">季秋水</span>
+            </button>
+          </div>
+          <div class="slot empty">+</div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <div class="hero-card">
+          <div class="hero-head">
+            <div class="portrait" id="d-face">沈</div>
+            <div class="hh-main">
+              <h2 id="d-name">团长 · 沈素问</h2>
+              <span id="d-role">剑圣 · 前排 · 先锋位</span>
+            </div>
+            <div class="lvbox"><b id="d-lv">Lv.8</b><span>经验 2 / 19</span></div>
+          </div>
+
+          <div class="ca-row">
+            <div class="ca-cell"><span>当前能力 CA</span><b id="d-ca">105</b><span class="stars" id="d-ca-stars">★★½☆☆</span></div>
+            <div class="ca-cell"><span>潜力 PA</span><b id="d-pa">154</b><span class="stars" id="d-pa-stars">★★★★☆</span></div>
+          </div>
+
+          <div>
+            <div class="stress-top"><span>压力 <b id="d-stress">42</b> / 100</span><span>士气 <b id="d-morale">86</b></span></div>
+            <div class="stress-bar"><i id="d-stress-bar" style="width:42%"></i></div>
+          </div>
+
+          <div class="chips" id="d-chips">
+            <span class="chip good">坚韧</span><span class="chip good">忠心</span><span class="chip">夜眼</span>
+          </div>
+
+          <div class="attr-tabs">
+            <button class="attr-tab active" data-group="combat">战斗</button>
+            <button class="attr-tab" data-group="tactic">战术</button>
+            <button class="attr-tab" data-group="body">身体</button>
+            <button class="attr-tab" data-group="role">职能</button>
+          </div>
+          <div class="attrs" id="d-attrs"></div>
+        </div>
+      </div>
+
+      <div class="supply">
+        <div class="sup"><span>口粮</span><b>× 6</b></div>
+        <div class="sup"><span>药剂</span><b>× 2</b></div>
+        <div class="sup"><span>火把</span><b>× 3</b></div>
+      </div>
+    </div>
+
+    <div class="prep-foot">
+      <button class="btn swap">换 人</button>
+      <button class="btn btn-wine">出 发 · 消耗 2 天</button>
+    </div>
+  </div>
+
+  <aside class="spec">
+    <div>
+      <h4>B · 出征名册（纸面版）</h4>
+      <p>回答一个问题：<b>带谁去，队伍扛不扛得住？</b> 站位、压力、特质、30 维属性都在同一屏，点英雄即切换。</p>
+    </div>
+    <div>
+      <h4>参考坐标</h4>
+      <ul>
+        <li>Darkest Dungeon 的站位与压力：四格站位、压力条、怪癖</li>
+        <li>白皮书：CA/PA 以 0.5–5.0 星展示；30 维分四组</li>
+        <li>Football Manager：能力值用条形与星级，不用大段文字</li>
+      </ul>
+    </div>
+    <div>
+      <h4>这次改了什么</h4>
+      <p>去掉深色底，改用与 A/C 相同的羊皮纸、墨线与酒红选中态。信息结构不动，先验证“是不是颜色的问题”。</p>
+    </div>
+  </aside>
+
+<script>
+  const heroes = {
+    shen: { face:'沈', name:'团长 · 沈素问', role:'剑圣 · 前排 · 先锋位', lv:'Lv.8', xp:'经验 2 / 19', ca:105, pa:154, caStars:'★★½☆☆', paStars:'★★★★☆', stress:42, morale:86, chips:[['坚韧','good'],['忠心','good'],['夜眼','']], attrs:{combat:[['武技',18],['力量',16],['暴击',14],['闪避',11],['格挡',9],['护甲',8]],tactic:[['决策',15],['预判',13],['冷静',12],['胆识',14],['协作',11],['纪律',10]],body:[['体质',15],['敏捷',14],['耐力',12],['生机',13],['速度',13],['反应',15]],role:[['仇恨',8],['减伤',10],['治疗',0],['辅助',6],['控制',5],['走位',14]]} },
+    xiao: { face:'萧', name:'萧凌霄', role:'护卫 · 前排 · 铁壁位', lv:'Lv.4', xp:'经验 9 / 12', ca:52, pa:98, caStars:'★½☆☆☆', paStars:'★★½☆☆', stress:58, morale:71, chips:[['坚韧','good'],['固执','bad']], attrs:{combat:[['武技',12],['力量',13],['暴击',8],['闪避',7],['格挡',14],['护甲',15]],tactic:[['决策',9],['预判',10],['冷静',12],['胆识',13],['协作',9],['纪律',12]],body:[['体质',16],['敏捷',9],['耐力',15],['生机',14],['速度',8],['反应',9]],role:[['仇恨',16],['减伤',15],['治疗',0],['辅助',7],['控制',6],['走位',9]]} },
+    ye: { face:'叶', name:'叶云舒', role:'游侠 · 中坚 · 游走位', lv:'Lv.7', xp:'经验 14 / 16', ca:96, pa:142, caStars:'★★½☆☆', paStars:'★★★½☆', stress:31, morale:90, chips:[['夜眼','good'],['轻步','good'],['散漫','']], attrs:{combat:[['武技',11],['力量',12],['暴击',16],['闪避',14],['格挡',6],['护甲',7]],tactic:[['决策',13],['预判',15],['冷静',12],['胆识',11],['协作',10],['纪律',9]],body:[['体质',11],['敏捷',16],['耐力',12],['生机',11],['速度',15],['反应',16]],role:[['仇恨',5],['减伤',6],['治疗',0],['辅助',8],['控制',10],['走位',16]]} },
+    ji: { face:'季', name:'季秋水', role:'牧师 · 后卫 · 治疗位', lv:'Lv.6', xp:'经验 8 / 16', ca:87, pa:150, caStars:'★★☆☆☆', paStars:'★★★★☆', stress:66, morale:64, chips:[['旧伤 · 左肩','bad'],['仁慈','good'],['虔诚','']], attrs:{combat:[['武技',8],['力量',7],['暴击',8],['闪避',9],['格挡',7],['护甲',8]],tactic:[['决策',12],['预判',11],['冷静',14],['胆识',10],['协作',13],['纪律',11]],body:[['体质',10],['敏捷',10],['耐力',11],['生机',15],['速度',9],['反应',10]],role:[['仇恨',4],['减伤',7],['治疗',18],['辅助',14],['控制',5],['走位',9]]} }
+  };
+  let current = 'shen';
+  let group = 'combat';
+
+  const el = id => document.getElementById(id);
+  function render(){
+    const h = heroes[current];
+    el('d-face').textContent = h.face;
+    el('d-name').textContent = h.name;
+    el('d-role').textContent = h.role;
+    el('d-lv').textContent = h.lv;
+    el('d-lv').nextElementSibling.textContent = h.xp;
+    el('d-ca').textContent = h.ca;
+    el('d-pa').textContent = h.pa;
+    el('d-ca-stars').textContent = h.caStars;
+    el('d-pa-stars').textContent = h.paStars;
+    el('d-stress').textContent = h.stress;
+    el('d-morale').textContent = h.morale;
+    el('d-stress-bar').style.width = h.stress + '%';
+    el('d-chips').innerHTML = h.chips.map(([t,k]) => `<span class="chip ${k}">${t}</span>`).join('');
+    renderAttrs();
+  }
+  function renderAttrs(){
+    const h = heroes[current];
+    el('d-attrs').innerHTML = h.attrs[group].map(([n,v]) => `
+      <div class="attr"><span>${n}</span><div class="bar" style="background:rgba(42,36,24,.15)"><i style="width:${Math.min(100,v/20*100)}%;background:${v>=14?'#A9793A':'#5C8FA8'}"></i></div><b>${v}</b></div>
+    `).join('');
+  }
+
+  document.querySelectorAll('.unit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.unit').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      current = btn.dataset.hero;
+      render();
+    });
+  });
+  document.querySelectorAll('.attr-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.attr-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      group = btn.dataset.group;
+      renderAttrs();
+    });
+  });
+  render();
+</script>
+</body>
+</html>
