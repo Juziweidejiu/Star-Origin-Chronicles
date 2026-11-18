@@ -124,6 +124,8 @@ export interface Hero {
   role: Role;
   age: number;
   level: number;
+  experience?: number;     // 累计经验（缺省时按等级阈值反推）
+  growthCarry?: number;    // CA 成长的小数余量，跨契约累计
   currentAbility: number;  // CA (1-200)
   potentialAbility: number;// PA (1-200)
   currentHp: number;

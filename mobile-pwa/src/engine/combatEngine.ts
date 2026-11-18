@@ -9,6 +9,7 @@ import type { GridSlotId, GridColumn } from '../types/formation';
 import { GRID_SLOTS } from '../types/formation';
 import { getPositionCombatModifier } from './formationEngine';
 import { DAMAGE_TYPE, resolveStats } from './statResolver';
+import { levelSuppressionMultiplier } from './progressionEngine';
 import type { CombatFxEvent } from '../types/combatVisual';
 
 export interface CombatUnit {
@@ -288,6 +289,11 @@ export class CombatEngine {
 
     // 敌方微调 -8%，给玩家稳定的操作空间
     if (attacker.side === 'enemy') raw *= 0.92;
+
+    // 等级压制：高等级打低等级最多 +15%，越级挑战最多 -15%
+    if (attacker.side === 'player') {
+      raw *= levelSuppressionMultiplier(attacker.hero.level, defender.hero.level);
+    }
 
     return { dmg: Math.max(1, Math.round(raw)), crit };
   }

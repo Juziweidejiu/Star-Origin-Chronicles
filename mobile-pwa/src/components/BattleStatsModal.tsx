@@ -5,16 +5,18 @@
 
 import React, { useState } from 'react';
 import type { BattleSettlementSummary } from '../types/combatSettlement';
+import type { HeroProgressionResult } from '../types/progression';
 import { heroRoleLabel } from '../engine/heroFactory';
 
 interface BattleStatsModalProps {
   summary: BattleSettlementSummary;
+  progression?: HeroProgressionResult[];
   onNext: () => void; // 点击继续：进入战利品开箱/返回沙盘
 }
 
 type StatTab = 'damage' | 'taken' | 'heal';
 
-export const BattleStatsModal: React.FC<BattleStatsModalProps> = ({ summary, onNext }) => {
+export const BattleStatsModal: React.FC<BattleStatsModalProps> = ({ summary, progression, onNext }) => {
   const [activeTab, setActiveTab] = useState<StatTab>('damage');
 
   const { playerPerformances, mvpHeroId, winner, durationSeconds } = summary;
@@ -110,6 +112,66 @@ export const BattleStatsModal: React.FC<BattleStatsModalProps> = ({ summary, onN
           <div style={{ textAlign: 'right', fontSize: '11px', color: '#fde047' }}>
             <div>击杀: {mvp.kills}</div>
             <div style={{ fontSize: '10px', color: '#94a3b8' }}>暴击: {mvp.critsCount}次</div>
+          </div>
+        </div>
+      )}
+
+      {/* 经验与成长结算 */}
+      {progression && progression.length > 0 && (
+        <div
+          style={{
+            background: 'rgba(56, 189, 248, 0.08)',
+            border: '1px solid #0ea5e9',
+            borderRadius: '8px',
+            padding: '10px 12px',
+            marginBottom: '14px',
+            animation: 'fadeIn 0.35s ease-out'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#7dd3fc' }}>📈 战后成长结算</span>
+            <span style={{ fontSize: '9px', color: '#94a3b8' }}>MVP 经验 +15%</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {progression.map(p => {
+              const leveledUp = p.levelAfter > p.levelBefore;
+              return (
+                <div key={p.heroId} style={{ background: '#0f172a', borderRadius: '6px', padding: '6px 8px', border: leveledUp ? '1px solid #eab308' : '1px solid #1e293b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                    <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>
+                      {p.heroName}
+                      {p.isMvp && <span style={{ marginLeft: '5px', fontSize: '9px', color: '#fde047' }}>MVP</span>}
+                    </span>
+                    <span style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ color: '#38bdf8' }}>经验 +{p.xpGained}</span>
+                      {p.caGained > 0 && <span style={{ color: '#a78bfa' }}>能力 +{p.caGained}</span>}
+                      {leveledUp ? (
+                        <span
+                          style={{
+                            color: '#fde047',
+                            fontWeight: 'bold',
+                            fontSize: '11px',
+                            background: 'rgba(234, 179, 8, 0.18)',
+                            padding: '1px 6px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          ⬆ Lv.{p.levelBefore} → Lv.{p.levelAfter}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#64748b', fontSize: '10px' }}>Lv.{p.levelAfter}</span>
+                      )}
+                    </span>
+                  </div>
+                  {p.attributeGains.length > 0 && (
+                    <div style={{ marginTop: '3px', fontSize: '9px', color: '#94a3b8' }}>
+                      属性成长: {p.attributeGains.slice(0, 4).map(g => `${g.label}+${g.amount}`).join(' · ')}
+                      {p.attributeGains.length > 4 ? ' …' : ''}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

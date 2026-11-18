@@ -22,6 +22,8 @@ import { BattleStatsModal } from './components/BattleStatsModal';
 import { LootDropModal } from './components/LootDropModal';
 import type { BattleSettlementSummary } from './types/combatSettlement';
 import { generateRandomLoot } from './engine/dungeonEngine';
+import { applyBattleExperience, applyDelveProgression, heroXpProgress } from './engine/progressionEngine';
+import type { HeroProgressionResult } from './types/progression';
 import type { Projectile } from './components/CombatProjectiles';
 import type { FloatingTextItem, UnitVisualState, UltCinematicEvent } from './types/combatVisual';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
@@ -136,6 +138,7 @@ export function App() {
   // 战斗结算两步走与掉落弹窗状态
   const [settlementStep, setSettlementStep] = useState<'idle' | 'stats' | 'loot'>('idle');
   const [settlementSummary, setSettlementSummary] = useState<BattleSettlementSummary | null>(null);
+  const [battleProgression, setBattleProgression] = useState<HeroProgressionResult[] | null>(null);
   const [activeLootDrop, setActiveLootDrop] = useState<Equipment | null>(null);
   const [lootModalTitle, setLootModalTitle] = useState<string>('🎁 战利品掉落 · 装备查验');
 
@@ -193,6 +196,7 @@ export function App() {
   const startRoomBattle = (room: DungeonRoom) => {
     setActiveDungeonRoom(room);
     setBattleRewardClaimed(false);
+    setBattleProgression(null);
     setActiveTab('combat');
 
     // 挑选当前首发阵容中存活的佣兵出战 (若首发存活不足，自动从替补中补足存活成员)
@@ -541,9 +545,21 @@ export function App() {
 
       // 战斗结束结算
       if (engine.isFinished && !battleRewardClaimed) {
-        // 同步存活/伤亡状态回名册
+        const stars = currentContract?.stars || 1;
+        const isBossFight = Boolean(activeDungeonRoom?.isBoss);
+        const preliminarySummary = engine.getSettlementSummary(null);
+        const mvpId = preliminarySummary.mvpHeroId;
+
+        const playerUnits = engine.units.filter(u => u.side === 'player');
+        const clearedFights = currentDungeon
+          ? currentDungeon.rooms.filter(r => r.type === 'battle' && (r.cleared || r.index === activeDungeonRoom?.index)).length
+          : 1;
+        const partyAbility = playerUnits.reduce((sum, u) => sum + u.hero.currentAbility, 0);
+
+        // 同步存活/伤亡状态回名册，并结算经验与成长
         const updatedRoster = [...roster];
-        engine.units.filter(u => u.side === 'player').forEach(u => {
+        const progressionResults: HeroProgressionResult[] = [];
+        playerUnits.forEach(u => {
           const hero = updatedRoster.find(h => h.id === u.hero.id);
           if (!hero) return;
 
@@ -564,8 +580,32 @@ export function App() {
             hero.stress = Math.min(100, hero.stress + 30);
             hero.morale = Math.max(0, hero.morale - 15);
           }
+
+          const isMvp = engine.winner === 'player' && u.hero.id === mvpId;
+          if (engine.winner === 'player') {
+            // 首领房视作本次契约收官：经验 + CA + 属性成长一并结算
+            const prog = isBossFight
+              ? applyDelveProgression(hero, {
+                  stars,
+                  isBoss: true,
+                  isContractClear: true,
+                  victory: true,
+                  isMvp,
+                  fights: Math.max(1, clearedFights),
+                  partyAbility
+                })
+              : applyBattleExperience(hero, { stars, victory: true, isMvp });
+            progressionResults.push(prog);
+          } else {
+            progressionResults.push(applyBattleExperience(hero, { stars, victory: false, isMvp: false }));
+          }
         });
         setRoster(updatedRoster);
+
+        const levelUps = progressionResults.filter(p => p.levelAfter > p.levelBefore);
+        const levelUpSuffix = levelUps.length > 0
+          ? ` | 🎉 ${levelUps.map(p => `${p.heroName} 升至 Lv.${p.levelAfter}`).join('、')}`
+          : '';
 
         if (engine.winner === 'player') {
           if (activeDungeonRoom) {
@@ -575,26 +615,27 @@ export function App() {
           // 战利品掉落与结算面板触发逻辑：
           // 仅在最终首领房间 (isBoss) 胜利时触发战役总评 (MVP 榜) 与 极品装备翻牌结算
           // 普通小怪房间胜利后直接进入快捷返回沙盘模式，避免频繁弹窗与装备爆仓
-          const isBossFight = Boolean(activeDungeonRoom?.isBoss);
           if (isBossFight) {
-            const stars = currentContract?.stars || 1;
             // 最终首领房间必掉落 1 件高阶军械装备
             const dropLoot = generateRandomLoot(stars);
             const summary = engine.getSettlementSummary(dropLoot);
             setSettlementSummary(summary);
+            setBattleProgression(progressionResults);
             setSettlementStep('stats'); // 仅 Boss 战进入结算面板与翻牌两步走
-            setSystemNotice('👑 最终首领已被斩杀！缴获极品军械！');
+            setSystemNotice(`👑 最终首领已被斩杀！缴获极品军械！${levelUpSuffix}`);
           } else {
-            // 普通战斗胜利：小幅奖励队伍少许金币或补给，不弹大面板不塞背包
+            // 普通战斗胜利：不弹大面板不塞背包，仅静默累积经验
             setSettlementSummary(null);
+            setBattleProgression(null);
             setSettlementStep('idle');
-            setSystemNotice('🎉 房间守卫已被全歼，道路畅通！');
+            setSystemNotice(`🎉 房间守卫已被全歼，道路畅通！${levelUpSuffix}`);
           }
         } else if (engine.winner === 'enemy') {
           const summary = engine.getSettlementSummary(null);
           setSettlementSummary(summary);
+          setBattleProgression(progressionResults);
           setSettlementStep('stats'); // 败北展示数据统计以便玩家分析原因
-          setSystemNotice('💀 战役失败，先遣队败退！队员重创，请回圣所与医馆救治！');
+          setSystemNotice(`💀 战役失败，先遣队败退！队员重创，请回圣所与医馆救治！${levelUpSuffix}`);
         }
         setBattleRewardClaimed(true);
         triggerUpdate();
@@ -873,6 +914,7 @@ export function App() {
                 settlementStep === 'stats' && settlementSummary ? (
                   <BattleStatsModal
                     summary={settlementSummary}
+                    progression={battleProgression ?? undefined}
                     onNext={() => {
                       if (engine.winner === 'player') {
                         if (settlementSummary.lootDrop) {
@@ -1104,6 +1146,7 @@ export function App() {
               const isDeployed = deployedHeroIds.includes(hero.id);
               const heroSlot = formationAssignments.find(a => a.heroId === hero.id)?.slotId;
               const slotMeta = GRID_SLOTS.find(s => s.id === heroSlot);
+              const xp = heroXpProgress(hero);
 
               return (
                 <div 
@@ -1187,7 +1230,30 @@ export function App() {
                       )}
                     </div>
                   </div>
-                
+
+                  {/* 经验与成长进度 */}
+                  <div style={{ marginTop: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#64748b', marginBottom: '2px' }}>
+                      <span>
+                        {xp.isMax ? '已达等级上限' : `经验 ${xp.into} / ${xp.need}`}
+                      </span>
+                      <span>成长 {hero.currentAbility} / {hero.potentialAbility} CA</span>
+                    </div>
+                    <div style={{ height: '4px', background: '#0b1329', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${xp.percent}%`,
+                          height: '100%',
+                          background: xp.isMax
+                            ? 'linear-gradient(90deg, #eab308, #fde047)'
+                            : 'linear-gradient(90deg, #38bdf8, #a78bfa)',
+                          borderRadius: '2px',
+                          transition: 'width 0.4s ease-out'
+                        }}
+                      />
+                    </div>
+                  </div>
+
                 {/* 装备栏（点击卸下） */}
                 <div style={{ display: 'flex', gap: '6px', marginTop: '6px', fontSize: '10px' }}>
                   {([

@@ -1,5 +1,6 @@
 import type { ClassId, Hero, HeroAttributes, HiddenAttributes, Role } from '../types/hero';
 import { HERO_PROFILES } from '../data/characterNamePool';
+import { xpTotalForLevel } from './progressionEngine';
 
 export const CLASS_ICONS: Record<ClassId, string> = {
   guardian: '🛡️',
@@ -131,6 +132,7 @@ export function generateHero(classId: ClassId, isLeader: boolean = false, fixedG
 
   // 严格还原原版计算公式
   const maxHp = Math.round((40 + attributes.vitality * 6 + attributes.strength * 1.5) * cfg.hpMod);
+  const level = Math.max(1, Math.floor(ca / 15));
 
   return {
     id: 'hero_' + Math.random().toString(36).slice(2, 9),
@@ -142,7 +144,9 @@ export function generateHero(classId: ClassId, isLeader: boolean = false, fixedG
     classId,
     role: cfg.role,
     age: randomRange(18, 28),
-    level: Math.max(1, Math.floor(ca / 15)),
+    level,
+    experience: xpTotalForLevel(level),
+    growthCarry: 0,
     currentAbility: ca,
     potentialAbility: pa,
     currentHp: maxHp,
