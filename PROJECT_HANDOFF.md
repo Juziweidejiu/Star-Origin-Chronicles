@@ -492,3 +492,29 @@
   - `npm run check`（tsc -b && oxlint）零 error、零 warning。
   - `npm run build` 992ms 成功，主包 426.20 kB（gzip 134.06）、InkStoryRunner 懒加载块 256.87 kB（gzip 66.49）、CSS 14.44 kB，**chunk-size 警告已消失**。
 - [x] **结果**: `TODO.md` 中 P1「战场单单位 memo 重渲染」清零；至此性能优化清单（跳字 rAF、样式注入、布局回流、日志拷贝、backdrop-filter、tabular-nums、代码拆分、单单位 memo）全部完成。
+
+### Milestone 30: GitHub 镜像、免费 CI 与真机性能采样器 (已完成交付 ✅)
+
+- [x] **GitHub 远程接入（免费 CI 落地）**
+  - 新增远程 `github` → `https://github.com/Juziweidejiu/Star-Origin-Chronicles.git`（公开仓库，Actions 分钟数不限）。
+  - 首次流水线即绿灯：`npm ci` → `npm run check` → `npm test` → `npm run build` 全部通过，并上传 `dist` 产物（run 44316284013，head `49ba680`）。
+  - Gitee Go（`.workflows/ci.yml`）为付费功能，本项目不使用；文件保留作历史记录。
+  - `AGENTS.md` 定下双远程流程：`git push origin main`（Gitee 主仓）+ `git push github main`（GitHub 镜像触发 CI）。
+
+- [x] **真机性能采样器（`src/dev/perfMonitor.ts`）**
+  - 纯 DOM 悬浮面板，**不走 React**（避免采样器自身污染读数）；仅网址带 `?perf=1` 时挂载，生产默认零开销（未启用只多 4.5 kB）。
+  - 采集：FPS 均值（240 帧窗口）、帧耗时 avg/p95/worst、掉帧率（>33.4ms）、卡死帧（>100ms）、Long Task（>50ms）、LoAF（拆分「脚本」与「样式+布局」耗时）、UA / 视口 / DPR / 核数 / 设备内存 / JS 堆。
+  - 面板提供「复制报告」「重置」，并挂 `window.__perfReport()` 供控制台直接取。
+
+- [x] **采样器两处精度缺陷修正（`49ba680`）**
+  - 切后台/系统休眠会产出几秒到几十秒的「帧」，原实现直接入窗，导致均值被彻底带偏（实测单帧 19271ms 把 11.5 FPS 的假象造出来）。现过滤 `dt > 1000` 并单列「挂起剔除 N 次」。
+  - LoAF 脚本耗时公式原先把帧总时长重复累加，出现「脚本 304ms + 布局 199ms > 总时长 304ms」的矛盾。改为以 `styleAndLayoutStart` 为分界：布局 = `startTime + duration − styleAndLayoutStart`，脚本 = `styleAndLayoutStart − startTime`。
+
+- [x] **首轮采样结论（桌面 Chrome，非真机）**
+  - 渲染本身健康：p95 帧耗时 7.4ms（≈135fps）、掉帧率 0.4%、卡死帧 1。
+  - 唯一真实信号：2 次 Long Task 共 500ms（最长 300ms，其中样式布局 199ms），判断来自首次挂载或结算弹窗挂载，属一次性峰值而非持续卡顿。
+  - 待补：真手机复测（`npm run build` → `bash deploy-pwa.sh` → `https://orange-fit.top/game/?perf=1`）。
+
+- [x] **文档与蓝图同步**
+  - `TODO.md` 全量重写为 M1–M30 摘要 + P0/P1/P2 分级 + 技术债 + 工程约定，并在头部写明「新会话从这里开始读」。
+  - 本文件追加本节，作为 M30 的交付记录。
