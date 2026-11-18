@@ -6,8 +6,9 @@ import { TownEngine } from './engine/townEngine';
 import { CrisisEngine } from './engine/crisisEngine';
 import { generateDungeonFromContract } from './engine/dungeonEngine';
 import { createEnemyParty } from './engine/enemyFactory';
-import { resolveStats, STAT_LABEL, describeBase } from './engine/statResolver';
+import { resolveStats } from './engine/statResolver';
 import { TownView } from './components/TownView';
+import { RosterView } from './components/RosterView';
 import { DungeonView } from './components/DungeonView';
 import { CrisisAlert } from './components/CrisisAlert';
 import type { Hero, Equipment } from './types/hero';
@@ -23,18 +24,20 @@ import { BattleStatsModal } from './components/BattleStatsModal';
 import { LootDropModal } from './components/LootDropModal';
 import type { BattleSettlementSummary } from './types/combatSettlement';
 import { generateRandomLoot } from './engine/dungeonEngine';
-import { applyBattleExperience, applyDelveProgression, heroXpProgress } from './engine/progressionEngine';
+import { applyBattleExperience, applyDelveProgression } from './engine/progressionEngine';
 import type { HeroProgressionResult } from './types/progression';
 import type { Projectile } from './components/CombatProjectiles';
 import type { FloatingTextItem, UnitVisualState, UltCinematicEvent } from './types/combatVisual';
 import { GOLD_STANDARD_DUNGEON_EVENTS, getCampDialogueForHero } from './data/mockNarratives';
 import { ENABLE_WORLD_CRISIS } from './config/features';
 import type { FormationPresetId, FormationSlotAssignment, GridSlotId } from './types/formation';
-import { GRID_SLOTS } from './types/formation';
 import { FORMATION_PRESETS, applyPresetToParty } from './engine/formationEngine';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town' | 'story'>('town');
+  const [activeTab, setActiveTab] = useState<'roster' | 'dungeon' | 'combat' | 'town' | 'story'>(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    return t === 'roster' || t === 'dungeon' || t === 'combat' || t === 'story' ? t : 'town';
+  });
   const [storySubTab, setStorySubTab] = useState<'ink' | 'event' | 'bark'>('ink');
   const [interactiveEvent, setInteractiveEvent] = useState<DungeonEvent | null>(null);
   const [, setTickCounter] = useState(0);
@@ -1133,261 +1136,21 @@ export function App() {
 
         {/* Tab 4: 佣兵名册 */}
         {activeTab === 'roster' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', padding: '8px 12px', borderRadius: '8px', border: '1px solid #334155' }}>
-              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                <span style={{ color: '#f8fafc', fontWeight: 'bold' }}>现役名册 {roster.length}/8 人</span>
-                <span style={{ marginLeft: '8px', color: '#34d399' }}>首发 {deployedSquad.length}/4</span>
-                <span style={{ marginLeft: '6px', color: '#a78bfa' }}>待命 {Math.max(0, roster.length - deployedSquad.length)} 人</span>
-                <div style={{ marginTop: '2px', color: '#eab308' }}>当前阵型：【{FORMATION_PRESETS[currentFormationPreset]?.name}】</div>
-              </div>
-              <button
-                onClick={() => setShowFormationModal(true)}
-                style={{ padding: '4px 10px', background: '#d97706', border: 'none', borderRadius: '6px', color: '#0f172a', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer' }}
-              >
-                📐 调整 3×3 阵型
-              </button>
-            </div>
-            {roster.map(hero => {
-              const isDeployed = deployedHeroIds.includes(hero.id);
-              const heroSlot = formationAssignments.find(a => a.heroId === hero.id)?.slotId;
-              const slotMeta = GRID_SLOTS.find(s => s.id === heroSlot);
-              const xp = heroXpProgress(hero);
-
-              return (
-                <div 
-                  key={hero.id} 
-                  style={{ 
-                    background: isDeployed ? '#1e293b' : 'rgba(15, 23, 42, 0.75)', 
-                    padding: '12px', 
-                    borderRadius: '8px', 
-                    border: isDeployed ? '1px solid #334155' : '1px dashed #475569',
-                    position: 'relative'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#f8fafc' }}>
-                        {hero.isLeader ? '👑 ' : ''}{hero.name}
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#38bdf8' }}>Lv.{hero.level} {heroRoleLabel(hero)}</span>
-                      
-                      {/* 出战/待命徽章 */}
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          fontWeight: 'bold',
-                          backgroundColor: isDeployed ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.15)',
-                          border: isDeployed ? '1px solid #10b981' : '1px solid #64748b',
-                          color: isDeployed ? '#34d399' : '#94a3b8',
-                        }}
-                      >
-                        {isDeployed ? `⚔️ 首发出战 (${slotMeta ? slotMeta.name : '阵中'})` : '💤 驻营待命'}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '11px', color: '#eab308', fontWeight: 'bold' }}>CA {hero.currentAbility} / PA {hero.potentialAbility}</span>
-                      
-                      {/* 轮换上阵/下阵操作 */}
-                      {!isDeployed ? (
-                        <select
-                          defaultValue=""
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleSwapHeroDeploy(e.target.value, hero.id);
-                              e.target.value = "";
-                            }
-                          }}
-                          style={{
-                            background: '#d97706',
-                            color: '#0f172a',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '3px 6px',
-                            fontSize: '10px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <option value="" disabled>换上出战 🔁</option>
-                          {deployedSquad.map(d => (
-                            <option key={d.id} value={d.id}>替换: {d.name} ({heroRoleLabel(d)})</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <button
-                          onClick={() => setShowFormationModal(true)}
-                          style={{
-                            background: '#334155',
-                            color: '#cbd5e1',
-                            border: '1px solid #475569',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            fontSize: '10px',
-                            cursor: 'pointer'
-                          }}
-                          title="调整该队员在 3x3 阵型中的位置"
-                        >
-                          调位
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 经验与成长进度 */}
-                  <div style={{ marginTop: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#64748b', marginBottom: '2px' }}>
-                      <span>
-                        {xp.isMax ? '已达等级上限' : `经验 ${xp.into} / ${xp.need}`}
-                      </span>
-                      <span>成长 {hero.currentAbility} / {hero.potentialAbility} CA</span>
-                    </div>
-                    <div style={{ height: '4px', background: '#0b1329', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${xp.percent}%`,
-                          height: '100%',
-                          background: xp.isMax
-                            ? 'linear-gradient(90deg, #eab308, #fde047)'
-                            : 'linear-gradient(90deg, #38bdf8, #a78bfa)',
-                          borderRadius: '2px',
-                          transition: 'width 0.4s ease-out'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                {/* 装备栏（点击卸下） */}
-                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', fontSize: '10px' }}>
-                  {([
-                    ['weapon', '🗡️', hero.equipment.weapon],
-                    ['armor', '🛡️', hero.equipment.armor],
-                    ['trinket', '💍', hero.equipment.trinket],
-                  ] as const).map(([slot, icon, item]) => (
-                    <span
-                      key={slot}
-                      onClick={() => item && handleUnequipItem(hero.id, slot)}
-                      style={{
-                        background: '#0b1329',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        color: item ? '#cbd5e1' : '#475569',
-                        cursor: item ? 'pointer' : 'default',
-                      }}
-                      title={item ? `${describeBase(item)}${item.affixText ? ' | ' + item.affixText : ''}` : ''}
-                    >
-                      {icon} {item?.name || '无'}
-                    </span>
-                  ))}
-                </div>
-
-                {/* 状态与伤残 */}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
-                  <span>生命: {hero.currentHp}/{hero.maxHp}</span>
-                  <span>士气: {hero.morale}</span>
-                  <span>压力: {hero.stress}/100</span>
-                  <span style={{ color: hero.injuries.length > 0 ? '#ef4444' : '#10b981' }}>
-                    {hero.injuries.length > 0 ? `伤残: ${hero.injuries.join(',')}` : '健康'}
-                  </span>
-                </div>
-
-                {/* 九项核心属性面板 */}
-                {(() => {
-                  const st = resolveStats(hero);
-                  return (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginTop: '8px', fontSize: '10px', color: '#cbd5e1', background: '#0b1329', padding: '8px', borderRadius: '6px' }}>
-                      <span>⚔️ {STAT_LABEL.ad} {st.ad}</span>
-                      <span>🔮 {STAT_LABEL.ap} {st.ap}</span>
-                      <span>❤️ {STAT_LABEL.maxHp} {st.maxHp}</span>
-                      <span>🛡️ {STAT_LABEL.armor} {st.armor}</span>
-                      <span>✨ {STAT_LABEL.magicResist} {st.magicResist}</span>
-                      <span>⚡ 攻速 {(1 / st.attackInterval).toFixed(2)}/s</span>
-                      <span>💢 {STAT_LABEL.critChance} {Math.round(st.critChance * 100)}%</span>
-                      <span>🔥 {STAT_LABEL.critDamage} {Math.round(st.critDamage * 100)}%</span>
-                      <span>🗡️ {STAT_LABEL.penetration} {st.penetration}</span>
-                    </div>
-                  );
-                })()}
-
-                {/* 原始属性（装备不写回这里） */}
-                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
-                  力量 {hero.attributes.strength} | 武器 {hero.attributes.weaponSkill} | 坚毅 {hero.attributes.resolve} | 抗压 {hero.hidden.pressure}
-                </div>
-
-                <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                  {hero.traits.map(t => (
-                    <span key={t} style={{ fontSize: '10px', background: '#334155', padding: '2px 6px', borderRadius: '4px', color: '#34d399' }}>
-                      {t}
-                    </span>
-                  ))}
-                  <span style={{ fontSize: '10px', background: '#334155', padding: '2px 6px', borderRadius: '4px', color: '#94a3b8' }}>
-                    周薪: {hero.wage} G
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-            {/* 公共背包 */}
-            <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#f59e0b' }}>
-                  🎒 队伍背包 ({inventory.length})
-                </span>
-                <select
-                  value={inventoryTarget || roster[0]?.id || ''}
-                  onChange={e => setInventoryTarget(e.target.value)}
-                  style={{ background: '#0f172a', color: '#38bdf8', border: '1px solid #475569', borderRadius: '4px', padding: '3px 6px', fontSize: '11px' }}
-                >
-                  {roster.map(h => (
-                    <option key={h.id} value={h.id}>穿戴至: {h.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {inventory.length === 0 ? (
-                <div style={{ fontSize: '11px', color: '#64748b' }}>背包空空如也，去地牢里翻箱倒柜吧。</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {inventory.map(item => {
-                    const rarityColor =
-                      item.rarity === 'legendary' ? '#f97316'
-                      : item.rarity === 'epic' ? '#a855f7'
-                      : item.rarity === 'rare' ? '#38bdf8'
-                      : item.rarity === 'uncommon' ? '#10b981'
-                      : '#cbd5e1';
-                    return (
-                      <div
-                        key={item.id}
-                        style={{ background: '#0f172a', padding: '6px 10px', borderRadius: '6px', borderLeft: `4px solid ${rarityColor}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}
-                      >
-                        <div>
-                          <span style={{ fontWeight: 'bold', color: rarityColor }}>{item.name}</span>
-                          <span style={{ color: '#94a3b8', marginLeft: '6px' }}>[{item.slot}] T{item.tier}</span>
-                          <div style={{ color: '#94a3b8', fontSize: '10px', marginTop: '2px' }}>
-                            <span style={{ color: '#cbd5e1' }}>{describeBase(item)}</span>
-                            {item.affixText ? (
-                              <span style={{ color: '#38bdf8', marginLeft: '6px' }}>· {item.affixText}</span>
-                            ) : null}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleEquipItem(inventoryTarget || roster[0]?.id || '', item)}
-                          style={{ padding: '4px 8px', background: '#38bdf8', color: '#0f172a', borderRadius: '4px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
-                        >
-                          装备
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          <RosterView
+            roster={roster}
+            deployedHeroIds={deployedHeroIds}
+            formationAssignments={formationAssignments}
+            formationPresetName={FORMATION_PRESETS[currentFormationPreset]?.name || '自由'}
+            inventory={inventory}
+            inventoryTarget={inventoryTarget}
+            onInventoryTargetChange={setInventoryTarget}
+            onOpenFormation={() => setShowFormationModal(true)}
+            onSwapHero={handleSwapHeroDeploy}
+            onUnequip={handleUnequipItem}
+            onEquip={handleEquipItem}
+          />
         )}
+
         {/* Tab 5: 暗黑叙事与 DSL 剧本系统 */}
         {activeTab === 'story' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
