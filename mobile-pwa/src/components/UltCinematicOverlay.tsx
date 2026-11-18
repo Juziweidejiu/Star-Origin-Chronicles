@@ -5,15 +5,18 @@ interface UltCinematicOverlayProps {
   event: UltCinematicEvent | null;
 }
 
+/**
+ * 大招特写：保留“暗场—亮字”的电影感，但把配色从赛博霓虹换成墨夜 + 羊皮纸 + 黄铜。
+ * 深色在这里是刻意的（暗场才显亮），不是残留的旧 UI。
+ */
 export const UltCinematicOverlay: React.FC<UltCinematicOverlayProps> = ({ event }) => {
   if (!event) return null;
 
-  const isDps = event.role === 'dps';
   const isTank = event.role === 'tank';
   const isHealer = event.role === 'healer';
 
-  const mainColor = isTank ? '#f59e0b' : isHealer ? '#10b981' : '#38bdf8';
-  const icon = isTank ? '🛡️' : isHealer ? '✨' : '⚡';
+  const accent = isTank ? '#D9A45B' : isHealer ? '#6FBF8B' : '#C4665A';
+  const kicker = isTank ? '铁壁之下' : isHealer ? '星原垂怜' : '刀锋所向';
 
   return (
     <div
@@ -29,85 +32,146 @@ export const UltCinematicOverlay: React.FC<UltCinematicOverlayProps> = ({ event 
       }}
     >
       <style>{`
-        @keyframes ultDarkDim {
-          0% { background: rgba(0, 0, 0, 0); }
-          25% { background: rgba(0, 0, 0, 0.65); }
-          75% { background: rgba(0, 0, 0, 0.65); }
-          100% { background: rgba(0, 0, 0, 0); }
+        @keyframes ultVeil {
+          0%   { opacity: 0; }
+          22%  { opacity: 1; }
+          76%  { opacity: 1; }
+          100% { opacity: 0; }
         }
-        @keyframes ultBannerSlide {
-          0% {
-            opacity: 0;
-            transform: translateX(-120%) skewX(-12deg);
-          }
-          20% {
-            opacity: 1;
-            transform: translateX(0%) skewX(-12deg);
-          }
-          70% {
-            opacity: 1;
-            transform: translateX(0%) skewX(-12deg);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(120%) skewX(-12deg);
-          }
+        @keyframes ultBand {
+          0%   { opacity: 0; transform: translateX(-14px); letter-spacing: .5em; }
+          22%  { opacity: 1; transform: translateX(0);     letter-spacing: .14em; }
+          72%  { opacity: 1; transform: translateX(0);     letter-spacing: .14em; }
+          100% { opacity: 0; transform: translateX(10px);  letter-spacing: .3em; }
         }
-        @keyframes ultSlashFlash {
-          0% { opacity: 0; transform: scale(0.5) rotate(-35deg); }
-          30% { opacity: 1; transform: scale(1.1) rotate(-35deg); }
-          100% { opacity: 0; transform: scale(1.4) rotate(-35deg); }
+        @keyframes ultRule {
+          0%   { transform: scaleX(0); opacity: 0; }
+          26%  { transform: scaleX(1); opacity: 1; }
+          74%  { transform: scaleX(1); opacity: 1; }
+          100% { transform: scaleX(1); opacity: 0; }
+        }
+        @keyframes ultSlash {
+          0%   { opacity: 0; transform: scale(.4) rotate(-32deg); }
+          26%  { opacity: .95; transform: scale(1.05) rotate(-32deg); }
+          100% { opacity: 0; transform: scale(1.5) rotate(-32deg); }
+        }
+        @keyframes ultGrain {
+          0%   { opacity: .10; }
+          50%  { opacity: .16; }
+          100% { opacity: .10; }
         }
       `}</style>
 
-      {/* 暗屏遮罩 */}
+      {/* 墨夜暗场：四周更暗，中间留一点透亮 */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          animation: 'ultDarkDim 0.7s ease-in-out forwards',
+          background:
+            'radial-gradient(120% 90% at 50% 50%, rgba(24,18,11,.55) 0%, rgba(20,15,9,.80) 60%, rgba(16,12,7,.92) 100%)',
+          animation: 'ultVeil .8s ease-in-out forwards',
         }}
       />
 
-      {/* 剑芒 / 圣光斩击裂隙特效 */}
-      {isDps && (
+      {/* 纸纹颗粒，避免暗场显得像纯色遮罩 */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.14,
+          backgroundImage:
+            'radial-gradient(rgba(243,233,209,.5) .5px, transparent .6px), radial-gradient(rgba(243,233,209,.35) .5px, transparent .6px)',
+          backgroundSize: '5px 5px, 7px 7px',
+          backgroundPosition: '0 0, 3px 4px',
+          animation: 'ultGrain 1.2s ease-in-out',
+        }}
+      />
+
+      {/* 输出位：一道斜切光痕 */}
+      {!isTank && !isHealer && (
         <div
           style={{
             position: 'absolute',
-            width: '120%',
-            height: '4px',
-            background: 'linear-gradient(90deg, transparent, #ffffff, #38bdf8, #ffffff, transparent)',
-            boxShadow: '0 0 25px #38bdf8, 0 0 40px #ffffff',
-            animation: 'ultSlashFlash 0.5s ease-out forwards',
+            width: '150%',
+            height: '2px',
+            background: `linear-gradient(90deg, transparent, ${accent}, #F3E9D1, ${accent}, transparent)`,
+            boxShadow: `0 0 18px ${accent}`,
+            animation: 'ultSlash .55s ease-out forwards',
           }}
         />
       )}
 
-      {/* 技能通告横幅 */}
+      {/* 名牌：羊皮纸底 + 黄铜细线，不让它看起来像霓虹广告条 */}
       <div
         style={{
           position: 'relative',
-          width: '110%',
-          padding: '10px 0',
-          background: `linear-gradient(90deg, transparent 0%, rgba(15, 23, 42, 0.95) 20%, rgba(15, 23, 42, 0.95) 80%, transparent 100%)`,
-          borderTop: `2px solid ${mainColor}`,
-          borderBottom: `2px solid ${mainColor}`,
-          boxShadow: `0 0 25px ${mainColor}44`,
-          animation: 'ultBannerSlide 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          padding: '0 18px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          animation: 'ultBand .8s cubic-bezier(.16,1,.3,1) forwards',
         }}
       >
-        <div style={{ fontSize: '11px', color: '#94a3b8', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '2px' }}>
-          {icon} 绝技觉醒 · 战意爆发
+        <div
+          style={{
+            fontSize: '10px',
+            letterSpacing: '.28em',
+            color: accent,
+            fontFamily: 'var(--pz-sans)',
+            marginBottom: '6px',
+          }}
+        >
+          {kicker}
         </div>
-        <div style={{ fontSize: '20px', fontWeight: '900', color: '#f8fafc', textShadow: `0 0 10px ${mainColor}` }}>
-          【{event.ultName}】
+
+        <div
+          aria-hidden
+          style={{
+            width: '100%',
+            height: '1px',
+            background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
+            transformOrigin: 'center',
+            animation: 'ultRule .8s ease-out forwards',
+          }}
+        />
+
+        <div
+          style={{
+            fontSize: '26px',
+            lineHeight: 1.25,
+            fontWeight: 700,
+            color: '#F3E9D1',
+            fontFamily: 'var(--pz-serif)',
+            letterSpacing: '.06em',
+            textShadow: `0 2px 14px rgba(0,0,0,.6), 0 0 22px ${accent}55`,
+            padding: '6px 0 8px',
+            textAlign: 'center',
+          }}
+        >
+          {event.ultName}
         </div>
-        <div style={{ fontSize: '10px', color: mainColor, marginTop: '2px', fontWeight: 'bold' }}>
-          施术者：{event.casterName}
+
+        <div
+          aria-hidden
+          style={{
+            width: '100%',
+            height: '1px',
+            background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
+            transformOrigin: 'center',
+            animation: 'ultRule .8s ease-out forwards',
+          }}
+        />
+
+        <div
+          style={{
+            marginTop: '7px',
+            fontSize: '11px',
+            color: 'rgba(243,233,209,.66)',
+            fontFamily: 'var(--pz-sans)',
+            letterSpacing: '.08em',
+          }}
+        >
+          {event.casterName}
         </div>
       </div>
     </div>

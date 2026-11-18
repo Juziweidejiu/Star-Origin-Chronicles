@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Leaf, Shield, Swords, X } from 'lucide-react';
 import type { Hero } from '../types/hero';
 import type { GridSlotId, FormationPresetId, FormationSlotAssignment } from '../types/formation';
 import { GRID_SLOTS } from '../types/formation';
@@ -15,6 +16,26 @@ interface FormationModalProps {
   onSwapHeroDeploy?: (deployHeroId: string, reserveHeroId: string) => void; // 替补与主力轮换
   onClose: () => void;
 }
+
+/** 职业 → 图标与色，避免 emoji 跨平台观感不一 */
+const ROLE_STYLE: Record<string, { color: string; tint: string }> = {
+  tank: { color: '#2F6E8F', tint: 'rgba(47,110,143,.12)' },
+  healer: { color: '#3F6B4E', tint: 'rgba(111,191,139,.14)' },
+  dps: { color: '#8A3B32', tint: 'rgba(138,59,50,.10)' },
+};
+
+const RoleIcon: React.FC<{ role: string; size?: number }> = ({ role, size = 15 }) => {
+  if (role === 'tank') return <Shield size={size} />;
+  if (role === 'healer') return <Leaf size={size} />;
+  return <Swords size={size} />;
+};
+
+/** 三条战线的说明（前排承伤 / 中排机动 / 后排施法） */
+const LINES: { col: 'front' | 'mid' | 'back'; label: string; hint: string; color: string; tint: string }[] = [
+  { col: 'front', label: '前排 · 防守线', hint: '仇恨 4.5 / 承伤 −10%', color: '#8A3B32', tint: 'rgba(138,59,50,.10)' },
+  { col: 'mid', label: '中排 · 机动线', hint: '仇恨 1.2 / 暴击 +5%', color: '#2F6E8F', tint: 'rgba(47,110,143,.10)' },
+  { col: 'back', label: '后排 · 施法线', hint: '仇恨 0.55 / 效能 +10%', color: '#3F6B4E', tint: 'rgba(111,191,139,.12)' },
+];
 
 export const FormationModal: React.FC<FormationModalProps> = ({
   party,
@@ -122,80 +143,79 @@ export const FormationModal: React.FC<FormationModalProps> = ({
     occupant?: Hero;
     isSelected: boolean;
     onClick: () => void;
-  }> = ({ slotId, occupant, isSelected, onClick }) => {
-    const isTargetForSwap = selectedHeroId && occupant && selectedHeroId !== occupant.id;
+  }> = ({ occupant, isSelected, onClick }) => {
+    const isTargetForSwap = Boolean(selectedHeroId && occupant && selectedHeroId !== occupant.id);
     const selectedIsReserve = selectedHeroId ? isHeroInReserve(selectedHeroId) : false;
+    const role = occupant ? (ROLE_STYLE[occupant.role] ? occupant.role : 'dps') : 'dps';
+    const rs = ROLE_STYLE[role];
 
     return (
       <div
         onClick={onClick}
         style={{
-          height: '72px',
-          borderRadius: '8px',
+          height: '70px',
+          borderRadius: 'var(--pz-r-btn)',
           padding: '4px',
-          backgroundColor: isSelected
-            ? 'rgba(217, 119, 6, 0.4)'
+          background: isSelected
+            ? 'rgba(138,59,50,.10)'
             : occupant
-            ? '#1e293b'
-            : 'rgba(15, 23, 42, 0.6)',
+              ? 'var(--pz-page)'
+              : 'transparent',
           border: isSelected
-            ? '2px solid #facc15'
+            ? '1.5px solid var(--pz-wine)'
             : isTargetForSwap && selectedIsReserve
-            ? '2px dashed #38bdf8'
-            : occupant
-            ? '1px solid #475569'
-            : '1px dashed #334155',
+              ? '1.5px dashed var(--pz-brass)'
+              : occupant
+                ? '1px solid var(--pz-line)'
+                : '1px dashed var(--pz-line-2)',
           cursor: 'pointer',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
-          transition: 'all 0.15s ease-in-out',
-          boxShadow: isSelected ? '0 0 12px rgba(250, 204, 21, 0.6)' : 'none',
+          transition: 'background .15s, border-color .15s',
         }}
       >
         {occupant ? (
           <>
             <div
               style={{
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '50%',
-                backgroundColor: occupant.role === 'tank' ? '#1e3a8a' : occupant.role === 'healer' ? '#065f46' : '#991b1b',
-                border: `2px solid ${occupant.role === 'tank' ? '#60a5fa' : occupant.role === 'healer' ? '#34d399' : '#f87171'}`,
+                background: rs.tint,
+                border: `1px solid ${rs.color}`,
+                color: rs.color,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '14px',
-                color: '#fff',
-                marginBottom: '2px',
+                marginBottom: '3px',
               }}
             >
-              {occupant.role === 'tank' ? '🛡️' : occupant.role === 'healer' ? '🌿' : '⚔️'}
+              <RoleIcon role={role} />
             </div>
             <div
               style={{
                 fontSize: '11px',
-                fontWeight: 'bold',
-                color: '#f8fafc',
+                fontWeight: 600,
+                color: 'var(--pz-ink)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '68px',
+                maxWidth: '76px',
                 textAlign: 'center',
               }}
             >
               {occupant.name}
             </div>
-            <div style={{ fontSize: '9px', color: '#94a3b8' }}>
+            <div style={{ fontSize: '9px', color: 'var(--pz-ink-3)' }}>
               {heroRoleLabel(occupant)}
             </div>
           </>
         ) : (
-          <div style={{ fontSize: '9px', color: '#475569', textAlign: 'center' }}>
-            <div>{slotId.split('_')[1] === 'center' ? '•' : ''}</div>
-            <div style={{ marginTop: '2px' }}>空位</div>
+          <div style={{ fontSize: '10px', color: 'var(--pz-ink-3)', textAlign: 'center' }}>
+            空位
           </div>
         )}
       </div>
@@ -207,8 +227,8 @@ export const FormationModal: React.FC<FormationModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(5, 10, 20, 0.85)',
-        backdropFilter: 'blur(4px)',
+        background: 'rgba(42,36,24,.55)',
+        backdropFilter: 'blur(3px)',
         zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
@@ -219,60 +239,71 @@ export const FormationModal: React.FC<FormationModalProps> = ({
     >
       <div
         style={{
-          backgroundColor: '#0f172a',
-          border: '1px solid #334155',
-          borderRadius: '12px',
+          background: 'var(--pz-raised)',
+          border: '1px solid var(--pz-line-2)',
+          borderRadius: 'var(--pz-r-card)',
           width: '100%',
-          maxWidth: '480px',
-          maxHeight: '94vh',
+          maxWidth: '420px',
+          maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          boxShadow: '0 18px 44px rgba(42,36,24,.34)',
           overflow: 'hidden',
+          animation: 'riseIn .2s ease-out',
         }}
       >
-        {/* 顶部标题栏 */}
+        {/* 顶栏：深木 + 黄铜细线 */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '12px 16px',
-            borderBottom: '1px solid #1e293b',
-            backgroundColor: '#1e293b',
+            padding: '10px 14px',
+            background: 'linear-gradient(180deg, #3A2E1F 0%, #2A2115 100%)',
+            borderBottom: '1px solid rgba(217,164,91,.45)',
+            flexShrink: 0,
           }}
         >
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f8fafc' }}>
-              📐 3×3 战术阵型与人员轮换
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--pz-serif)',
+                fontSize: '15px',
+                color: '#F3E9D1',
+                letterSpacing: '.02em',
+              }}
+            >
+              战术阵型
             </div>
-            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-              点击主力或待命队员，再点击目标位置即可换位或轮换上阵
+            <div style={{ fontSize: '10px', color: 'rgba(243,233,209,.55)', marginTop: '2px' }}>
+              先点人，再点格子；替补可直接换下主力
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="关闭"
             style={{
-              padding: '4px 10px',
-              backgroundColor: '#334155',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#94a3b8',
-              fontSize: '14px',
+              padding: '4px',
+              background: 'transparent',
+              border: '1px solid rgba(243,233,209,.22)',
+              borderRadius: 'var(--pz-r-seal)',
+              color: 'rgba(243,233,209,.7)',
               cursor: 'pointer',
+              display: 'flex',
+              flexShrink: 0,
             }}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
 
         {/* 中间内容滚动区 */}
-        <div style={{ padding: '12px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          
+        <div style={{ padding: '12px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
           {/* 一键预设阵型选择器 */}
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#94a3b8', marginBottom: '6px' }}>
-              ⚡ 战术阵型预设：
+            <div style={{ fontSize: '10px', letterSpacing: '.16em', color: 'var(--pz-ink-3)', marginBottom: '6px' }}>
+              阵型预设
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
               {(Object.keys(FORMATION_PRESETS) as FormationPresetId[]).map(presetId => {
@@ -284,14 +315,15 @@ export const FormationModal: React.FC<FormationModalProps> = ({
                     onClick={() => onApplyPreset(presetId)}
                     style={{
                       padding: '6px 4px',
-                      borderRadius: '6px',
-                      border: isActive ? '1px solid #eab308' : '1px solid #334155',
-                      backgroundColor: isActive ? 'rgba(234, 179, 8, 0.2)' : '#1e293b',
-                      color: isActive ? '#fef08a' : '#cbd5e1',
+                      borderRadius: 'var(--pz-r-seal)',
+                      border: isActive ? '1px solid var(--pz-wine)' : '1px solid var(--pz-line)',
+                      background: isActive ? 'rgba(138,59,50,.10)' : 'var(--pz-page)',
+                      color: isActive ? 'var(--pz-wine)' : 'var(--pz-ink-2)',
                       fontSize: '11px',
-                      fontWeight: isActive ? 'bold' : 'normal',
+                      fontWeight: isActive ? 700 : 500,
                       cursor: 'pointer',
                       textAlign: 'center',
+                      fontFamily: 'var(--pz-sans)',
                     }}
                   >
                     {preset.name}
@@ -305,18 +337,18 @@ export const FormationModal: React.FC<FormationModalProps> = ({
           {warnings.length > 0 && (
             <div
               style={{
-                backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                borderRadius: '8px',
-                padding: '6px 10px',
+                background: 'rgba(138,59,50,.08)',
+                border: '1px solid rgba(138,59,50,.35)',
+                borderRadius: 'var(--pz-r-btn)',
+                padding: '7px 10px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '2px',
+                gap: '3px',
               }}
             >
               {warnings.map((w, idx) => (
-                <div key={idx} style={{ fontSize: '11px', color: '#fca5a5' }}>
-                  ⚠️ {w.title}：{w.detail}
+                <div key={idx} style={{ fontSize: '11px', lineHeight: 1.5, color: 'var(--pz-wine)' }}>
+                  {w.title}：{w.detail}
                 </div>
               ))}
             </div>
@@ -324,16 +356,16 @@ export const FormationModal: React.FC<FormationModalProps> = ({
 
           {/* 3×3 战棋九宫格布局 */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#cbd5e1' }}>
-                ⚔️ 战地阵列 (迎向交火线)
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px', gap: '8px' }}>
+              <span style={{ fontSize: '10px', letterSpacing: '.16em', color: 'var(--pz-ink-3)' }}>
+                战地阵列
               </span>
-              <span style={{ fontSize: '10px', color: '#eab308' }}>
+              <span style={{ fontSize: '10px', color: 'var(--pz-brass-deep)', textAlign: 'right' }}>
                 {selectedHeroId
                   ? isHeroInReserve(selectedHeroId)
-                    ? '👉 请点击棋盘上的任意主力进行上阵替换'
-                    : '👉 请点击目标格子完成换位'
-                  : '💡 点击棋盘上的单位可选中换位'}
+                    ? '点一个主力，把这位换上去'
+                    : '点目标格子完成换位'
+                  : '点棋盘上的单位可选中'}
               </span>
             </div>
 
@@ -343,128 +375,100 @@ export const FormationModal: React.FC<FormationModalProps> = ({
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '8px',
-                backgroundColor: '#090d16',
+                background: 'var(--pz-sunken)',
                 padding: '10px',
-                borderRadius: '10px',
-                border: '1px solid #1e293b',
+                borderRadius: 'var(--pz-r-btn)',
+                border: '1px solid var(--pz-line)',
               }}
             >
-              {/* 第一列：前排 (Front) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div
-                  style={{
-                    padding: '4px 2px',
-                    textAlign: 'center',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    backgroundColor: counts.front === 0 ? 'rgba(225, 29, 72, 0.25)' : 'rgba(217, 119, 6, 0.25)',
-                    border: counts.front === 0 ? '1px solid #f43f5e' : '1px solid #d97706',
-                    color: counts.front === 0 ? '#fda4af' : '#fde047',
-                  }}
-                >
-                  {counts.front === 0 ? '⚠️ 前排无人' : '前排·防守线'}
-                  <div style={{ fontSize: '8px', opacity: 0.8, fontWeight: 'normal' }}>仇恨4.5 / 承伤-10%</div>
-                </div>
-                {(['front_top', 'front_center', 'front_bottom'] as GridSlotId[]).map(slotId => (
-                  <SlotBox
-                    key={slotId}
-                    slotId={slotId}
-                    occupant={getSlotHero(slotId)}
-                    isSelected={selectedHeroId ? getSlotHero(slotId)?.id === selectedHeroId : false}
-                    onClick={() => handleSlotClick(slotId)}
-                  />
-                ))}
-              </div>
+              {LINES.map(line => {
+                const slots: GridSlotId[] =
+                  line.col === 'front'
+                    ? ['front_top', 'front_center', 'front_bottom']
+                    : line.col === 'mid'
+                      ? ['mid_top', 'mid_center', 'mid_bottom']
+                      : ['back_top', 'back_center', 'back_bottom'];
+                const empty = counts[line.col] === 0;
 
-              {/* 第二列：中排 (Mid) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div
-                  style={{
-                    padding: '4px 2px',
-                    textAlign: 'center',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    backgroundColor: 'rgba(14, 165, 233, 0.2)',
-                    border: '1px solid #0284c7',
-                    color: '#38bdf8',
-                  }}
-                >
-                  中排·机动线
-                  <div style={{ fontSize: '8px', opacity: 0.8, fontWeight: 'normal' }}>仇恨1.2 / 暴击+5%</div>
-                </div>
-                {(['mid_top', 'mid_center', 'mid_bottom'] as GridSlotId[]).map(slotId => (
-                  <SlotBox
-                    key={slotId}
-                    slotId={slotId}
-                    occupant={getSlotHero(slotId)}
-                    isSelected={selectedHeroId ? getSlotHero(slotId)?.id === selectedHeroId : false}
-                    onClick={() => handleSlotClick(slotId)}
-                  />
-                ))}
-              </div>
-
-              {/* 第三列：后排 (Back) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div
-                  style={{
-                    padding: '4px 2px',
-                    textAlign: 'center',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    border: '1px solid #059669',
-                    color: '#34d399',
-                  }}
-                >
-                  后排·施法线
-                  <div style={{ fontSize: '8px', opacity: 0.8, fontWeight: 'normal' }}>仇恨0.55 / 效能+10%</div>
-                </div>
-                {(['back_top', 'back_center', 'back_bottom'] as GridSlotId[]).map(slotId => (
-                  <SlotBox
-                    key={slotId}
-                    slotId={slotId}
-                    occupant={getSlotHero(slotId)}
-                    isSelected={selectedHeroId ? getSlotHero(slotId)?.id === selectedHeroId : false}
-                    onClick={() => handleSlotClick(slotId)}
-                  />
-                ))}
-              </div>
+                return (
+                  <div key={line.col} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div
+                      style={{
+                        padding: '4px 2px',
+                        textAlign: 'center',
+                        borderRadius: 'var(--pz-r-seal)',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        background: empty && line.col === 'front' ? 'rgba(138,59,50,.14)' : line.tint,
+                        border: `1px solid ${empty && line.col === 'front' ? 'rgba(138,59,50,.5)' : line.color + '44'}`,
+                        color: empty && line.col === 'front' ? 'var(--pz-wine)' : line.color,
+                      }}
+                    >
+                      {empty && line.col === 'front' ? '前排无人' : line.label}
+                      <div style={{ fontSize: '8px', opacity: 0.82, fontWeight: 400, marginTop: '1px' }}>
+                        {line.hint}
+                      </div>
+                    </div>
+                    {slots.map(slotId => (
+                      <SlotBox
+                        key={slotId}
+                        slotId={slotId}
+                        occupant={getSlotHero(slotId)}
+                        isSelected={selectedHeroId ? getSlotHero(slotId)?.id === selectedHeroId : false}
+                        onClick={() => handleSlotClick(slotId)}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* 出战队伍成员快速点选栏 */}
           <div>
-            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px' }}>
-              🛡️ 首发出战先遣队（{party.length}/4 人）：
+            <div style={{ fontSize: '10px', letterSpacing: '.16em', color: 'var(--pz-ink-3)', marginBottom: '6px' }}>
+              首发出战 · {party.length}/4
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
               {party.map(hero => {
                 const slot = getHeroSlot(hero.id);
                 const slotMeta = GRID_SLOTS.find(s => s.id === slot);
                 const isSelected = selectedHeroId === hero.id;
+                const role = ROLE_STYLE[hero.role] ? hero.role : 'dps';
+                const rs = ROLE_STYLE[role];
 
-                const roleBadge = hero.role === 'tank' ? '🛡️' : hero.role === 'healer' ? '🌿' : '⚔️';
                 return (
                   <div
                     key={hero.id}
                     onClick={() => setSelectedHeroId(isSelected ? null : hero.id)}
                     style={{
                       padding: '6px 4px',
-                      borderRadius: '6px',
-                      backgroundColor: isSelected ? 'rgba(217, 119, 6, 0.35)' : '#1e293b',
-                      border: isSelected ? '2px solid #facc15' : '1px solid #334155',
+                      borderRadius: 'var(--pz-r-seal)',
+                      background: isSelected ? 'rgba(138,59,50,.10)' : 'var(--pz-page)',
+                      border: isSelected ? '1.5px solid var(--pz-wine)' : '1px solid var(--pz-line)',
                       cursor: 'pointer',
                       textAlign: 'center',
-                      boxShadow: isSelected ? '0 0 10px rgba(250, 204, 21, 0.5)' : 'none',
                     }}
                   >
-                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {roleBadge} {hero.name}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: isSelected ? 'var(--pz-wine)' : 'var(--pz-ink)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <span style={{ color: rs.color, display: 'flex' }}>
+                        <RoleIcon role={role} size={12} />
+                      </span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{hero.name}</span>
                     </div>
-                    <div style={{ fontSize: '9px', color: '#eab308', marginTop: '2px' }}>
+                    <div style={{ fontSize: '9px', color: 'var(--pz-ink-3)', marginTop: '2px' }}>
                       {slotMeta ? slotMeta.name : '未布阵'}
                     </div>
                   </div>
@@ -475,19 +479,20 @@ export const FormationModal: React.FC<FormationModalProps> = ({
 
           {/* 替补席：待命队员（招募来的新人 / 轮换替补） */}
           {reserveHeroes.length > 0 && (
-            <div style={{ marginTop: '2px', paddingTop: '8px', borderTop: '1px dashed #334155' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '11px', color: '#a78bfa', fontWeight: 'bold' }}>
-                  💤 驻营待命替补席（{reserveHeroes.length} 人）：
+            <div style={{ paddingTop: '8px', borderTop: '1px dashed var(--pz-line-2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px', gap: '8px' }}>
+                <span style={{ fontSize: '10px', letterSpacing: '.16em', color: 'var(--pz-ink-3)' }}>
+                  驻营待命 · {reserveHeroes.length}
                 </span>
-                <span style={{ fontSize: '9px', color: '#94a3b8' }}>
-                  点击替补再点棋盘，直接轮换上阵
+                <span style={{ fontSize: '9px', color: 'var(--pz-ink-3)' }}>
+                  点替补再点棋盘即可换上
                 </span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                 {reserveHeroes.map(hero => {
                   const isSelected = selectedHeroId === hero.id;
-                  const roleBadge = hero.role === 'tank' ? '🛡️' : hero.role === 'healer' ? '🌿' : '⚔️';
+                  const role = ROLE_STYLE[hero.role] ? hero.role : 'dps';
+                  const rs = ROLE_STYLE[role];
 
                   return (
                     <div
@@ -495,19 +500,33 @@ export const FormationModal: React.FC<FormationModalProps> = ({
                       onClick={() => setSelectedHeroId(isSelected ? null : hero.id)}
                       style={{
                         padding: '6px 4px',
-                        borderRadius: '6px',
-                        backgroundColor: isSelected ? 'rgba(167, 139, 250, 0.35)' : 'rgba(30, 41, 59, 0.6)',
-                        border: isSelected ? '2px solid #c084fc' : '1px dashed #475569',
+                        borderRadius: 'var(--pz-r-seal)',
+                        background: isSelected ? 'rgba(155,123,212,.12)' : 'transparent',
+                        border: isSelected ? '1.5px solid var(--pz-arcane)' : '1px dashed var(--pz-line-2)',
                         cursor: 'pointer',
                         textAlign: 'center',
-                        boxShadow: isSelected ? '0 0 10px rgba(192, 132, 252, 0.5)' : 'none',
                       }}
                     >
-                      <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#cbd5e1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {roleBadge} {hero.name}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '3px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: isSelected ? 'var(--pz-arcane)' : 'var(--pz-ink-2)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <span style={{ color: rs.color, display: 'flex' }}>
+                          <RoleIcon role={role} size={12} />
+                        </span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{hero.name}</span>
                       </div>
-                      <div style={{ fontSize: '9px', color: '#c084fc', marginTop: '2px' }}>
-                        点选换上 🔁
+                      <div style={{ fontSize: '9px', color: 'var(--pz-ink-3)', marginTop: '2px' }}>
+                        {heroRoleLabel(hero)} · 换上
                       </div>
                     </div>
                   );
@@ -518,29 +537,16 @@ export const FormationModal: React.FC<FormationModalProps> = ({
 
         </div>
 
-        {/* 底部按钮 */}
+        {/* 底部按钮（固定不滚动） */}
         <div
           style={{
-            padding: '10px 16px',
-            borderTop: '1px solid #1e293b',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            backgroundColor: '#1e293b',
+            padding: '10px 14px calc(10px + env(safe-area-inset-bottom, 0px))',
+            borderTop: '1px solid var(--pz-line)',
+            background: 'var(--pz-sunken)',
+            flexShrink: 0,
           }}
         >
-          <button
-            onClick={onClose}
-            style={{
-              padding: '6px 18px',
-              backgroundColor: '#d97706',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#0f172a',
-              fontWeight: 'bold',
-              fontSize: '12px',
-              cursor: 'pointer',
-            }}
-          >
+          <button className="pz-btn pz-btn--main pz-btn--block" onClick={onClose}>
             完成布阵
           </button>
         </div>

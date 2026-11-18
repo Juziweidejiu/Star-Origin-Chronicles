@@ -19,6 +19,7 @@ import { InkStoryRunner } from './components/InkStoryRunner';
 import { DungeonEventModal } from './components/DungeonEventModal';
 import { CampBarkBubble } from './components/CampBarkBubble';
 import { FormationModal } from './components/FormationModal';
+import { Btn } from './components/ui';
 import { CombatStage } from './components/CombatStage';
 import { BattleStatsModal } from './components/BattleStatsModal';
 import { LootDropModal } from './components/LootDropModal';
@@ -198,9 +199,8 @@ export function App() {
 
   // 启动地牢房间战斗
   const startRoomBattle = (room: DungeonRoom) => {
+    resetCombatSession({ keepRoom: true });
     setActiveDungeonRoom(room);
-    setBattleRewardClaimed(false);
-    setBattleProgression(null);
     setActiveTab('combat');
 
     // 挑选当前首发阵容中存活的佣兵出战 (若首发存活不足，自动从替补中补足存活成员)
@@ -426,6 +426,30 @@ export function App() {
     triggerUpdate();
   };
 
+  /**
+   * 清空一场战斗的全部临时状态。
+   * 战斗结束、撤退、开新战斗前都必须调用，否则「战役」页会残留上一场的战场与结算数据。
+   */
+  const resetCombatSession = (opts?: { keepRoom?: boolean }) => {
+    setEngine(null);
+    setCombatUnits([]);
+    setLogs([]);
+    if (!opts?.keepRoom) setActiveDungeonRoom(null);
+    setFloatingTexts([]);
+    setVisualStates({});
+    setProjectiles([]);
+    setUltEvent(null);
+    setIsScreenShaking(false);
+    setFocusedTargetId(null);
+    setSettlementStep('idle');
+    setSettlementSummary(null);
+    setBattleProgression(null);
+    setActiveLootDrop(null);
+    setBattleRewardClaimed(false);
+    setIsRunning(true);
+    setShowCombatLogs(false);
+  };
+
   // 推进地牢房间（支持指定二选一分支房间）
   const advanceDungeonRoom = (targetRoom?: DungeonRoom) => {
     if (!currentDungeon) return;
@@ -451,6 +475,7 @@ export function App() {
     if (activeDungeonRoom) {
       activeDungeonRoom.cleared = true;
     }
+    resetCombatSession();
     setActiveTab('dungeon');
     setTickCounter(c => c + 1);
   };
@@ -476,6 +501,7 @@ export function App() {
     if (currentDungeon && currentDungeon.lootItems.length > 0) {
       setInventory(prev => [...prev, ...currentDungeon.lootItems]);
     }
+    resetCombatSession();
     setCurrentDungeon(null);
     setCurrentContract(null);
     setActiveTab('town');
@@ -684,6 +710,10 @@ export function App() {
 
   const playerUnits = combatUnits.filter(u => u.side === 'player');
   const enemyUnits = combatUnits.filter(u => u.side === 'enemy');
+  /** 战斗进行中 / 结算未确认时，底部导航被锁住，避免状态被中途切走 */
+  const navLock: 'fighting' | 'settling' | null = engine
+    ? (engine.isFinished ? 'settling' : 'fighting')
+    : null;
   const currentTown = townEngine.towns[townEngine.logistics.currentTownId];
 
   return (
@@ -887,8 +917,36 @@ export function App() {
           </div>
         )}
 
+        {/* Tab 3: 地牢交战 / 讨伐战场 — 无进行中战斗时的空态 */}
+        {activeTab === 'combat' && !engine && (
+          <div className="pz-card" style={{ textAlign: 'center', padding: '30px 18px' }}>
+            <div className="pz-h3" style={{ marginBottom: '8px' }}>战场空着</div>
+            <div className="pz-sub" style={{ lineHeight: 1.75, marginBottom: '16px' }}>
+              眼下没有正在进行的遭遇战。
+              <br />
+              去公会挑一张悬赏，或者回到地牢继续往里走。
+            </div>
+            <div className="pz-col" style={{ gap: '8px' }}>
+              <button
+                className="pz-btn pz-btn--main pz-btn--block"
+                onClick={() => setActiveTab('town')}
+              >
+                去公会看榜
+              </button>
+              {currentDungeon && (
+                <button
+                  className="pz-btn pz-btn--block"
+                  onClick={() => setActiveTab('dungeon')}
+                >
+                  回到地牢 · 第 {(currentDungeon.currentRoomIndex ?? 0) + 1} 间
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Tab 3: 地牢交战 / 讨伐战场 */}
-        {activeTab === 'combat' && (
+        {activeTab === 'combat' && engine && (
           <div>
             {currentContract && (
               <div
@@ -911,21 +969,44 @@ export function App() {
                     {currentContract.stars}★
                   </span>
                 </div>
-                <button
-                  onClick={() => setShowFormationModal(true)}
-                  style={{
-                    fontSize: '11px',
-                    padding: '3px 8px',
-                    background: 'transparent',
-                    border: '1px solid var(--pz-line-2)',
-                    borderRadius: 'var(--pz-r-seal)',
-                    color: 'var(--pz-ink-2)',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  阵型 · {FORMATION_PRESETS[currentFormationPreset]?.name}
-                </button>
+                <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => setShowFormationModal(true)}
+                    disabled={navLock === 'fighting'}
+                    title={navLock === 'fighting' ? '战斗中不能改动阵型' : '调整阵型'}
+                    style={{
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      background: 'transparent',
+                      border: '1px solid var(--pz-line-2)',
+                      borderRadius: 'var(--pz-r-seal)',
+                      color: navLock === 'fighting' ? 'rgba(42,36,24,.30)' : 'var(--pz-ink-2)',
+                      cursor: navLock === 'fighting' ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    阵型 · {FORMATION_PRESETS[currentFormationPreset]?.name}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('现在收兵撤退，本次探险到此结束（已入袋的战利品保留）。确定吗？')) {
+                        handleFinishDungeon(false);
+                      }
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      background: 'transparent',
+                      border: '1px solid rgba(138,59,50,.45)',
+                      borderRadius: 'var(--pz-r-seal)',
+                      color: 'var(--pz-wine)',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    撤退
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1217,12 +1298,12 @@ export function App() {
         {activeTab === 'story' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* 子 Tab 切换 */}
-            <div style={{ display: 'flex', gap: '6px', background: '#0b1329', padding: '4px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'var(--pz-sunken)', padding: '4px', borderRadius: 'var(--pz-r-btn)', border: '1px solid var(--pz-line)' }}>
               {(
                 [
-                  { id: 'ink', label: '📜 Ink分支剧本' },
-                  { id: 'event', label: '⚖️ 偶发事件库' },
-                  { id: 'bark', label: '🏕️ 营地碎碎念' },
+                  { id: 'ink', label: '分支剧本' },
+                  { id: 'event', label: '偶发事件' },
+                  { id: 'bark', label: '营地碎念' },
                 ] as const
               ).map(sub => (
                 <button
@@ -1232,12 +1313,13 @@ export function App() {
                     flex: 1,
                     padding: '6px 4px',
                     fontSize: '11px',
-                    borderRadius: '6px',
-                    border: 'none',
+                    borderRadius: 'var(--pz-r-seal)',
+                    border: storySubTab === sub.id ? '1px solid var(--pz-wine)' : '1px solid transparent',
                     cursor: 'pointer',
-                    background: storySubTab === sub.id ? '#38bdf8' : 'transparent',
-                    color: storySubTab === sub.id ? '#0f172a' : '#94a3b8',
-                    fontWeight: 'bold',
+                    background: storySubTab === sub.id ? 'rgba(138,59,50,.10)' : 'transparent',
+                    color: storySubTab === sub.id ? 'var(--pz-wine)' : 'var(--pz-ink-3)',
+                    fontWeight: storySubTab === sub.id ? 700 : 500,
+                    fontFamily: 'var(--pz-sans)',
                   }}
                 >
                   {sub.label}
@@ -1261,87 +1343,63 @@ export function App() {
               />
             )}
 
-            {/* 子面板 2: 暗黑地牢偶发事件检定架 */}
+            {/* 子面板 2: 偶发事件检定架 */}
             {storySubTab === 'event' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ fontSize: '11px', color: '#94a3b8', padding: '0 4px' }}>
-                  暗黑低魔风格事件库（已消除网文修饰与无谓血浆），支持队伍属性与职业检定：
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="pz-sub" style={{ padding: '0 2px' }}>
+                  按队伍属性与职业做检定，成败都会留痕。
                 </div>
                 {GOLD_STANDARD_DUNGEON_EVENTS.map((ev: DungeonEvent) => (
                   <div
                     key={ev.id}
-                    style={{
-                      background: '#1e293b',
-                      borderRadius: '8px',
-                      border: '1px solid #334155',
-                      padding: '12px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
+                    className="pz-card"
+                    style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '7px' }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#fbbf24' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontFamily: 'var(--pz-serif)', fontSize: '14px', color: 'var(--pz-ink)' }}>
                         {ev.title}
                       </span>
-                      <span style={{ fontSize: '10px', background: '#334155', color: '#94a3b8', padding: '2px 6px', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '9px', background: 'rgba(42,36,24,.06)', color: 'var(--pz-ink-3)', padding: '1px 6px', borderRadius: 'var(--pz-r-seal)', whiteSpace: 'nowrap' }}>
                         {ev.category} · {ev.theme}
                       </span>
                     </div>
-                    <div style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.5' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--pz-ink-2)', lineHeight: 1.6 }}>
                       {ev.hook}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      抉择分支: {ev.choices.map((c) => `[${c.label}]`).join(' ')}
+                    <div style={{ fontSize: '10px', color: 'var(--pz-ink-3)' }}>
+                      分支：{ev.choices.map((c) => `[${c.label}]`).join(' ')}
                     </div>
-                    <button
-                      onClick={() => setInteractiveEvent(ev)}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: '#38bdf8',
-                        color: '#0f172a',
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        marginTop: '4px',
-                      }}
-                    >
-                      ▶ 带领当前小队进行互动检定
-                    </button>
+                    <Btn variant="main" block onClick={() => setInteractiveEvent(ev)}>
+                      带队上前做检定
+                    </Btn>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* 子面板 3: 佣兵营地碎碎念 (Bark) 展示 */}
+            {/* 子面板 3: 佣兵营地碎念 (Bark) */}
             {storySubTab === 'bark' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ fontSize: '11px', color: '#94a3b8', padding: '0 4px' }}>
-                  基于性格特质（沉稳/酗酒/贪婪/偏执等）与压力动态生成的营地短台词：
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="pz-sub" style={{ padding: '0 2px' }}>
+                  按性格与压力现取的几句闲话。
                 </div>
                 {roster.map(hero => {
                   const bark = getCampDialogueForHero(hero);
                   return (
                     <div
                       key={hero.id}
-                      style={{
-                        background: '#1e293b',
-                        borderRadius: '8px',
-                        border: '1px solid #334155',
-                        padding: '10px 12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px',
-                      }}
+                      className="pz-card"
+                      style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#f8fafc' }}>
-                          {hero.name} ({heroRoleLabel(hero)})
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontFamily: 'var(--pz-serif)', fontSize: '13px', color: 'var(--pz-ink)' }}>
+                          {hero.name}
+                          <span style={{ fontSize: '10px', color: 'var(--pz-ink-3)', marginLeft: '5px', fontFamily: 'var(--pz-sans)' }}>
+                            {heroRoleLabel(hero)}
+                          </span>
                         </span>
-                        <span style={{ fontSize: '11px', color: hero.stress > 60 ? '#f87171' : '#38bdf8' }}>
-                          压力: {hero.stress}/100
+                        <span style={{ fontSize: '10px', fontFamily: 'var(--pz-mono)', color: hero.stress > 60 ? 'var(--pz-combat)' : 'var(--pz-ink-3)' }}>
+                          压力 {hero.stress}/100
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -1349,11 +1407,11 @@ export function App() {
                           <span
                             key={t}
                             style={{
-                              fontSize: '10px',
-                              background: '#334155',
+                              fontSize: '9px',
+                              background: 'rgba(111,191,139,.14)',
                               padding: '1px 6px',
-                              borderRadius: '4px',
-                              color: '#34d399',
+                              borderRadius: 'var(--pz-r-seal)',
+                              color: '#3F6B4E',
                             }}
                           >
                             {t}
@@ -1424,10 +1482,22 @@ export function App() {
           ['story', '物语', BookOpen],
         ] as const).map(([key, label, Icon]) => {
           const on = activeTab === key;
+          const locked = Boolean(navLock) && key !== 'combat';
           return (
             <button
               key={key}
-              onClick={() => setActiveTab(key)}
+              onClick={() => {
+                if (locked) {
+                  setSystemNotice(
+                    navLock === 'fighting'
+                      ? '战斗还在进行。先打完这一场，或者用战场上方的「撤退」收兵。'
+                      : '这一场的结算还没确认，先结算完再离开。'
+                  );
+                  setActiveTab('combat');
+                  return;
+                }
+                setActiveTab(key);
+              }}
               style={{
                 flex: 1,
                 position: 'relative',
@@ -1435,8 +1505,8 @@ export function App() {
                 border: 'none',
                 borderTop: `2px solid ${on ? 'var(--pz-wine)' : 'transparent'}`,
                 background: 'transparent',
-                color: on ? 'var(--pz-wine)' : 'var(--pz-ink-3)',
-                cursor: 'pointer',
+                color: locked ? 'rgba(42,36,24,.28)' : on ? 'var(--pz-wine)' : 'var(--pz-ink-3)',
+                cursor: locked ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',

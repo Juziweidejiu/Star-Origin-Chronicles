@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import { Compiler } from 'inkjs/full';
+import { AlertTriangle, ChevronRight, Code2, Play, RotateCcw } from 'lucide-react';
 import { SAMPLE_INK_STORIES, type InkStoryMeta } from '../data/sampleInkStories';
+import { Btn, Card, Tag } from './ui';
 
 interface HistoryEntry {
   id: string;
@@ -121,7 +123,7 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
         {
           id: `choice_${Date.now()}`,
           type: 'choice_taken',
-          content: `❯ 你选择了：${choiceText}`,
+          content: choiceText,
         },
       ];
 
@@ -179,102 +181,125 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
   };
 
   return (
-    <div style={{
-      background: '#0d1117',
-      borderRadius: '10px',
-      border: '1px solid #30363d',
-      padding: '14px',
-      color: '#c9d1d9',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-    }}>
-      {/* 头部标题与控制条 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #21262d', paddingBottom: '10px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>📜</span>
-            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#e6edf3', letterSpacing: '0.5px' }}>
+    <Card style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* 头部：剧本名与工具 */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '10px',
+          paddingBottom: '10px',
+          borderBottom: '1px solid var(--pz-line)',
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                fontFamily: 'var(--pz-serif)',
+                fontSize: '16px',
+                color: 'var(--pz-ink)',
+                letterSpacing: '.02em',
+              }}
+            >
               {selectedStoryMeta.title}
             </span>
-            <span style={{ fontSize: '10px', background: '#238636', color: '#fff', padding: '2px 6px', borderRadius: '10px' }}>
-              Ink.js DSL
-            </span>
+            <Tag tone="brass">Ink 脚本</Tag>
           </div>
-          <div style={{ fontSize: '11px', color: '#8b949e', marginTop: '3px' }}>
-            {selectedStoryMeta.summary}
-          </div>
+          <div className="pz-sub" style={{ marginTop: '3px' }}>{selectedStoryMeta.summary}</div>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button
+        <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+          <Btn
+            size="sm"
+            variant={isEditorOpen ? 'brass' : 'ghost'}
             onClick={() => setIsEditorOpen(!isEditorOpen)}
-            style={{
-              padding: '4px 8px',
-              fontSize: '11px',
-              background: isEditorOpen ? '#30363d' : '#21262d',
-              color: '#58a6ff',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
+            title="查看或修改 Ink 源文本"
           >
-            {isEditorOpen ? '关闭源码' : '查看/编辑Ink'}
-          </button>
-          <button
-            onClick={handleRestart}
-            style={{
-              padding: '4px 8px',
-              fontSize: '11px',
-              background: '#21262d',
-              color: '#f0883e',
-              border: '1px solid #30363d',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
-          >
-            ↺ 重置
-          </button>
+            <Code2 size={12} style={{ marginRight: '3px' }} />
+            源码
+          </Btn>
+          <Btn size="sm" onClick={handleRestart} title="从头重读这段物语">
+            <RotateCcw size={12} style={{ marginRight: '3px' }} />
+            重置
+          </Btn>
         </div>
       </div>
 
       {/* 剧本选择器 */}
       {!isEditorOpen && (
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-          {SAMPLE_INK_STORIES.map(s => (
-            <button
-              key={s.id}
-              onClick={() => {
-                setSelectedStoryMeta(s);
-                setCustomSource(s.source);
-              }}
-              style={{
-                padding: '5px 10px',
-                fontSize: '11px',
-                borderRadius: '6px',
-                border: selectedStoryMeta.id === s.id ? '1px solid #58a6ff' : '1px solid #30363d',
-                background: selectedStoryMeta.id === s.id ? '#1f2937' : '#161b22',
-                color: selectedStoryMeta.id === s.id ? '#58a6ff' : '#8b949e',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                fontWeight: selectedStoryMeta.id === s.id ? 'bold' : 'normal',
-              }}
-            >
-              📖 {s.title}
-            </button>
-          ))}
+        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+          {SAMPLE_INK_STORIES.map(s => {
+            const active = selectedStoryMeta.id === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => {
+                  setSelectedStoryMeta(s);
+                  setCustomSource(s.source);
+                }}
+                style={{
+                  padding: '5px 10px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--pz-sans)',
+                  borderRadius: 'var(--pz-r-seal)',
+                  border: active ? '1px solid var(--pz-wine)' : '1px solid var(--pz-line)',
+                  background: active ? 'rgba(138,59,50,.10)' : 'var(--pz-page)',
+                  color: active ? 'var(--pz-wine)' : 'var(--pz-ink-2)',
+                  fontWeight: active ? 700 : 500,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {s.title}
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* 源码编辑器/测试区 */}
+      {/* 源码编辑器 */}
       {isEditorOpen && (
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '6px', padding: '8px' }}>
-          <div style={{ fontSize: '11px', color: '#8b949e', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>✏️ Ink 脚本源文本 (支持在线修改即时编译)</span>
-            <span style={{ color: '#58a6ff', cursor: 'pointer' }} onClick={() => initStory(customSource)}>
-              ▶ 应用并重新编译
-            </span>
+        <div
+          style={{
+            background: 'var(--pz-sunken)',
+            border: '1px solid var(--pz-line)',
+            borderRadius: 'var(--pz-r-btn)',
+            padding: '8px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '6px',
+              fontSize: '10px',
+              color: 'var(--pz-ink-3)',
+              letterSpacing: '.08em',
+            }}
+          >
+            <span>Ink 源文本 · 改完即时编译</span>
+            <button
+              onClick={() => initStory(customSource)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '2px 8px',
+                fontSize: '10px',
+                background: 'transparent',
+                border: '1px solid rgba(138,59,50,.4)',
+                borderRadius: 'var(--pz-r-seal)',
+                color: 'var(--pz-wine)',
+                cursor: 'pointer',
+                fontFamily: 'var(--pz-sans)',
+              }}
+            >
+              <Play size={10} />
+              应用
+            </button>
           </div>
           <textarea
             value={customSource}
@@ -282,13 +307,14 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
             rows={10}
             style={{
               width: '100%',
-              background: '#0d1117',
-              color: '#7ee787',
-              fontFamily: 'monospace',
+              background: 'var(--pz-page)',
+              color: 'var(--pz-ink)',
+              fontFamily: 'var(--pz-mono)',
               fontSize: '11px',
-              border: '1px solid #30363d',
-              borderRadius: '4px',
-              padding: '6px',
+              lineHeight: 1.55,
+              border: '1px solid var(--pz-line)',
+              borderRadius: 'var(--pz-r-seal)',
+              padding: '8px',
               boxSizing: 'border-box',
               resize: 'vertical',
             }}
@@ -296,70 +322,89 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
         </div>
       )}
 
-      {/* 编译错误提示 */}
+      {/* 编译错误 */}
       {compileError && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid #ef4444',
-          borderRadius: '6px',
-          padding: '8px 12px',
-          fontSize: '11px',
-          color: '#f87171',
-        }}>
-          ⚠️ 编译失败: {compileError}
+        <div
+          style={{
+            display: 'flex',
+            gap: '6px',
+            alignItems: 'flex-start',
+            background: 'rgba(138,59,50,.08)',
+            border: '1px solid rgba(138,59,50,.4)',
+            borderRadius: 'var(--pz-r-btn)',
+            padding: '8px 10px',
+            fontSize: '11px',
+            lineHeight: 1.5,
+            color: 'var(--pz-wine)',
+          }}
+        >
+          <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: '1px' }} />
+          <span>编译失败：{compileError}</span>
         </div>
       )}
 
-      {/* 内部变量监视看板 */}
+      {/* 变量看板 */}
       {Object.keys(variables).length > 0 && (
-        <div style={{
-          background: '#161b22',
-          padding: '6px 10px',
-          borderRadius: '6px',
-          border: '1px solid #21262d',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '12px',
-          fontSize: '11px',
-        }}>
-          <span style={{ color: '#8b949e' }}>📊 剧本内部状态:</span>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px',
+            padding: '6px 10px',
+            background: 'var(--pz-sunken)',
+            border: '1px solid var(--pz-line)',
+            borderRadius: 'var(--pz-r-btn)',
+            fontSize: '10px',
+            color: 'var(--pz-ink-3)',
+          }}
+        >
+          <span style={{ letterSpacing: '.08em' }}>剧本状态</span>
           {Object.entries(variables).map(([k, v]) => (
-            <span key={k} style={{ color: typeof v === 'number' && v > 0 ? '#f59e0b' : '#38bdf8' }}>
-              {k}: <strong>{String(v)}</strong>
+            <span key={k} style={{ fontFamily: 'var(--pz-mono)' }}>
+              <span style={{ color: 'var(--pz-ink-3)' }}>{k}</span>{' '}
+              <strong style={{ color: typeof v === 'number' && v > 0 ? 'var(--pz-brass-deep)' : 'var(--pz-ink-2)' }}>
+                {String(v)}
+              </strong>
             </span>
           ))}
         </div>
       )}
 
-      {/* 叙事输出卷轴区 (暗黑风格羊皮纸/石碑质感) */}
-      <div style={{
-        background: '#161b22',
-        border: '1px solid #21262d',
-        borderRadius: '8px',
-        padding: '14px',
-        minHeight: '180px',
-        maxHeight: '340px',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-      }}>
+      {/* 叙事卷轴 */}
+      <div
+        style={{
+          background: 'var(--pz-page)',
+          border: '1px solid var(--pz-line)',
+          borderRadius: 'var(--pz-r-btn)',
+          padding: '14px 14px 14px 16px',
+          minHeight: '180px',
+          maxHeight: '340px',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          boxShadow: 'inset 3px 0 0 rgba(217,164,91,.35)',
+        }}
+      >
         {history.map((entry) => {
           if (entry.type === 'choice_taken') {
             return (
               <div
                 key={entry.id}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
                   fontSize: '12px',
-                  color: '#e3b341',
-                  fontStyle: 'italic',
+                  fontFamily: 'var(--pz-serif)',
+                  color: 'var(--pz-wine)',
                   padding: '4px 8px',
-                  background: 'rgba(227, 179, 65, 0.08)',
-                  borderRadius: '4px',
-                  borderLeft: '3px solid #e3b341',
+                  background: 'rgba(138,59,50,.07)',
+                  borderRadius: 'var(--pz-r-seal)',
                 }}
               >
-                {entry.content}
+                <ChevronRight size={12} style={{ flexShrink: 0 }} />
+                <span>{entry.content}</span>
               </div>
             );
           }
@@ -368,11 +413,11 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
               key={entry.id}
               style={{
                 margin: 0,
-                fontSize: '13px',
-                lineHeight: '1.6',
-                color: '#e6edf3',
-                fontFamily: 'serif',
-                letterSpacing: '0.3px',
+                fontSize: '14px',
+                lineHeight: 1.75,
+                color: 'var(--pz-ink)',
+                fontFamily: 'var(--pz-serif)',
+                letterSpacing: '.01em',
               }}
             >
               {entry.content}
@@ -381,29 +426,38 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
         })}
 
         {isEnded && (
-          <div style={{
-            marginTop: '12px',
-            padding: '8px 12px',
-            background: 'rgba(56, 189, 248, 0.1)',
-            borderRadius: '6px',
-            border: '1px dashed #38bdf8',
-            textAlign: 'center',
-            fontSize: '12px',
-            color: '#38bdf8',
-            fontWeight: 'bold',
-          }}>
-            ✦ 本段物语探索已落幕 ✦
+          <div
+            style={{
+              marginTop: '6px',
+              padding: '8px 12px',
+              border: '1px dashed rgba(169,121,58,.6)',
+              borderRadius: 'var(--pz-r-btn)',
+              background: 'rgba(217,164,91,.10)',
+              textAlign: 'center',
+              fontSize: '11px',
+              letterSpacing: '.14em',
+              color: 'var(--pz-brass-deep)',
+            }}
+          >
+            本段物语已落幕
           </div>
         )}
 
         <div ref={scrollBottomRef} />
       </div>
 
-      {/* 分支抉择按钮区 */}
+      {/* 分支抉择 */}
       {!isEnded && currentChoices.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: 'bold' }}>
-            ⚖️ 你的决断：
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div
+            style={{
+              fontSize: '10px',
+              letterSpacing: '.16em',
+              color: 'var(--pz-ink-3)',
+              marginBottom: '1px',
+            }}
+          >
+            你的决断
           </div>
           {currentChoices.map((choice) => (
             <button
@@ -411,57 +465,35 @@ export const InkStoryRunner: React.FC<InkStoryRunnerProps> = ({
               onClick={() => handleChoose(choice.index, choice.text)}
               style={{
                 width: '100%',
-                padding: '10px 14px',
-                textAlign: 'left',
-                background: '#21262d',
-                color: '#f0f6fc',
-                border: '1px solid #30363d',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                lineHeight: '1.4',
-                transition: 'all 0.15s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#30363d';
-                e.currentTarget.style.borderColor = '#58a6ff';
-                e.currentTarget.style.color = '#58a6ff';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#21262d';
-                e.currentTarget.style.borderColor = '#30363d';
-                e.currentTarget.style.color = '#f0f6fc';
+                gap: '10px',
+                padding: '10px 12px',
+                textAlign: 'left',
+                background: 'var(--pz-page)',
+                color: 'var(--pz-ink)',
+                border: '1px solid var(--pz-line-2)',
+                borderRadius: 'var(--pz-r-btn)',
+                cursor: 'pointer',
+                fontSize: '13px',
+                lineHeight: 1.5,
+                fontFamily: 'var(--pz-sans)',
               }}
             >
               <span>{choice.text}</span>
-              <span style={{ fontSize: '11px', color: '#8b949e' }}>▶</span>
+              <ChevronRight size={14} style={{ flexShrink: 0, color: 'var(--pz-brass-deep)' }} />
             </button>
           ))}
         </div>
       )}
 
-      {/* 结语操作 */}
+      {/* 结语 */}
       {isEnded && (
-        <button
-          onClick={handleRestart}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '6px',
-            border: '1px solid #38bdf8',
-            background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-            color: '#38bdf8',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            fontSize: '13px',
-          }}
-        >
-          ↺ 开启新的抉择与轮回
-        </button>
+        <Btn variant="main" block onClick={handleRestart}>
+          再走一遍
+        </Btn>
       )}
-    </div>
+    </Card>
   );
 };
