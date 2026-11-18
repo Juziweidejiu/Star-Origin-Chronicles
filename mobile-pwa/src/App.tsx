@@ -801,19 +801,43 @@ export function App() {
     : null;
   const currentTown = townEngine.towns[townEngine.logistics.currentTownId];
 
+  /** 主内容区滚动容器：切 tab 时回到顶部，避免带着上一页的滚动位置 */
+  const mainRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [activeTab]);
+
+  /** 软键盘弹出时用可视视口高度压缩壳，避免输入框被键盘遮住 */
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const sync = () => {
+      const shrunk = window.innerHeight - vv.height;
+      if (shrunk > 80) {
+        root.style.setProperty('--pz-vh', `${Math.round(vv.height)}px`);
+      } else {
+        root.style.removeProperty('--pz-vh');
+      }
+    };
+    sync();
+    vv.addEventListener('resize', sync);
+    return () => {
+      vv.removeEventListener('resize', sync);
+      root.style.removeProperty('--pz-vh');
+    };
+  }, []);
+
   return (
-    <div className="pz" style={{
+    <div className="pz pz-shell" style={{
       maxWidth: '480px',
       margin: '0 auto',
-      minHeight: '100vh',
       width: '100%',
       background: 'var(--pz-page)',
-      color: 'var(--pz-ink)',
-      display: 'flex',
-      flexDirection: 'column'
+      color: 'var(--pz-ink)'
     }}>
 
-      {/* 顶部页眉：深木底 + 黄铜双线 */}
+      {/* 顶部页眉：深木底 + 黄铜双线（壳内固定，不随内容滚动） */}
       <header className="pz-grain" style={{
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)',
         paddingBottom: '9px',
@@ -821,10 +845,7 @@ export function App() {
         paddingRight: '14px',
         background: 'linear-gradient(180deg, #3A2E1F 0%, #2A2115 100%)',
         color: '#F3E9D2',
-        borderBottom: '3px double rgba(217,164,91,.55)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50
+        borderBottom: '3px double rgba(217,164,91,.55)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', minWidth: 0 }}>
@@ -893,10 +914,10 @@ export function App() {
       )}
 
       {/* 核心展示区 */}
-      <main style={{
+      <main ref={mainRef} style={{
         flex: 1,
+        minHeight: 0,
         padding: '12px',
-        paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
         overflowY: 'auto'
       }}>
 
@@ -1032,7 +1053,7 @@ export function App() {
 
         {/* Tab 3: 地牢交战 / 讨伐战场 */}
         {activeTab === 'combat' && engine && (
-          <div>
+          <div className="pz-combat-page" style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 }}>
             {currentContract && (
               <div
                 className="pz-between"
@@ -1233,7 +1254,7 @@ export function App() {
             />
 
             {/* 战斗快捷控制台：暂停/继续 + 1x/2x 倍速 + 自动/手动大招 */}
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', flexShrink: 0 }}>
               <button
                 onClick={() => setIsRunning(!isRunning)}
                 style={{
@@ -1293,13 +1314,17 @@ export function App() {
               </button>
             </div>
 
-            {/* 战况日志：默认折叠以节约移动端屏幕高度，点击展开 */}
+            {/* 战况日志：默认折叠以节约移动端屏幕高度，展开后占满战场之外的剩余空间 */}
             <div
               style={{
                 background: 'var(--pz-sunken)',
                 borderRadius: 'var(--pz-r-btn)',
                 border: '1px solid var(--pz-line)',
                 overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                flex: showCombatLogs ? '1 1 auto' : '0 0 auto',
+                minHeight: 0,
                 transition: 'all 0.2s ease-in-out'
               }}
             >
@@ -1332,7 +1357,7 @@ export function App() {
               </div>
 
               {showCombatLogs && (
-                <div style={{ padding: '6px 10px', maxHeight: '140px', overflowY: 'auto', borderTop: '1px solid var(--pz-line)' }}>
+                <div style={{ padding: '6px 10px', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', borderTop: '1px solid var(--pz-line)' }}>
                   {logs.length === 0 ? (
                     <div style={{ fontSize: '11px', color: 'var(--pz-ink-3)', textAlign: 'center', padding: '6px 0' }}>暂无战况数据</div>
                   ) : (
@@ -1551,14 +1576,9 @@ export function App() {
         />
       )}
 
-      {/* 底部导航（固定在窄栏内） */}
+      {/* 底部导航（壳内固定，不随内容滚动） */}
       <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '100%',
-        maxWidth: '480px',
+        flexShrink: 0,
         zIndex: 60,
         display: 'flex',
         alignItems: 'stretch',

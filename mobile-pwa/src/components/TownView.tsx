@@ -121,6 +121,7 @@ export const TownView: React.FC<TownViewProps> = ({
     return q && all.includes(q) ? q : 'guild';
   });
   const [isTravelModalOpen, setIsTravelModalOpen] = useState(false);
+  const [isTownLoreOpen, setIsTownLoreOpen] = useState(false);
   const [smithTab, setSmithTab] = useState<'craft' | 'reforge' | 'reroll' | 'salvage'>('craft');
   const [craftSlot, setCraftSlot] = useState<'weapon' | 'armor' | 'trinket'>('weapon');
   const [craftTier, setCraftTier] = useState(() => tierForHeroLevel(Math.max(1, ...roster.map(h => h.level))));
@@ -236,11 +237,12 @@ export const TownView: React.FC<TownViewProps> = ({
   const craftCostPreview = craftCost(craftTier, smithDiscount);
 
   return (
-    <div className="pz-col" style={{ gap: 12 }}>
-      {/* ===== 城镇横幅 ===== */}
-      <Card style={{ padding: '14px' }} className="pz-grain">
+    <div className="pz-page">
+      {/* ===== 固定区：城镇横幅 + 建筑切换 ===== */}
+      <div className="pz-page-fixed">
+      <Card style={{ padding: '12px 14px' }} className="pz-grain">
         <div className="pz-between" style={{ alignItems: 'flex-start', gap: 10 }}>
-          <div className="pz-grow">
+          <div className="pz-grow" style={{ minWidth: 0 }}>
             <div className="pz-row" style={{ gap: 8, flexWrap: 'wrap' }}>
               <h2 className="pz-h1" style={{ fontFamily: 'var(--pz-serif)' }}>{currentTown.name}</h2>
               <span
@@ -257,24 +259,54 @@ export const TownView: React.FC<TownViewProps> = ({
                 {repBadge.label} · {currentTown.reputation}
               </span>
             </div>
-            <div className="pz-sub" style={{ marginTop: 4, color: 'var(--pz-ink-2)' }}>{currentTown.subtitle}</div>
+            <div
+              className="pz-sub"
+              style={{
+                marginTop: 2,
+                color: 'var(--pz-ink-2)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {currentTown.subtitle}
+            </div>
           </div>
           <Btn variant="ghost" size="sm" onClick={() => setIsTravelModalOpen(true)}>
             <MapIcon size={13} /> 转移
           </Btn>
         </div>
-        <div
-          className="pz-body"
-          style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--pz-line)', color: 'var(--pz-ink-2)' }}
+        <button
+          onClick={() => setIsTownLoreOpen(true)}
+          title="展开镇志"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            width: '100%',
+            marginTop: 6,
+            padding: 0,
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--pz-ink-2)',
+            fontFamily: 'var(--pz-sans)',
+            fontSize: 12,
+            lineHeight: 1.5,
+            textAlign: 'left',
+            cursor: 'pointer',
+          }}
         >
-          {currentTown.description}
-        </div>
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {currentTown.description}
+          </span>
+          <ChevronRight size={11} color="var(--pz-ink-3)" style={{ flexShrink: 0 }} />
+        </button>
         <div
           className="pz-row pz-between"
-          style={{ marginTop: 10, paddingTop: 8, borderTop: '1px dashed var(--pz-line)', gap: 8 }}
+          style={{ marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--pz-line)', gap: 8 }}
         >
           <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-            进度自动保存 · 第 {townEngine.logistics.day} 天
+            自动保存 · 第 {townEngine.logistics.day} 天
           </span>
           <button
             onClick={() => {
@@ -335,6 +367,10 @@ export const TownView: React.FC<TownViewProps> = ({
           );
         })}
       </div>
+      </div>
+
+      {/* ===== 滚动区：当前建筑内容 ===== */}
+      <div className="pz-page-scroll">
 
       {/* ===== 冒险公会 ===== */}
       {activeBuilding === 'guild' && (
@@ -950,6 +986,7 @@ export const TownView: React.FC<TownViewProps> = ({
           )}
         </div>
       )}
+      </div>
 
       {/* ===== 据点转移 ===== */}
       {isTravelModalOpen && (
@@ -1024,6 +1061,40 @@ export const TownView: React.FC<TownViewProps> = ({
 
             <div style={{ marginTop: 12 }}>
               <Btn variant="quiet" block onClick={() => setIsTravelModalOpen(false)}>取消</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== 镇志（描述全文） ===== */}
+      {isTownLoreOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(20,16,10,.62)',
+            zIndex: 999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+          onClick={() => setIsTownLoreOpen(false)}
+        >
+          <div
+            className="pz pz-card pz-grain"
+            style={{ width: '100%', maxWidth: 400, padding: '16px 16px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="pz-h3" style={{ fontFamily: 'var(--pz-serif)' }}>{currentTown.name} · 镇志</div>
+            <div
+              className="pz-body"
+              style={{ marginTop: 8, color: 'var(--pz-ink-2)', lineHeight: 1.75, maxHeight: '50vh', overflowY: 'auto' }}
+            >
+              {currentTown.description}
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <Btn variant="quiet" block onClick={() => setIsTownLoreOpen(false)}>知道了</Btn>
             </div>
           </div>
         </div>

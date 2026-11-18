@@ -46,6 +46,7 @@ npm run verify     # 完整门禁：类型 + lint + 构建
 | --- | --- | --- |
 | `?tab=` | `?tab=roster` | `town` / `dungeon` / `combat` / `roster` / `story` |
 | `?b=` | `?b=blacksmith` | 城镇建筑子页：`guild` / `tavern` / `market` / `infirmary` / `sanctuary` / `blacksmith` |
+| `?panel=` | `?panel=roster` | 名册展开态：`roster` / `inventory` |
 
 例：`http://127.0.0.1:5199/game/?tab=roster`
 

@@ -1,9 +1,9 @@
-import React from 'react';
-import { ChevronRight, Crown, Grid3x3, Package, Shield, Sword, Gem } from 'lucide-react';
-import type { Equipment, Hero } from '../types/hero';
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Crown, Grid3x3, Package, Shield, Sword, Gem } from 'lucide-react';
+import type { ClassId, Equipment, Hero } from '../types/hero';
 import type { FormationSlotAssignment, GridColumn, GridRow } from '../types/formation';
 import { GRID_SLOTS } from '../types/formation';
-import { heroRoleLabel } from '../engine/heroFactory';
+import { CLASS_CONFIG, heroRoleLabel } from '../engine/heroFactory';
 import { heroXpProgress } from '../engine/progressionEngine';
 import { resolveStats, describeBase, STAT_LABEL } from '../engine/statResolver';
 import { RARITY_LABEL } from '../engine/dungeonEngine';
@@ -38,14 +38,63 @@ const COLUMNS: { key: GridColumn; label: string }[] = [
 ];
 const ROWS: GridRow[] = ['top', 'center', 'bottom'];
 
-const SectionHead: React.FC<{ title: string; hint?: string; right?: React.ReactNode }> = ({ title, hint, right }) => (
-  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, borderLeft: '3px solid var(--pz-brass)', paddingLeft: 8 }}>
-      <span className="pz-h3" style={{ fontFamily: 'var(--pz-serif)', letterSpacing: '.02em' }}>{title}</span>
-      {hint ? <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>{hint}</span> : null}
-    </div>
-    {right}
-  </div>
+/** 折叠条：标题 + 摘要，点击展开/收起下方滑动区 */
+const FoldBar: React.FC<{
+  title: string;
+  summary: string;
+  open: boolean;
+  onToggle: () => void;
+  style?: React.CSSProperties;
+}> = ({ title, summary, open, onToggle, style }) => (
+  <button
+    onClick={onToggle}
+    aria-expanded={open}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      width: '100%',
+      flex: '0 0 auto',
+      padding: '8px 10px',
+      borderRadius: 'var(--pz-r-card)',
+      border: `1px solid ${open ? 'var(--pz-brass-deep)' : 'var(--pz-line)'}`,
+      background: open ? 'var(--pz-raised)' : 'rgba(255,255,255,.32)',
+      color: 'var(--pz-ink)',
+      fontFamily: 'var(--pz-sans)',
+      textAlign: 'left',
+      cursor: 'pointer',
+      ...style,
+    }}
+  >
+    <span style={{ width: 3, height: 16, background: 'var(--pz-brass)', borderRadius: 2, flexShrink: 0 }} />
+    <span style={{ flex: 1, minWidth: 0 }}>
+      <span
+        style={{
+          display: 'block',
+          fontFamily: 'var(--pz-serif)',
+          fontSize: 15,
+          fontWeight: 700,
+          letterSpacing: '.02em',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {title}
+      </span>
+      <span
+        className="pz-micro"
+        style={{ display: 'block', color: 'var(--pz-ink-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+      >
+        {summary}
+      </span>
+    </span>
+    <ChevronDown
+      size={15}
+      color="var(--pz-ink-3)"
+      style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .18s' }}
+    />
+  </button>
 );
 
 export const RosterView: React.FC<RosterViewProps> = ({
@@ -71,10 +120,67 @@ export const RosterView: React.FC<RosterViewProps> = ({
     return roster.find(h => h.id === assign.heroId);
   };
 
+  const [openPanel, setOpenPanel] = useState<'roster' | 'inventory' | null>(() => {
+    // 便于直接调试展开状态：?panel=roster / ?panel=inventory
+    const q = new URLSearchParams(window.location.search).get('panel');
+    return q === 'roster' || q === 'inventory' ? q : null;
+  });
+  const [statusFilter, setStatusFilter] = useState<'all' | 'deployed' | 'reserve'>('all');
+  const [classFilter, setClassFilter] = useState<ClassId | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'level' | 'ability' | 'hp'>('level');
+
+  const classOptions = useMemo(() => Array.from(new Set(roster.map(h => h.classId))), [roster]);
+
+  const visibleHeroes = useMemo(() => {
+    const filtered = roster.filter(h => {
+      if (statusFilter === 'deployed' && !deployedHeroIds.includes(h.id)) return false;
+      if (statusFilter === 'reserve' && deployedHeroIds.includes(h.id)) return false;
+      if (classFilter !== 'all' && h.classId !== classFilter) return false;
+      return true;
+    });
+    if (sortBy === 'ability') return filtered.sort((a, b) => b.currentAbility - a.currentAbility);
+    if (sortBy === 'hp') return filtered.sort((a, b) => b.maxHp - a.maxHp);
+    return filtered.sort((a, b) => b.level - a.level);
+  }, [roster, deployedHeroIds, statusFilter, classFilter, sortBy]);
+
+  const hasFilter = statusFilter !== 'all' || classFilter !== 'all';
+  const resetFilters = () => {
+    setStatusFilter('all');
+    setClassFilter('all');
+  };
+
+  const avgLevel = roster.length ? Math.round(roster.reduce((sum, h) => sum + h.level, 0) / roster.length) : 0;
+  const totalWage = roster.reduce((sum, h) => sum + h.wage, 0);
+  const injuredCount = roster.filter(h => h.injuries.length > 0).length;
+  const stressedCount = roster.filter(h => h.stress >= 60).length;
+
+  const selectStyle: React.CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    background: 'var(--pz-raised)',
+    color: 'var(--pz-ink)',
+    border: '1px solid var(--pz-line)',
+    borderRadius: 4,
+    padding: '4px 6px',
+    fontSize: 12,
+  };
+  const pillStyle = (active: boolean): React.CSSProperties => ({
+    padding: '3px 10px',
+    borderRadius: 999,
+    border: `1px solid ${active ? 'var(--pz-brass-deep)' : 'var(--pz-line)'}`,
+    background: active ? 'var(--pz-brass)' : 'rgba(255,255,255,.32)',
+    color: active ? '#2A2115' : 'var(--pz-ink-2)',
+    fontSize: 12,
+    fontWeight: active ? 700 : 500,
+    fontFamily: 'var(--pz-sans)',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  });
+
   return (
-    <div className="pz-col" style={{ gap: 12 }}>
-      {/* 名册概览 + 3×3 编队 */}
-      <Card>
+    <div className="pz-page">
+      {/* 固定区：名册概览 + 3×3 编队 */}
+      <Card style={{ flex: '0 0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
           <div>
             <div className="pz-h2" style={{ fontFamily: 'var(--pz-serif)' }}>
@@ -152,16 +258,107 @@ export const RosterView: React.FC<RosterViewProps> = ({
             })
           )}
         </div>
+        <div
+          className="pz-micro"
+          style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--pz-ink-3)' }}
+        >
+          点击站位或「调位」进入 3×3 编队 <ChevronRight size={11} />
+        </div>
       </Card>
 
-      {/* 队员卡 */}
-      <SectionHead
-        title="队员"
-        hint={`${roster.length} 人`}
-        right={<span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>点击装备可卸下</span>}
-      />
+      {/* 折叠区：队员 / 团队背包（互斥展开） */}
+      <div className="pz-col" style={{ flex: 1, minHeight: 0, gap: 8 }}>
+        <div className="pz-row" style={{ gap: 6, flex: '0 0 auto', alignItems: 'stretch' }}>
+          <FoldBar
+            title="队员"
+            summary={`首发 ${deployedSquad.length} / 待命 ${reserves.length}`}
+            open={openPanel === 'roster'}
+            onToggle={() => setOpenPanel(openPanel === 'roster' ? null : 'roster')}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+          <FoldBar
+            title="团队背包"
+            summary={`${inventory.length} 件`}
+            open={openPanel === 'inventory'}
+            onToggle={() => setOpenPanel(openPanel === 'inventory' ? null : 'inventory')}
+            style={{ flex: 1, minWidth: 0 }}
+          />
+        </div>
 
-      {roster.map(hero => {
+        {openPanel === 'roster' && (
+          <div className="pz-col" style={{ flex: '0 0 auto', gap: 6 }}>
+            <div className="pz-between" style={{ gap: 6 }}>
+              <div className="pz-row" style={{ gap: 4 }}>
+                {(
+                  [
+                    ['all', '全部'],
+                    ['deployed', '首发'],
+                    ['reserve', '待命'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button key={key} onClick={() => setStatusFilter(key)} style={pillStyle(statusFilter === key)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <span className="pz-micro" style={{ color: 'var(--pz-ink-3)', whiteSpace: 'nowrap' }}>
+                显示 {visibleHeroes.length} / {roster.length} 人
+              </span>
+            </div>
+            <div className="pz-row" style={{ gap: 6 }}>
+              <select
+                value={classFilter}
+                onChange={e => setClassFilter(e.target.value as ClassId | 'all')}
+                style={selectStyle}
+                aria-label="按职业筛选"
+              >
+                <option value="all">全部职业</option>
+                {classOptions.map(c => (
+                  <option key={c} value={c}>
+                    {CLASS_CONFIG[c].name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as 'level' | 'ability' | 'hp')}
+                style={selectStyle}
+                aria-label="排序方式"
+              >
+                <option value="level">按等级</option>
+                <option value="ability">按战力 CA</option>
+                <option value="hp">按生命</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        <div className="pz-page-scroll pz-col" style={{ gap: 10 }}>
+          {openPanel === 'roster' &&
+            (visibleHeroes.length === 0 ? (
+              <div
+                className="pz-body"
+                style={{
+                  padding: '22px 12px',
+                  textAlign: 'center',
+                  color: 'var(--pz-ink-3)',
+                  border: '1px dashed var(--pz-line-2)',
+                  borderRadius: 'var(--pz-r-card)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>没有符合筛选的队员。</span>
+                {hasFilter && (
+                  <Btn variant="quiet" size="sm" onClick={resetFilters}>
+                    清除筛选
+                  </Btn>
+                )}
+              </div>
+            ) : (
+              visibleHeroes.map(hero => {
         const isDeployed = deployedHeroIds.includes(hero.id);
         const xp = heroXpProgress(hero);
         const st = resolveStats(hero);
@@ -335,13 +532,12 @@ export const RosterView: React.FC<RosterViewProps> = ({
               ))}
             </div>
           </Card>
-        );
-      })}
+                );
+              })))}
 
-      {/* 队伍背包 */}
-      <SectionHead title="队伍背包" hint={`${inventory.length} 件`} />
-      <Card>
-        {inventory.length === 0 ? (
+          {openPanel === 'inventory' && (
+            <Card style={{ flex: '0 0 auto' }}>
+              {inventory.length === 0 ? (
           <div className="pz-body" style={{ color: 'var(--pz-ink-3)' }}>
             背包空着。地牢里的箱子还没打开。
           </div>
@@ -403,11 +599,47 @@ export const RosterView: React.FC<RosterViewProps> = ({
               ))}
             </div>
           </>
-        )}
-      </Card>
+              )}
+            </Card>
+          )}
 
-      <div className="pz-micro" style={{ textAlign: 'center', color: 'var(--pz-ink-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-        点击站位或「调位」进入 3×3 编队 <ChevronRight size={11} />
+          {openPanel === null && (
+            <Card style={{ flex: '0 0 auto' }}>
+              <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', letterSpacing: '.12em' }}>队伍概览</div>
+              <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px 10px', fontSize: 12 }}>
+                <span className="pz-between">
+                  <span style={{ color: 'var(--pz-ink-2)' }}>平均等级</span>
+                  <b className="pz-mono">{avgLevel}</b>
+                </span>
+                <span className="pz-between">
+                  <span style={{ color: 'var(--pz-ink-2)' }}>周薪合计</span>
+                  <b className="pz-mono">{totalWage} G</b>
+                </span>
+                <span className="pz-between">
+                  <span style={{ color: 'var(--pz-ink-2)' }}>带伤</span>
+                  <b className="pz-mono" style={{ color: injuredCount ? 'var(--pz-wine)' : 'inherit' }}>{injuredCount} 人</b>
+                </span>
+                <span className="pz-between">
+                  <span style={{ color: 'var(--pz-ink-2)' }}>高压</span>
+                  <b className="pz-mono" style={{ color: stressedCount ? 'var(--pz-wine)' : 'inherit' }}>{stressedCount} 人</b>
+                </span>
+              </div>
+              <div
+                className="pz-body"
+                style={{
+                  marginTop: 10,
+                  paddingTop: 8,
+                  borderTop: '1px dashed var(--pz-line)',
+                  color: 'var(--pz-ink-3)',
+                  fontSize: 12,
+                  lineHeight: 1.6,
+                }}
+              >
+                名册已收起 · 点上方「队员」查看九维与装备，或「团队背包」给队员换装。
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );

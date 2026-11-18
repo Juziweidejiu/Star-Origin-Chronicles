@@ -555,3 +555,57 @@
   - 未跑 `sim_balance.mjs`：本里程碑不触碰任何数值常量。
 
 - [x] **结果**：`TODO.md` P1-1 清零，P1-2（杀戮尖塔式地牢路线图）的存档前置条件就绪——只需登记 `1: migrateV1ToV2` 并 bump `SAVE_VERSION`。
+
+### Milestone 32: 应用壳重构 — 页眉/底栏不动，只有中栏滚 (已完成交付 ✅)
+
+- [x] **问题定位（不是滑动方向，是滚动上下文）**
+  - 旧结构只有 `#root { min-height: 100vh }` + 壳 `minHeight: 100vh`，`main` 会随内容无限长高，它的 `overflowY: 'auto'` 是死代码——真正滚动的是 document。
+  - 页眉靠 `sticky` 勉强贴顶，但和内容处于同一滚动上下文，移动端地址栏收缩/橡皮筋时整体位移；`body { overflow-x: hidden }` 又让 body 变成滚动容器，iOS 上 `position: fixed` 的底栏有跟随抖动风险。
+  - `main` 的 `paddingBottom: 72px` 是给 fixed 底栏拍出来的魔法数，安卓/iPhone（safe-area 不同）会对不上；切 tab 不重置滚动位置，切过去常落在中段。
+
+- [x] **应用壳（`index.css`）**
+  - `html, body` 改为 `height: 100%` + `overflow: hidden` + `overscroll-behavior: none`：页面本身永不滚动，同时禁用下拉刷新与回弹。
+  - 新增 `.pz-shell`：`height: 100dvh`（`--pz-vh` 可覆盖）、`display: flex; flex-direction: column; overflow: hidden`。
+  - `.pz-shell > header / nav { flex: 0 0 auto }`，`.pz-shell > main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain }`——`min-height: 0` 是关键，否则 flex 子项不收缩，内层滚不起来。
+  - `main` 自身改为 flex column，且 `> *` 默认 `flex: 0 0 auto`，长内容页按自身高度排布，超出交给 main 滚。
+
+- [x] **App 接线（`App.tsx`）**
+  - 根节点 `className="pz pz-shell"`，去掉 `minHeight: 100vh`；页眉去掉 `position: sticky / top / zIndex`；底栏去掉 `position: fixed / left / transform / maxWidth`（改由壳内 flex 排布），`main` 去掉 72px 底栏占位。
+  - `mainRef` + `useEffect([activeTab])`：切 tab 回到顶部，不再继承上一页滚动位置。
+  - `visualViewport` 监听：可视高度比布局高度矮 80px 以上（软键盘弹出）时把可视高度写进 `--pz-vh`，松手即移除；物语页剧本输入框不会被键盘顶出视口。
+
+- [x] **战斗页钉死（`.pz-combat-page`）**
+  - 战斗内容包裹层改为 `flex: 1 1 auto; min-height: 0`；`.pz-combat-page > .cs-stage { flex: 1 1 auto; min-height: 400px }`，战场吃满剩余高度（敌方阵地固定、空地收放、我方阵地最多 300px）。
+  - 战况简报改为 `flex: showCombatLogs ? '1 1 auto' : '0 0 auto'`，展开后占满战场以外空间并内部滚动（原来的 `maxHeight: 140px` 移除）；快捷控制台 `flexShrink: 0`。
+  - `@media (max-height: 720px)` 下战场最小总高降到 `354px`（180 敌阵 + 28 空地 + 146 我方），矮屏也不整页滚。
+
+- [x] **验证**
+  - `npm run check` EXIT=0（零 error / 零 warning）；`npm run test` 4 files / 44 tests 全绿（390ms）。
+  - `npm run build` 893ms，主包 433.95 kB（gzip 137.26）、`InkStoryRunner` 256.87 kB、CSS 14.89 kB。
+  - 390×844 实测（iframe 壳页 + `--dump-dom` 量测）：`body.scrollY = 0`、document `scrollHeight = 844 = innerHeight`（文档不可滚）；`main` clientHeight 660 / scrollHeight 1191（唯一滚动容器）；`main.scrollTop = 240` 后 `header.top` 仍为 0、`nav.bottom` 仍为 844。
+  - 截图复核城镇 / 名册 / 地牢 / 战役 / 物语五页：页眉与底栏位置固定，战斗页战场吃满高度、控制台与简报贴在底栏之上，无横向溢出。
+
+### Milestone 33: 页内「上不动、下滚动」— 城镇瘦身横幅 + 名册手风琴与筛选 (已完成交付 ✅)
+
+- [x] **页框公共件（`index.css`）**
+  - 新增 `.pz-page`（`flex: 1 1 auto; min-height: 0; flex column`），并用 `.pz-shell > main > .pz-page` 单独覆盖 `main > *` 的 `flex: 0 0 auto`；`.pz-page-fixed` 显式 `flex: 0 0 auto`，`.pz-page-scroll` 承担内部滚动（`overflow-y: auto` + `overscroll-behavior: contain`）。
+  - 矮屏兜底：`@media (max-height: 720px)` 给 `.pz-page-scroll` 留 `min-height: 200px`，固定区吃满时整页退回 main 滚动，不会把滚动区压成 0。
+
+- [x] **城镇页（`TownView.tsx`）**
+  - 根节点改 `.pz-page`：固定区 = 横幅 + 建筑按钮，滚动区 = 当前建筑子页；据点转移弹窗仍走 `position: fixed`，不受滚动区裁剪。
+  - 横幅瘦身：副标题与镇志描述都改成单行省略（描述右侧挂 `ChevronRight`），点描述弹出「镇志」浮层看全文；保存行压成 10px 一行「自动保存 · 第 N 天」+「重新开始」。固定区由约 330px 降到约 245px。
+  - 滚动区实测 406px（390×844），悬赏榜卡片在区域内滚动，页眉/横幅/按钮/底栏全部不动。
+
+- [x] **名册页（`RosterView.tsx`）**
+  - 固定区 = 现役名册卡（标题行 + 3×3 编队 + 一行「点击站位进入编队」提示）；下方是「队员 / 团队背包」两枚并排折叠条，默认都收起，互斥展开（开一个自动收起另一个）。
+  - 收起态显示「队伍概览」卡：平均等级、周薪合计、带伤人数、高压人数（`stress >= 60`，与营地对话阈值一致），避免展开区空白。
+  - 展开「队员」后：筛选区固定在滚动区之上（状态三段胶囊「全部/首发/待命」+ 职业下拉「全部职业」+ 排序「按等级 / 按战力 CA / 按生命」+ 右侧「显示 N / M 人」），列表本身在滚动区内滚；筛选无结果给空态和「清除筛选」。
+  - 职业选项由名册实际 `classId` 去重生成，标签取 `CLASS_CONFIG`，不硬编码九职业；排序用 `currentAbility`（CA）与 `maxHp`。
+  - 新增调试参数 `?panel=roster|inventory` 直接落在展开态（与既有 `?b=` 同风格）。
+
+- [x] **验证**
+  - `npm run check` EXIT=0（零 error / 零 warning）；`npm run test` 4 files / 44 tests 全绿。
+  - 390×844 量测（`_shot-measure.html` 壳页 + `--dump-dom`）：城镇滚动区 `client 406 / scrollH 835`，名册展开态 `client 198 / scrollH 1462`，两页 `main.scrollTop` 均保持 0、`main.scrollHeight === main.clientHeight`，`header.top = 0`、`nav.bottom = 844`——确认页面本体不再滚动。
+  - 360×640 量测：名册滚动区被 `min-height: 200px` 兜住，`main` 出现 194px 的整页滚动，固定区仍完整可见。
+  - 截图复核：城镇横幅单行描述 + 省略号、悬赏榜在下方独立滚动；名册收起态两枚折叠条 + 队伍概览卡；展开态筛选条 + 队员卡在剩余空间内滚动。
+

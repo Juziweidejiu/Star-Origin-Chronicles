@@ -72,14 +72,83 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  overflow-x: hidden;
+  /* 页面本身永不滚动，滚动交给 .pz-shell > main */
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #root {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+  height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* ============================================================
+   应用壳 —— 页眉/底栏不动，只有中栏滚
+   100dvh 跟随移动端地址栏；软键盘弹出时 App 会写入 --pz-vh
+   ============================================================ */
+.pz-shell {
+  height: 100vh;
+  height: 100dvh;
+  height: var(--pz-vh, 100dvh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pz-shell > header,
+.pz-shell > nav {
+  flex: 0 0 auto;
+}
+.pz-shell > main {
+  flex: 1 1 auto;
+  /* 关键：没有 min-height:0，flex 子项不会收缩，内层就滚不起来 */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* 让各 tab 可以把剩余高度分给内部的滚动态（如战况简报） */
+  display: flex;
+  flex-direction: column;
+}
+/* 长内容页：内容按自身高度排布，超出由 main 滚 */
+.pz-shell > main > * {
+  flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------
+   页框：上半固定、下半自己滚（城镇 / 名册）
+   需要 .pz-shell > main > * 的默认 flex 收缩，故单列覆盖规则
+   ------------------------------------------------------------ */
+.pz-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pz-shell > main > .pz-page {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pz-page-fixed {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pz-page-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* 矮屏兜底：固定区吃掉太多高度时，给滚动区留出可读下限，整页退回 main 滚动 */
+@media (max-height: 720px) {
+  .pz-page-scroll {
+    min-height: 200px;
+  }
 }
 
 button, input, textarea, select {
@@ -361,6 +430,15 @@ button, input, textarea, select {
   border-color: rgba(180, 99, 42, .45);
   color: #B4632A;
   background: rgba(228, 87, 61, .10);
+}
+
+/* 战场页：战场整块钉住，只有战况简报内部滚动 */
+.pz-combat-page > .cs-stage {
+  flex: 1 1 auto;
+  min-height: 400px;
+}
+.pz-combat-page > .pz-between {
+  flex: 0 0 auto;
 }
 
 /* ============================================================
@@ -664,6 +742,8 @@ button, input, textarea, select {
 .cs-fx { position: absolute; inset: 0; z-index: 40; pointer-events: none; }
 
 @media (max-height: 720px) {
+  /* 战场在矮屏上的最小总高：180（敌阵） + 28（空地） + 146（我方阵地） */
+  .pz-combat-page > .cs-stage { min-height: 354px; }
   .cs-zone--enemy { min-height: 172px; }
   .cs-zone--player { min-height: 146px; }
   .cs-backwall { height: 11%; }
