@@ -79,7 +79,8 @@
 - [x] `components/BlacksmithView.tsx` 从 `TownView.tsx` 拆出：图纸册 / 打造台 / 重铸 / 洗练 / 分解五个页签 + 全屏锻造层 + 成品对比弹层。
 - [x] 战斗胜利掉落材料与图纸（首领必掉未拥有），声望 60 / 五星首通解锁头像图纸。
 - [x] 图纸卡面：`mobile-pwa/public/art/items/{blueprintId}.svg`（12 张，`scripts/gen_item_art.mjs` 生成）。
-- [ ] 后续：词条真实战斗效果（v2）、洗练锁定、图纸残页合成、委托队列。
+- [x] 洗练锁定：点词条选中，洗练时保留该条（耗星陨砂 1），其余重掷。
+- [ ] 后续：词条真实战斗效果（v2）、图纸残页合成、委托队列。
 - 资产约定：`public/art/{icons|items|heroes|npc}/{id}.webp`，缺图回落线性图标；v1 不改 `combatEngine`。
 
 ---

@@ -45,6 +45,7 @@ import {
   professionGain,
   professionMods,
   rarityRank,
+  rerollAffixes,
   salvageMaterials,
   settleCraft,
   startCraft,
@@ -55,7 +56,7 @@ import {
   type CraftSettings,
 } from '../engine/craftEngine';
 import { RARITY_LABEL, qualityLabel } from '../engine/dungeonEngine';
-import { reforgeCost, reforgeEquipment, rerollCost, rerollEquipment, salvageYield } from '../engine/blacksmithEngine';
+import { reforgeCost, reforgeEquipment, rerollCost, salvageYield } from '../engine/blacksmithEngine';
 import { STAT_LABEL } from '../engine/statResolver';
 
 const SLOT_LABEL: Record<Equipment['slot'], string> = { weapon: '武器', armor: '护甲', trinket: '饰品' };
@@ -662,6 +663,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
   const [session, setSession] = useState<CraftSession | null>(null);
   const [result, setResult] = useState<{ item: Equipment; bp: Blueprint; source: 'self' | 'boss'; xpGain: number } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lockPick, setLockPick] = useState<Record<string, number | null>>({});
 
   const selected = selectedId ? BLUEPRINT_MAP[selectedId] : null;
   const book = blueprintBookProgress(craft.unlocked, BLUEPRINTS);
@@ -785,17 +787,35 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
     triggerUpdate();
   };
 
-  const handleReroll = (hero: Hero, item: Equipment) => {
-    const res = rerollEquipment(item, logistics, discount);
-    if (!res.success || !res.item) {
-      onLogMessage(res.message);
+  const handleReroll = (hero: Hero, item: Equipment, lockIndex: number | null) => {
+    const cost = rerollCost(item, discount);
+    const lockSand = lockIndex !== null ? 1 : 0;
+    if (logistics.gold < cost.gold || logistics.forgeStones < cost.stones) {
+      onLogMessage('金币或锻造晶石不足，无法洗练。');
       return;
     }
+    if (lockSand > 0 && (craft.materials.sand ?? 0) < lockSand) {
+      onLogMessage('星陨砂不足，锁定词条需要 1 份。');
+      return;
+    }
+    logistics.gold -= cost.gold;
+    logistics.forgeStones -= cost.stones;
+    logistics.ironOre -= cost.ore;
+
+    const next = rerollAffixes(item, lockIndex);
+    if (lockSand > 0) {
+      onCraftChange({ ...craft, materials: addMaterials(craft.materials, { sand: -lockSand }) });
+    }
     const nextRoster = roster.map((h) =>
-      h.id === hero.id ? { ...h, equipment: { ...h.equipment, [item.slot]: res.item } } : h,
+      h.id === hero.id ? { ...h, equipment: { ...h.equipment, [item.slot]: next } } : h,
     );
     onRosterChange(nextRoster);
-    onLogMessage(res.message);
+    onLogMessage(
+      lockIndex !== null
+        ? `洗练 ${item.name}：锁定 1 条词条，其余重掷（星陨砂 -1）。`
+        : `洗练 ${item.name}：词条已重掷。`,
+    );
+    setLockPick(prev => ({ ...prev, [item.id]: null }));
     triggerUpdate();
   };
 
@@ -960,6 +980,11 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
             {equipped.length === 0 && <EmptyLine text="没有可洗练的装备。" />}
             {equipped.map(({ hero, item }) => {
               const cost = rerollCost(item, discount);
+              const locked = lockPick[item.id] ?? null;
+              const sand = craft.materials.sand ?? 0;
+              const short = logistics.gold < cost.gold
+                || logistics.forgeStones < cost.stones
+                || (locked !== null && sand < 1);
               return (
                 <div key={`${hero.id}-${item.id}`} className="pz-card pz-col" style={{ padding: '8px 10px', gap: 4 }}>
                   <div className="pz-row" style={{ justifyContent: 'space-between' }}>
@@ -968,16 +993,45 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                       {hero.name} · {SLOT_LABEL[item.slot]}
                     </span>
                   </div>
+                  {item.affixes.length > 0 ? (
+                    <div className="pz-row" style={{ flexWrap: 'wrap', gap: 4 }}>
+                      {item.affixes.map((affix, idx) => {
+                        const active = locked === idx;
+                        return (
+                          <button
+                            key={`${affix.stat}-${idx}`}
+                            onClick={() => setLockPick(prev => ({ ...prev, [item.id]: active ? null : idx }))}
+                            style={{
+                              fontSize: 11,
+                              padding: '3px 7px',
+                              borderRadius: 999,
+                              border: `1px solid ${active ? 'var(--pz-brass-deep)' : 'var(--pz-line)'}`,
+                              background: active ? 'var(--pz-brass)' : 'var(--pz-raised)',
+                              color: active ? '#2A2115' : 'var(--pz-ink-2)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                            }}
+                          >
+                            {active && <Lock size={10} />}
+                            {affix.name ? `${affix.name}·${affix.label}` : affix.label} {formatAffixValue(affix)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>无词条可洗。</span>
+                  )}
                   <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-                    {cost.gold} 金 · {cost.stones} 锻石 · {cost.ore} 矿
+                    {cost.gold} 金 · {cost.stones} 锻石 · {locked !== null ? '锁 1 条：星陨砂 1' : `点词条可锁定（现有星陨砂 ${sand}）`}
                   </div>
                   <Btn
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleReroll(hero, item)}
-                    disabled={logistics.gold < cost.gold || logistics.forgeStones < cost.stones}
+                    onClick={() => handleReroll(hero, item, locked)}
+                    disabled={short || item.affixes.length === 0}
                   >
-                    洗练词条
+                    {locked !== null ? '洗练（锁定 1 条）' : '洗练词条'}
                   </Btn>
                 </div>
               );

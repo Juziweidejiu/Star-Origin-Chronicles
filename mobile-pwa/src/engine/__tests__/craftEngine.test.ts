@@ -3,6 +3,7 @@ import type { Equipment } from '../../types/hero';
 import {
   BLUEPRINTS,
   BLUEPRINT_MAP,
+  CRAFT_AFFIX_POOL,
   emptyMaterials,
   type Blueprint,
 } from '../blueprintData';
@@ -28,6 +29,7 @@ import {
   professionLevel,
   professionMods,
   rarityOfQuality,
+  rerollAffixes,
   rollCraftDrop,
   salvageMaterials,
   settleCraft,
@@ -38,6 +40,7 @@ import {
   type CraftSession,
   type CraftSettings,
 } from '../craftEngine';
+import { STAT_LABEL } from '../statResolver';
 
 const bp = (id: string): Blueprint => {
   const found = BLUEPRINT_MAP[id];
@@ -253,6 +256,60 @@ describe('成品结算', () => {
     expect(formatAffixValue({ stat: 'critChance', kind: 'percent', value: 0.045, label: '暴击' })).toBe('+5%');
     expect(formatAffixValue({ stat: 'maxHp', kind: 'flat', value: 35, label: '生命' })).toBe('+35');
     expect(formatAffixValue({ stat: 'ad', kind: 'flat', value: 7, label: '物攻' })).toBe('+7');
+  });
+
+  it('词条池的每个属性 statResolver 都认得（否则结算时会被静默忽略）', () => {
+    for (const [slot, pool] of Object.entries(CRAFT_AFFIX_POOL)) {
+      for (const def of pool) {
+        expect(STAT_LABEL, `${slot} · ${def.name}`).toHaveProperty(def.stat);
+      }
+    }
+  });
+});
+
+describe('洗练', () => {
+  const sample = () => settleCraft(
+    makeSession({
+      quality: 1.16,
+      finished: true,
+      perfectHeat: PHASE_ROUNDS.heat,
+      perfectHammer: PHASE_ROUNDS.hammer,
+      settings: { ...DEFAULT_SETTINGS, sand: true },
+    }),
+    bp('bp_steel_sword'),
+    'reroll-sample',
+    seq(0.2, 0.4, 0.6),
+  );
+
+  it('不锁定时词条数量不变，数值来自打造池', () => {
+    const item = sample();
+    expect(item.affixes.length).toBeGreaterThan(0);
+    const next = rerollAffixes(item, null, seq(0.9));
+    expect(next.affixes.length).toBe(item.affixes.length);
+    expect(next.affixes.every(a => CRAFT_AFFIX_POOL.weapon.some(d => d.name === a.name))).toBe(true);
+    expect(next.id).toBe(item.id);
+  });
+
+  it('锁定第 n 条后该词条原样保留在首位', () => {
+    const item = sample();
+    const locked = item.affixes[1];
+    const next = rerollAffixes(item, 1, seq(0.9));
+    expect(next.affixes[0]).toEqual(locked);
+    expect(next.affixes.length).toBe(item.affixes.length);
+    expect(next.affixText).toContain(locked.name ?? locked.label);
+  });
+
+  it('锁定不会产生重复词条', () => {
+    const item = sample();
+    const next = rerollAffixes(item, 0, seq(0.1));
+    const names = next.affixes.map(a => a.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('无词条的装备洗练后仍是零词条', () => {
+    const plain = settleCraft(makeSession({ quality: 0.83, finished: true }), bp('bp_steel_sword'), 'plain', seq(0.5));
+    expect(plain.affixes).toHaveLength(0);
+    expect(rerollAffixes(plain, null, seq(0.5)).affixes).toHaveLength(0);
   });
 });
 

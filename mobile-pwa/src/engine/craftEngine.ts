@@ -23,7 +23,7 @@ import {
   blueprintTemplate,
   emptyMaterials,
 } from './blueprintData';
-import { RARITY_LABEL, RARITY_ORDER, scaleTemplateBase } from './dungeonEngine';
+import { RARITY_LABEL, RARITY_ORDER, rerollEquipmentAffixes, scaleTemplateBase } from './dungeonEngine';
 
 // ---------------------------------------------------------------------------
 // 备料与工钱
@@ -383,6 +383,47 @@ function scaleValue(key: CoreStatKey, value: number, mult: number): number {
 }
 
 /**
+ * 按品阶/部位/品质掷出词条组。打造与洗练共用同一套池子与缩放规则，
+ * 保证「打出来的」和「洗出来的」数值口径一致。
+ */
+export function rollCraftAffixes(
+  slot: Blueprint['slot'],
+  rarity: Equipment['rarity'],
+  tier: number,
+  quality: number,
+  count: number,
+  rng: () => number = Math.random,
+): Affix[] {
+  const allowed = new Set<AffixGrade>(AFFIX_GRADE_GATE[rarity]);
+  const pool = CRAFT_AFFIX_POOL[slot].filter(def => allowed.has(def.grade));
+  const picks: AffixDef[] = [];
+  while (picks.length < count && pool.length > 0) {
+    const idx = Math.floor(rng() * pool.length);
+    picks.push(pool.splice(idx, 1)[0]);
+  }
+
+  const tierMult = 1 + 0.3 * (tier - 1);
+  const qualityMult = 0.9 + quality * 0.18;
+  return picks.map(def => {
+    const raw = def.min + rng() * (def.max - def.min);
+    const scaled = def.kind === 'percent'
+      ? raw * (1 + 0.15 * (tier - 1)) * qualityMult
+      : raw * tierMult * qualityMult;
+    const value = def.kind === 'percent'
+      ? Math.round(scaled * 1000) / 1000
+      : Math.max(1, Math.round(scaled));
+    return {
+      stat: def.stat,
+      kind: def.kind,
+      value,
+      label: def.label,
+      name: def.name,
+      grade: def.grade,
+    } satisfies Affix;
+  });
+}
+
+/**
  * 生成成品。词条数量由「品阶上限」与「完美次数 + 星陨砂」共同决定，
  * 因此完美通关才可能摸到满词条。
  */
@@ -408,33 +449,7 @@ export function settleCraft(
     + (session.settings.sand ? 1 : 0);
   const count = Math.min(cap, (cap > 0 ? 1 : 0) + bonus);
 
-  const allowed = new Set<AffixGrade>(AFFIX_GRADE_GATE[rarity]);
-  const pool = CRAFT_AFFIX_POOL[template.slot].filter(def => allowed.has(def.grade));
-  const picks: AffixDef[] = [];
-  while (picks.length < count && pool.length > 0) {
-    const idx = Math.floor(rng() * pool.length);
-    picks.push(pool.splice(idx, 1)[0]);
-  }
-
-  const tierMult = 1 + 0.3 * (bp.tier - 1);
-  const qualityMult = 0.9 + quality * 0.18;
-  const affixes: Affix[] = picks.map(def => {
-    const raw = def.min + rng() * (def.max - def.min);
-    const scaled = def.kind === 'percent'
-      ? raw * (1 + 0.15 * (bp.tier - 1)) * qualityMult
-      : raw * tierMult * qualityMult;
-    const value = def.kind === 'percent'
-      ? Math.round(scaled * 1000) / 1000
-      : Math.max(1, Math.round(scaled));
-    return {
-      stat: def.stat,
-      kind: def.kind,
-      value,
-      label: def.label,
-      name: def.name,
-      grade: def.grade,
-    };
-  });
+  const affixes = rollCraftAffixes(template.slot, rarity, bp.tier, quality, count, rng);
 
   return {
     id,
@@ -463,6 +478,37 @@ export function formatAffixValue(a: Affix): string {
 export function formatCraftAffix(a: Affix): string {
   const label = a.name ? `${a.name}·${a.label}` : a.label;
   return `${label} ${formatAffixValue(a)}`;
+}
+
+/**
+ * 洗练：保留装备本体与品质，重掷全部词条；可锁定其中一条。
+ * 打造装备走打造池（与出品口径一致），旧装备回落图鉴池。
+ * 锁定的词条会排在首位，其余按池子重掷。
+ */
+export function rerollAffixes(
+  item: Equipment,
+  lockIndex: number | null = null,
+  rng: () => number = Math.random,
+): Equipment {
+  const count = item.affixes.length;
+  if (count === 0) return item;
+  const lock = lockIndex !== null && lockIndex >= 0 && lockIndex < count
+    ? item.affixes[lockIndex]
+    : null;
+
+  const rolled = item.crafted
+    ? rollCraftAffixes(item.slot, item.rarity, item.tier, item.quality, count, rng)
+    : rerollEquipmentAffixes(item).affixes;
+
+  const affixes = lock
+    ? [lock, ...rolled.filter(a => a.name !== lock.name).slice(0, count - 1)]
+    : rolled.slice(0, count);
+
+  return {
+    ...item,
+    affixes,
+    affixText: affixes.length > 0 ? affixes.map(formatCraftAffix).join(' · ') : undefined,
+  };
 }
 
 /** 老板代打：品质锁定在 1.00-1.06，词条照常随机，不涨熟练度 */
