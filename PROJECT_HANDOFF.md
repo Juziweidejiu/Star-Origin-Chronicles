@@ -436,3 +436,20 @@
 
 
 
+
+
+### Milestone 27: 仓库卫生、README 与 CI (已完成交付 ✅)
+- [x] **根目录清理 (`tools/re/`)**:
+  - 74 个一次性逆向脚本（`analyze_*` / `extract_*` / `inspect_*` / `find_*` / `parse_*` / `check_*` / `decode_save*`）与 `save_codec.js` / `save_tool.js` 全部 `git mv` 到 `tools/re/`，保留历史但不参与构建。
+  - 未跟踪的大体积产物（`game_bundle.js` 34MB、`extracted_index.html`、`save_decompressed_sample.json` 等）一并移入该目录，仍由 `.gitignore` 忽略，不会误提交。
+  - 删除根目录 `__pycache__/`。根目录此后只剩工程文件：`AGENTS.md` / `TODO.md` / `PROJECT_HANDOFF.md` / 白皮书 / `deploy-pwa.sh` / `.env*`。
+  - 新增 `tools/re/README.md`：说明这批脚本的性质、运行前提（需自备 `game_bundle.js`），并指明结论已沉淀到白皮书与 `mobile-pwa/src/engine/`。
+- [x] **`mobile-pwa/README.md` 重写**（原为 Vite 默认模板）:
+  - 快速开始、固定端口说明、`?tab=` / `?b=` 调试参数表。
+  - 命令表（dev / check / test / build / verify / setup:hooks）与 pre-commit 钩子说明。
+  - 项目结构树（含「引擎层不得 import React」约束）、玩法系统一览、质量与流程、部署方式。
+- [x] **CI (`.github/workflows/ci.yml`)**:
+  - push 到 `main` / PR / 手动触发时，在 `mobile-pwa` 下依次跑 `npm ci` → `npm run check` → `npm test` → `npm run build`，并上传 `dist` 产物（保留 7 天）。
+  - 带 `concurrency` 分组，同分支只保留最新一次运行。
+  - 主远端为 Gitee，若改用 Gitee Go，按同样四步配置即可（README 已注明）。
+- [x] **验证**: `npm run check` EXIT=0（仅既有 warning）；`npx vitest run` 4 files / 30 tests 全绿，435ms。
