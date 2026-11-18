@@ -47,6 +47,8 @@ npm run verify     # 完整门禁：类型 + lint + 构建
 | `?tab=` | `?tab=roster` | `town` / `dungeon` / `combat` / `roster` / `story` |
 | `?b=` | `?b=blacksmith` | 城镇建筑子页：`guild` / `tavern` / `market` / `infirmary` / `sanctuary` / `blacksmith` |
 | `?panel=` | `?panel=roster` | 名册展开态：`roster` / `inventory` |
+| `?smith=` | `?smith=craft` | 铁匠铺页签：`book` / `craft` / `reforge` / `reroll` / `salvage` |
+| `?bp=` | `?bp=bp_steel_sword` | 配合 `?smith=craft` 直接进某张图纸的打造台 |
 
 例：`http://127.0.0.1:5199/game/?tab=roster`
 

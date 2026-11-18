@@ -37,6 +37,9 @@ import type { FormationPresetId, FormationSlotAssignment, GridSlotId } from './t
 import { FORMATION_PRESETS, applyPresetToParty } from './engine/formationEngine';
 import { applyTownSave, loadSave, writeSave } from './engine/saveEngine';
 import type { SavePayload } from './engine/saveEngine';
+import { BLUEPRINTS, BLUEPRINT_MAP, initialBlueprints, starterMaterials } from './engine/blueprintData';
+import { addMaterials, rollCraftDrop, unlockByProgress } from './engine/craftEngine';
+import type { CraftProgress } from './engine/craftEngine';
 
 export function App() {
   // 启动时只读一次存档：把「读档 + 名册/首发/阵型兜底」在一个惰性 state 里一次算完。
@@ -146,6 +149,45 @@ export function App() {
   // 队伍公共背包（未装备的战利品）
   const [inventory, setInventory] = useState<Equipment[]>(boot.save?.inventory ?? []);
   const [inventoryTarget, setInventoryTarget] = useState<string>('');
+  // 打造进度：材料 / 已解锁图纸 / 熟练度
+  const [craft, setCraft] = useState<CraftProgress>(
+    () =>
+      boot.save?.craft ?? {
+        materials: starterMaterials(),
+        unlocked: initialBlueprints(),
+        xp: {},
+        counts: {},
+      },
+  );
+
+  // 战斗结算时读取最新打造进度（避免把 craft 塞进战斗 effect 依赖导致计时器重置）
+  const craftRef = useRef(craft);
+  useEffect(() => {
+    craftRef.current = craft;
+  }, [craft]);
+
+  // 声望 / 五星首通解锁图纸（非战斗掉落），返回本次新解锁的图纸名
+  const unlockBlueprintsByProgress = (announce = true): string => {
+    const reputation = townEngine.towns[townEngine.logistics.currentTownId]?.reputation ?? 0;
+    const clearedStars = Object.values(townEngine.contracts)
+      .flat()
+      .reduce((max, c) => (c.status === 'completed' ? Math.max(max, c.stars) : max), 0);
+    const gained = unlockByProgress(BLUEPRINTS, craftRef.current.unlocked, { reputation, clearedStars });
+    if (gained.length === 0) return '';
+    setCraft(prev => ({
+      ...prev,
+      unlocked: [...prev.unlocked, ...gained.filter(id => !prev.unlocked.includes(id))],
+    }));
+    const names = gained.map(id => BLUEPRINT_MAP[id]?.name).filter(Boolean).join('、');
+    if (announce) setSystemNotice(`声望与战绩已解锁新图纸：「${names}」，去军械工坊看看。`);
+    return names;
+  };
+
+  // 老档补算一次（声望早已达标但当时还没有图纸系统）
+  useEffect(() => {
+    unlockBlueprintsByProgress(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── 自动保存 ────────────────────────────────────────────────
   // 每次渲染后刷新一份快照引用（只引用现成对象，不做深拷贝），再由 800ms 防抖写入。
@@ -167,6 +209,7 @@ export function App() {
       formationPreset: currentFormationPreset,
       formationAssignments,
       inventory,
+      craft,
       dungeon: currentContract && currentDungeon
         ? { contract: currentContract, dungeon: currentDungeon, roomIndex: currentDungeon.currentRoomIndex }
         : null,
@@ -564,17 +607,20 @@ export function App() {
   const handleFinishDungeon = (victory: boolean) => {
     if (victory && currentContract) {
       const res = townEngine.completeContract(currentContract, roster);
+      // 声望 / 五星首通解锁的图纸随结算一起提示
+      const unlockNames = unlockBlueprintsByProgress(false);
+      const unlockSuffix = unlockNames ? ` | 声望达成，解锁图纸「${unlockNames}」` : '';
       if (ENABLE_WORLD_CRISIS) {
         // 推进天灾时间
         const crisisRes = crisisEngine.advanceDay();
         if (currentContract.id.startsWith('crisis_')) {
           const victoryMsg = crisisEngine.resolveCrisisVictory();
-          setSystemNotice(`${res.message} | ${victoryMsg}`);
+          setSystemNotice(`${res.message} | ${victoryMsg}${unlockSuffix}`);
         } else {
-          setSystemNotice(res.message + (crisisRes.message ? ` | ${crisisRes.message}` : ''));
+          setSystemNotice(res.message + (crisisRes.message ? ` | ${crisisRes.message}` : '') + unlockSuffix);
         }
       } else {
-        setSystemNotice(res.message);
+        setSystemNotice(res.message + unlockSuffix);
       }
     }
     // 未穿戴的战利品回收进背包
@@ -726,6 +772,20 @@ export function App() {
             activeDungeonRoom.cleared = true;
           }
 
+          // 打造资源：每场胜利掉基础料，首领房还有概率直接给一张没解锁的图纸
+          const craftDrop = rollCraftDrop(stars, craftRef.current.unlocked, BLUEPRINTS, isBossFight);
+          const dropBlueprint = craftDrop.blueprintId ? BLUEPRINT_MAP[craftDrop.blueprintId] : undefined;
+          const matTotal = Object.values(craftDrop.materials).reduce<number>((sum, n) => sum + (n ?? 0), 0);
+          const craftSuffix = ` | 材料 +${matTotal}${dropBlueprint ? ` · 新图纸「${dropBlueprint.name}」` : ''}`;
+          setCraft(prev => ({
+            ...prev,
+            materials: addMaterials(prev.materials, craftDrop.materials),
+            unlocked:
+              dropBlueprint && !prev.unlocked.includes(dropBlueprint.id)
+                ? [...prev.unlocked, dropBlueprint.id]
+                : prev.unlocked,
+          }));
+
           // 战利品掉落与结算面板触发逻辑：
           // 仅在最终首领房间 (isBoss) 胜利时触发战役总评 (MVP 榜) 与 极品装备翻牌结算
           // 普通小怪房间胜利后直接进入快捷返回沙盘模式，避免频繁弹窗与装备爆仓
@@ -736,13 +796,13 @@ export function App() {
             setSettlementSummary(summary);
             setBattleProgression(progressionResults);
             setSettlementStep('stats'); // 仅 Boss 战进入结算面板与翻牌两步走
-            setSystemNotice(`👑 最终首领已被斩杀！缴获极品军械！${levelUpSuffix}`);
+            setSystemNotice(`👑 最终首领已被斩杀！缴获极品军械！${levelUpSuffix}${craftSuffix}`);
           } else {
             // 普通战斗胜利：不弹大面板不塞背包，仅静默累积经验
             setSettlementSummary(null);
             setBattleProgression(null);
             setSettlementStep('idle');
-            setSystemNotice(`🎉 房间守卫已被全歼，道路畅通！${levelUpSuffix}`);
+            setSystemNotice(`🎉 房间守卫已被全歼，道路畅通！${levelUpSuffix}${craftSuffix}`);
           }
         } else if (engine.winner === 'enemy') {
           const summary = engine.getSettlementSummary(null);
@@ -936,8 +996,10 @@ export function App() {
             roster={roster}
             deployedHeroIds={deployedHeroIds}
             inventory={inventory}
+            craft={craft}
             onRosterChange={setRoster}
             onInventoryChange={setInventory}
+            onCraftChange={setCraft}
             onSelectContract={handleSelectContract}
             onLogMessage={msg => setSystemNotice(msg)}
             triggerUpdate={triggerUpdate}

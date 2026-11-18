@@ -1,7 +1,7 @@
 # 《星原战纪》路线蓝图
 
 > 最后更新：2026-11-18
-> 当前版本：Milestone 31（存档迁移层 P1-1）
+> 当前版本：Milestone 35（铁匠铺打造进工程）
 > 新会话从这里开始读：本文件 → `AGENTS.md` → `PROJECT_HANDOFF.md`
 
 ---
@@ -23,6 +23,10 @@
 | M29 | `BattlePawn` memo 化 + `sameVisual()` 逐字段比较（解掉「视觉态每次新引用导致 memo 失效」）；性能清单清零 |
 | M30 | GitHub 镜像（公开仓）+ Actions 真跑绿灯；双远程推送流程；`?perf=1` 真机性能采样器（FPS/p95/掉帧/卡死/LongTask/LoAF，纯 DOM 挂载） |
 | M31 | 存档迁移层（P1-1）：链式 `SAVE_MIGRATIONS` + 原档备份 + 自愈回写 + 结构归一；`readSave` 可注入测试缝；单测 30 → 44 |
+| M32 | 应用壳重构：页眉/底栏钉死，只有中栏滚动；`visualViewport` 动态视口；切 tab 回顶 |
+| M33 | 页内「上不动、下滚动」：城镇瘦身横幅 + 镇志浮层；名册编队固定 + 队员/背包互斥折叠 + 状态/职业/排序筛选 |
+| M34 | 铁匠铺打造原型（`design/crafting-demo.html`）：图纸册 / 备料 / 三段式小游戏 / 词条点亮 / 老板代打 / 按品阶熟练度 / 资产槽 |
+| M35 | 铁匠铺进工程：`blueprintData` + `craftEngine`（纯函数状态机）+ 存档 `craft` 段 + `BlacksmithView` 拆分 + 战斗掉落图纸材料 + 声望解锁 + 12 张图纸卡面 |
 
 ---
 
@@ -66,13 +70,16 @@
 - [ ] 承暴击 +3~5、队友倒地 +5~8、击杀强敌 −2。
 - [ ] 100 压力心理检定：小概率「豪杰/振奋」，大概率「偏执/自私/绝望」。
 
-### 6. 铁匠铺打造（图纸 / 材料 / 小游戏，⏳ 原型已就绪待评审）
+### 6. 铁匠铺打造（图纸 / 材料 / 小游戏，✅ 已进工程）
 - [x] 原型：`design/crafting-demo.html`（单文件，复用 pz token，不接入构建）；示例插画 `design/assets/items/sword.svg`。
 - 已定分工：图纸定底子（部位/基础属性/词条池）、材料定上限（品质区间/词条数）、小游戏定实际发挥。
 - 已定交互：三段式（火候 5 → 锻打 4 → 淬火 1）；老板代打 1.6 倍工钱、品质保底 1.00–1.06、不涨熟练度；熟练度按品阶 T1–T5 各 5 级，只由自打获得。
-- [ ] 待评审通过后落地：`engine/blueprintData.ts` + `engine/craftEngine.ts`（纯函数状态机 `startCraft/applyBeat/settleCraft`）。
-- [ ] `saveEngine.ts` / `types/world.ts` 增 `unlockedBlueprints`、`materials`、`profession`（可选字段，normalize 补默认，**不 bump SAVE_VERSION**）。
-- [ ] 拆 `components/BlacksmithView.tsx`（`BlueprintBook / CraftStage / CraftMinigame / AffixRow`），`TownView.tsx` 只保留入口。
+- [x] `engine/blueprintData.ts`（12 张图纸 / 7 种材料 / 每部位 8 条词条）+ `engine/craftEngine.ts`（`startCraft / craftBeat / settleCraft` 纯函数状态机、熟练度、代打、回收、掉落、声望解锁）。
+- [x] 存档新增 `craft`（材料 / 已解锁图纸 / 分品阶熟练度 / 打造件数），`SAVE_VERSION` 仍为 1，旧档自动补默认。
+- [x] `components/BlacksmithView.tsx` 从 `TownView.tsx` 拆出：图纸册 / 打造台 / 重铸 / 洗练 / 分解五个页签 + 全屏锻造层 + 成品对比弹层。
+- [x] 战斗胜利掉落材料与图纸（首领必掉未拥有），声望 60 / 五星首通解锁头像图纸。
+- [x] 图纸卡面：`mobile-pwa/public/art/items/{blueprintId}.svg`（12 张，`scripts/gen_item_art.mjs` 生成）。
+- [ ] 后续：词条真实战斗效果（v2）、洗练锁定、图纸残页合成、委托队列。
 - 资产约定：`public/art/{icons|items|heroes|npc}/{id}.webp`，缺图回落线性图标；v1 不改 `combatEngine`。
 
 ---

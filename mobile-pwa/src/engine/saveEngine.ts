@@ -24,6 +24,9 @@ import type { DungeonInstance } from '../types/dungeon';
 import { GRID_SLOTS } from '../types/formation';
 import type { FormationPresetId, FormationSlotAssignment } from '../types/formation';
 import type { TownEngine } from './townEngine';
+import { BLUEPRINTS, MATERIALS, initialBlueprints, starterMaterials } from './blueprintData';
+import type { CraftProgress } from './craftEngine';
+import { emptyCraftProgress } from './craftEngine';
 
 /** 主档键名。`v1` 是命名空间历史遗留，**不是**真实版本号；真实版本只看 payload.version */
 export const SAVE_KEY = 'starfall.save.v1';
@@ -57,10 +60,12 @@ export interface SaveData {
   formationAssignments: FormationSlotAssignment[];
   inventory: Equipment[];
   dungeon: DungeonSaveData | null;
+  /** 打造进度：材料 / 已解锁图纸 / 熟练度。缺字段的旧档由 normalize 补默认 */
+  craft: CraftProgress;
 }
 
-/** 除版本号与时间戳外的存档主体 */
-export type SavePayload = Omit<SaveData, 'version' | 'savedAt'>;
+/** 除版本号与时间戳外的存档主体；craft 可缺省（读档时由 normalize 补默认） */
+export type SavePayload = Omit<SaveData, 'version' | 'savedAt' | 'craft'> & { craft?: CraftProgress };
 
 // ---------------------------------------------------------------------------
 // 存储访问
@@ -215,6 +220,38 @@ function normalizeDungeon(value: unknown): DungeonSaveData | null {
   };
 }
 
+/** 打造进度：材料取白名单、图纸只留已知 id、经验与件数只收非负数 */
+function normalizeCraft(value: unknown): CraftProgress {
+  const mats: Record<string, number> = {};
+  const rawMats = isRecord(value) && isRecord(value.materials) ? value.materials : null;
+  for (const id of Object.keys(MATERIALS)) {
+    const v = rawMats?.[id];
+    mats[id] = typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.round(v)) : starterMaterials()[id as keyof typeof MATERIALS];
+  }
+
+  const known = new Set(BLUEPRINTS.map(bp => bp.id));
+  const rawUnlocked = isRecord(value) ? value.unlocked : undefined;
+  const unlocked = Array.isArray(rawUnlocked)
+    ? rawUnlocked.filter((id): id is string => typeof id === 'string' && known.has(id))
+    : initialBlueprints();
+
+  const xp: Record<string, number> = {};
+  const rawXp = isRecord(value) && isRecord(value.xp) ? value.xp : {};
+  for (const tier of ['1', '2', '3', '4', '5']) {
+    const v = rawXp[tier];
+    if (typeof v === 'number' && Number.isFinite(v)) xp[tier] = Math.max(0, Math.round(v));
+  }
+
+  const counts: Record<string, number> = {};
+  const rawCounts = isRecord(value) && isRecord(value.counts) ? value.counts : {};
+  for (const [id, v] of Object.entries(rawCounts)) {
+    if (!known.has(id)) continue;
+    if (typeof v === 'number' && Number.isFinite(v)) counts[id] = Math.max(0, Math.round(v));
+  }
+
+  return { materials: mats as CraftProgress['materials'], unlocked, xp, counts };
+}
+
 /**
  * 把迁移后的原始对象收敛成 SaveData。
  * 缺失的玩法默认值交给引擎（TownEngine / generateHero），这里只做「裁」不做「补」。
@@ -265,6 +302,7 @@ export function normalizeSave(raw: SavePayloadRaw): SaveData | null {
     formationAssignments,
     inventory,
     dungeon: normalizeDungeon(raw.dungeon),
+    craft: normalizeCraft(raw.craft),
   };
 }
 
@@ -350,7 +388,12 @@ export function loadSave(): SaveData | null {
 export function writeSave(payload: SavePayload): boolean {
   const s = storage();
   if (!s) return false;
-  return persist(s, { ...payload, version: SAVE_VERSION, savedAt: Date.now() });
+  return persist(s, {
+    ...payload,
+    craft: payload.craft ?? emptyCraftProgress(),
+    version: SAVE_VERSION,
+    savedAt: Date.now(),
+  });
 }
 
 /** 只清主档；备份不参与读档，留作人工排查的最后一根稻草 */

@@ -85,6 +85,10 @@ export interface Affix {
   kind: 'flat' | 'percent';
   value: number;      // flat: 绝对值；percent: 0.12 表示 +12%
   label: string;      // 展示名，如「物攻」
+  /** 打造词条的名字前缀，如「锋锐」 */
+  name?: string;
+  /** 打造词条的色阶 */
+  grade?: 'common' | 'fine' | 'rare' | 'legend';
 }
 
 export interface Equipment {
@@ -98,6 +102,10 @@ export interface Equipment {
   base: Partial<Record<CoreStatKey, number>>;
   affixes: Affix[];
   affixText?: string;
+  /** 是否由玩家自己打造（区别于地牢掉落） */
+  crafted?: boolean;
+  /** 打造来源图纸，用于统计与展示 */
+  blueprintId?: string;
 }
 
 /** 战斗时实际生效的最终属性（基础值 + 装备，不写回 hero） */

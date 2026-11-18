@@ -621,3 +621,19 @@
   - **锻造层视觉**：炉膛面板（渐变 + 暖光圈 + 内阴影）、大砧 104×80、火候/锻打/淬火三态图标切换（砧 → 水滴）、仪表上方「火候 2/5」计数器。
 - 已定方案（评审通过后落地）：`engine/blueprintData.ts` + `engine/craftEngine.ts`（纯函数状态机）、`saveEngine` 增可选字段 `unlockedBlueprints` / `materials` / `profession`（normalize 补默认，**不 bump SAVE_VERSION**）、`components/BlacksmithView.tsx` 从 `TownView.tsx` 拆出。详见 `TODO.md` P1-6。
 - 验证：无 console 错误；火候/锻打/淬火/成品/代打五态截图正常；代打实测金币 636→412（−224）、铁锭 24→12、煤不变、熟练度保持 380，成品「精良·精钢长剑 1.03」+1 词条。
+
+### Milestone 35: 铁匠铺打造进工程（图纸 / 材料 / 小游戏 / 词条，已完成交付 ✅）
+
+- 目标：把 M34 原型落成真功能，接入存档与战斗掉落。
+- 新引擎（纯逻辑，可单测）：
+  - `engine/blueprintData.ts`：12 张图纸（T1–T5，来源 initial/dungeon/boss/reputation/legend）、7 种材料（铁/木/皮/玉/煤/油/砂）、每部位 8 条词条（四个色阶 + 门禁表）。
+  - `engine/craftEngine.ts`：备料与工钱、熟练度、状态机（`startCraft / craftBeat / judgeBeat / settleCraft`）、老板代打、分解回收、掉落（`rollCraftDrop`）、声望解锁（`unlockByProgress`）。
+- 存档：`SaveData` 新增 `craft`（材料 / 已解锁 / 分品阶 xp / 各图纸打造件数），`normalizeCraft` 做白名单收敛，**`SAVE_VERSION` 仍为 1**，旧档自动补默认。
+- 界面：`components/BlacksmithView.tsx` 从 `TownView.tsx` 拆出（图纸册 / 打造台 / 重铸 / 洗练 / 分解），含全屏锻造层（rAF 指针 + 三段判定）与成品弹层（底板 ▲▼ 对比 + 词条逐条点亮）。
+- 掉落：战斗胜利按星数给材料、概率给未解锁图纸（首领房必掉），提示文案带「材料 +N · 新图纸「X」」；声望 60 与五星首通走 `unlockByProgress`，进城镇与结算时提示。
+- 美术：`scripts/gen_item_art.mjs` 生成 12 张 120×120 线性图纸卡面到 `mobile-pwa/public/art/items/`，缺图回落部位图标。
+- 调试：`?tab=town&b=blacksmith&smith=book|craft|reforge|reroll|salvage&bp=<blueprintId>`。
+- 验证：`npm run check` 零 error 零 warning；`npm run test` 5 files / 67 tests 全绿；`npm run build` 772ms，主包 467.20 kB（gzip 147.59）、`InkStoryRunner` 256.87 kB、CSS 15.26 kB。
+- 冒烟：图纸册 12 张 2 列（已解锁带插画、未解锁灰显 + 线索）；`?bp=bp_steel_sword` 打造台 → 自己打造 → 鼓风×5 / 落锤×4 / 入水×1 → 成品「稀有·精钢长剑 1.11」两词条、匠艺 +74 xp、金币 1200→1060、铁 24→12；分解成品回收铁×5 + 60 金；老板代打品质 1.03 且熟练度不变。
+
+---
