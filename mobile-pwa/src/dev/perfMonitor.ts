@@ -36,6 +36,8 @@ export function startPerfMonitor(): () => void {
   let loafLayoutMax = 0;
   let loafScriptMax = 0;
   let loafSupported = false;
+/** 被剔除的「挂起间隔」次数（切后台 / 系统休眠），不计入帧窗口 */
+let suspendCount = 0;
 
   const observers: PerformanceObserver[] = [];
   const canObserve = typeof PerformanceObserver !== 'undefined';
@@ -68,10 +70,15 @@ export function startPerfMonitor(): () => void {
           loafCount += 1;
           if (e.duration > loafMax) loafMax = e.duration;
           if (typeof e.styleAndLayoutStart === 'number' && e.styleAndLayoutStart > 0) {
-            const layout = e.startTime + e.duration - e.styleAndLayoutStart;
+            // 样式与布局耗时：从 styleAndLayoutStart 到帧结束
+            const layout = Math.max(0, e.startTime + e.duration - e.styleAndLayoutStart);
             if (layout > loafLayoutMax) loafLayoutMax = layout;
           }
-          const script = (e.renderStart ?? e.startTime) - e.startTime + (e.duration - ((e.styleAndLayoutStart ?? e.startTime) - e.startTime));
+          // 脚本耗时：帧开始到样式布局开始（含渲染前的 JS 执行）
+          const script =
+            typeof e.styleAndLayoutStart === 'number' && e.styleAndLayoutStart > e.startTime
+              ? e.styleAndLayoutStart - e.startTime
+              : e.duration;
           if (script > loafScriptMax) loafScriptMax = script;
           loafSupported = true;
         }
@@ -86,8 +93,13 @@ export function startPerfMonitor(): () => void {
   const tick = (now: number) => {
     if (lastFrame > 0) {
       const dt = now - lastFrame;
-      frameTimes.push(dt);
-      if (frameTimes.length > WINDOW) frameTimes.shift();
+      // 切后台 / 系统休眠会产出几秒到几十秒的「帧」，若计入窗口会把均值彻底带偏
+      if (dt > 1000) {
+        suspendCount += 1;
+      } else {
+        frameTimes.push(dt);
+        if (frameTimes.length > WINDOW) frameTimes.shift();
+      }
     } else {
       started = now;
     }
@@ -171,7 +183,7 @@ export function startPerfMonitor(): () => void {
       `UA: ${navigator.userAgent}`,
       `屏幕: ${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}x | 视口 ${window.innerWidth}x${window.innerHeight}`,
       `CPU 核: ${nav.hardwareConcurrency ?? '?'} | 设备内存: ${nav.deviceMemory ?? '?'} GB | JS 堆: ${heap}`,
-      `持续: ${((performance.now() - started) / 1000).toFixed(1)}s`,
+      `持续: ${((performance.now() - started) / 1000).toFixed(1)}s | 挂起剔除 ${suspendCount} 次（切后台/休眠，不计入统计）`,
       '',
       `FPS 均值: ${f.fps.toFixed(1)}（帧窗口 ${f.frames}）`,
       `帧耗时 平均 ${f.avgFrame.toFixed(1)}ms | p95 ${f.p95Frame.toFixed(1)}ms | 最差 ${f.worstFrame.toFixed(1)}ms`,
@@ -209,6 +221,7 @@ export function startPerfMonitor(): () => void {
     loafMax = 0;
     loafLayoutMax = 0;
     loafScriptMax = 0;
+    suspendCount = 0;
     started = performance.now();
   });
 
@@ -225,7 +238,7 @@ export function startPerfMonitor(): () => void {
         ? '<div style="font-size:13px;font-weight:700;color:#E3BE72">等待帧数据…</div>'
         : `<div style="font-size:13px;font-weight:700;color:${fpsColor}">${f.fps.toFixed(1)} FPS</div>`,
       `<div>帧 ${f.avgFrame.toFixed(0)} / p95 ${f.p95Frame.toFixed(0)} / 最差 ${f.worstFrame.toFixed(0)} ms</div>`,
-      `<div>掉帧 ${(f.jankRatio * 100).toFixed(0)}% · 卡死 ${f.freezes}</div>`,
+      `<div>掉帧 ${(f.jankRatio * 100).toFixed(0)}% · 卡死 ${f.freezes}${suspendCount > 0 ? ` · 挂起 ${suspendCount}` : ''}</div>`,
       `<div>长任务 ${longTaskCount} · 最长 ${longTaskMax.toFixed(0)}ms</div>`,
       loafSupported
         ? `<div>LoAF 布局 ${loafLayoutMax.toFixed(0)}ms</div>`
