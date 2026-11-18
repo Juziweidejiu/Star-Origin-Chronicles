@@ -138,7 +138,7 @@ export function describeBase(item: Equipment): string {
       if (key === 'critChance' || key === 'attackSpeed' || key === 'tenacity') {
         return `${STAT_LABEL[key]} ${Math.round(value * 100)}%`;
       }
-      return `${STAT_LABEL[key]} ${value}`;
+      return `${STAT_LABEL[key]} ${Math.round(value)}`;
     })
     .join(' · ');
 }

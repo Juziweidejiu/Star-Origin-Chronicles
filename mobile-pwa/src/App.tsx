@@ -792,7 +792,9 @@ export function App() {
             townEngine={townEngine}
             roster={roster}
             deployedHeroIds={deployedHeroIds}
+            inventory={inventory}
             onRosterChange={setRoster}
+            onInventoryChange={setInventory}
             onSelectContract={handleSelectContract}
             onLogMessage={msg => setSystemNotice(msg)}
             triggerUpdate={triggerUpdate}

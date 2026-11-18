@@ -1,16 +1,31 @@
 import React, { useState } from 'react';
 import type { TownEngine } from '../engine/townEngine';
 import type { TownId, BuildingType, GuildContract, TavernRecruit } from '../types/world';
-import type { Hero } from '../types/hero';
+import type { Hero, Equipment } from '../types/hero';
 import { heroRoleLabel } from '../engine/heroFactory';
 import { estimateContractOdds } from '../engine/guildEngine';
 import { starsToRank } from '../types/guild';
+import {
+  craftCost,
+  craftEquipment,
+  reforgeCost,
+  reforgeEquipment,
+  rerollCost,
+  rerollEquipment,
+  salvageYield,
+  salvageEquipment,
+  tierForHeroLevel
+} from '../engine/blacksmithEngine';
+import { EQUIPMENT_TEMPLATES, RARITY_LABEL, qualityLabel } from '../engine/dungeonEngine';
+import { STAT_LABEL } from '../engine/statResolver';
 
 interface TownViewProps {
   townEngine: TownEngine;
   roster: Hero[];
   deployedHeroIds: string[];
+  inventory: Equipment[];
   onRosterChange: (newRoster: Hero[]) => void;
+  onInventoryChange: (newInventory: Equipment[]) => void;
   onSelectContract: (contract: GuildContract) => void;
   onLogMessage: (msg: string) => void;
   triggerUpdate: () => void;
@@ -20,7 +35,9 @@ export const TownView: React.FC<TownViewProps> = ({
   townEngine,
   roster,
   deployedHeroIds,
+  inventory,
   onRosterChange,
+  onInventoryChange,
   onSelectContract,
   onLogMessage,
   triggerUpdate
@@ -29,8 +46,12 @@ export const TownView: React.FC<TownViewProps> = ({
   const currentTown = townEngine.towns[currentTownId];
   const [activeBuilding, setActiveBuilding] = useState<BuildingType>('guild');
   const [isTravelModalOpen, setIsTravelModalOpen] = useState(false);
+  const [smithTab, setSmithTab] = useState<'craft' | 'reforge' | 'reroll' | 'salvage'>('craft');
+  const [craftSlot, setCraftSlot] = useState<'weapon' | 'armor' | 'trinket'>('weapon');
+  const [craftTier, setCraftTier] = useState(() => tierForHeroLevel(Math.max(1, ...roster.map(h => h.level))));
 
   const deployedSquad = roster.filter(h => deployedHeroIds.includes(h.id));
+  const smithDiscount = currentTownId === 'hammerdeep_hold' ? 0.85 : 1;
 
   // 切换据点旅行
   const handleTravel = (targetTownId: TownId) => {
@@ -107,6 +128,45 @@ export const TownView: React.FC<TownViewProps> = ({
     triggerUpdate();
   };
 
+  const handleCraft = (templateIndex: number) => {
+    const res = craftEquipment(templateIndex, craftTier, townEngine.logistics, smithDiscount);
+    onLogMessage(res.message);
+    if (res.success && res.item) {
+      onInventoryChange([...inventory, res.item]);
+    }
+    triggerUpdate();
+  };
+
+  const handleReforge = (item: Equipment) => {
+    const res = reforgeEquipment(item, townEngine.logistics, smithDiscount);
+    onLogMessage(res.message);
+    triggerUpdate();
+  };
+
+  const handleReroll = (item: Equipment) => {
+    const res = rerollEquipment(item, townEngine.logistics, smithDiscount);
+    onLogMessage(res.message);
+    triggerUpdate();
+  };
+
+  const handleSalvage = (item: Equipment) => {
+    if (!window.confirm(`确定分解【${item.name}】？分解后无法找回。`)) return;
+    const res = salvageEquipment(item, townEngine.logistics);
+    onLogMessage(res.message);
+    if (res.success) {
+      onInventoryChange(inventory.filter(i => i.id !== item.id));
+    }
+    triggerUpdate();
+  };
+
+  const EQUIPPED_SLOTS = ['weapon', 'armor', 'trinket'] as const;
+
+  const formatBlueprintStat = (key: string, value: number) => {
+    const percentish = ['critChance', 'critDamage', 'attackSpeed', 'tenacity'];
+    const label = STAT_LABEL[key as keyof typeof STAT_LABEL] ?? key;
+    return `${label} ${percentish.includes(key) ? `${Math.round(value * 100)}%` : value}`;
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       
@@ -142,7 +202,8 @@ export const TownView: React.FC<TownViewProps> = ({
             tavern: '🍺 佣兵酒馆',
             market: '⚖️ 补给市集',
             infirmary: '🩹 随军医馆',
-            sanctuary: '✨ 英灵圣所'
+            sanctuary: '✨ 英灵圣所',
+            blacksmith: '⚒️ 铁匠铺'
           };
           const isAct = activeBuilding === b;
           return (
@@ -487,6 +548,285 @@ export const TownView: React.FC<TownViewProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 建筑 6: 铁匠铺 (分解 / 打造 / 重铸 / 洗练) */}
+      {activeBuilding === 'blacksmith' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: '#f8fafc', fontWeight: 'bold' }}>⚒️ 军械工坊</div>
+              <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                {currentTownId === 'hammerdeep_hold'
+                  ? '汽锤堡的老师傅坐镇，强化与打造费用 -15%。'
+                  : '炉火常亮，按佣兵水准打造合身军械。'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', fontSize: '10px', color: '#cbd5e1', textAlign: 'right' }}>
+              <span>🪨 晶石 {townEngine.logistics.forgeStones}</span>
+              <span>⛏️ 玄铁 {townEngine.logistics.ironOre}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {([
+              ['craft', '🔨 打造'],
+              ['reforge', '🔥 重铸'],
+              ['reroll', '🎲 洗练'],
+              ['salvage', '♻️ 分解'],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setSmithTab(key)}
+                style={{
+                  flex: 1,
+                  padding: '6px 4px',
+                  borderRadius: '6px',
+                  border: smithTab === key ? '1px solid #f59e0b' : '1px solid #334155',
+                  background: smithTab === key ? 'rgba(245, 158, 11, 0.18)' : '#1e293b',
+                  color: smithTab === key ? '#fbbf24' : '#94a3b8',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* 打造 */}
+          {smithTab === 'craft' && (() => {
+            const cost = craftCost(craftTier, smithDiscount);
+            const blueprints = EQUIPMENT_TEMPLATES
+              .map((template, index) => ({ template, index }))
+              .filter(({ template }) => template.slot === craftSlot);
+            const canAfford = townEngine.logistics.gold >= cost.gold
+              && townEngine.logistics.forgeStones >= cost.stones
+              && townEngine.logistics.ironOre >= cost.ore;
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {([['weapon', '⚔️ 武器'], ['armor', '🛡️ 护甲'], ['trinket', '💍 饰品']] as const).map(([slot, label]) => (
+                    <button
+                      key={slot}
+                      onClick={() => setCraftSlot(slot)}
+                      style={{
+                        flex: 1, padding: '5px', borderRadius: '5px', fontSize: '10px', cursor: 'pointer',
+                        border: craftSlot === slot ? '1px solid #38bdf8' : '1px solid #334155',
+                        background: craftSlot === slot ? 'rgba(56, 189, 248, 0.15)' : '#0f172a',
+                        color: craftSlot === slot ? '#7dd3fc' : '#94a3b8'
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#94a3b8' }}>
+                  <span>装等</span>
+                  {[1, 2, 3, 4, 5].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setCraftTier(t)}
+                      style={{
+                        width: '24px', height: '22px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer',
+                        border: craftTier === t ? '1px solid #f59e0b' : '1px solid #334155',
+                        background: craftTier === t ? '#78350f' : '#0f172a',
+                        color: craftTier === t ? '#fde68a' : '#64748b'
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                  <span style={{ marginLeft: '6px' }}>品质随机，装等越高越易出高阶</span>
+                </div>
+
+                <div style={{ fontSize: '10px', color: '#fbbf24' }}>
+                  工钱 {cost.gold}G · 晶石 {cost.stones} · 玄铁 {cost.ore}
+                </div>
+
+                {blueprints.map(({ template, index }) => (
+                  <div key={index} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '8px 10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 'bold' }}>{template.name}</div>
+                        <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px' }}>
+                          {Object.entries(template.base)
+                            .filter(([, v]) => v !== undefined)
+                            .map(([k, v]) => formatBlueprintStat(k, v as number))
+                            .join(' · ')}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleCraft(index)}
+                        disabled={!canAfford}
+                        style={{
+                          padding: '5px 12px', borderRadius: '5px', border: 'none', fontSize: '11px', fontWeight: 'bold',
+                          background: canAfford ? '#f59e0b' : '#475569',
+                          color: canAfford ? '#0f172a' : '#94a3b8',
+                          cursor: canAfford ? 'pointer' : 'not-allowed',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        锻造
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* 重铸 */}
+          {smithTab === 'reforge' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '10px', color: '#94a3b8' }}>每件装备只能重铸一次，全部基础属性与词缀提升 18%。</div>
+              {roster.map(hero => (
+                <div key={hero.id} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px' }}>
+                  <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}>
+                    {hero.name} <span style={{ color: '#64748b', fontWeight: 'normal' }}>Lv.{hero.level}</span>
+                  </div>
+                  {EQUIPPED_SLOTS.map(slot => {
+                    const item = hero.equipment[slot];
+                    if (!item) return null;
+                    const cost = reforgeCost(item, smithDiscount);
+                    const affordable = townEngine.logistics.gold >= cost;
+                    return (
+                      <div key={slot} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '3px 0', borderTop: '1px solid #1e293b' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '11px', color: item.reforged ? '#c084fc' : '#cbd5e1' }}>{item.name}</div>
+                          <div style={{ fontSize: '9px', color: '#64748b' }}>
+                            {RARITY_LABEL[item.rarity]} · 装等 {item.tier} · {qualityLabel(item.quality)} · {item.affixText ?? '无词缀'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleReforge(item)}
+                          disabled={item.reforged || !affordable}
+                          style={{
+                            padding: '4px 10px', borderRadius: '5px', border: 'none', fontSize: '10px', fontWeight: 'bold',
+                            background: item.reforged ? '#334155' : affordable ? '#dc2626' : '#475569',
+                            color: item.reforged || !affordable ? '#94a3b8' : '#fff',
+                            cursor: item.reforged || !affordable ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {item.reforged ? '已重铸' : `重铸 ${cost}G`}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 洗练 */}
+          {smithTab === 'reroll' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '10px', color: '#94a3b8' }}>重掷全部词缀，保留词条数量与装备品质。</div>
+              {roster.map(hero => (
+                <div key={hero.id} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px' }}>
+                  <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}>
+                    {hero.name} <span style={{ color: '#64748b', fontWeight: 'normal' }}>已装备</span>
+                  </div>
+                  {EQUIPPED_SLOTS.map(slot => {
+                    const item = hero.equipment[slot];
+                    if (!item) return null;
+                    const cost = rerollCost(item, smithDiscount);
+                    const affordable = townEngine.logistics.gold >= cost.gold && townEngine.logistics.forgeStones >= cost.stones;
+                    return (
+                      <div key={slot} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '3px 0', borderTop: '1px solid #1e293b' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '11px', color: '#cbd5e1' }}>{item.name}</div>
+                          <div style={{ fontSize: '9px', color: '#64748b' }}>{item.affixText ?? '无词缀'}</div>
+                        </div>
+                        <button
+                          onClick={() => handleReroll(item)}
+                          disabled={item.rarity === 'common' || !affordable}
+                          style={{
+                            padding: '4px 10px', borderRadius: '5px', border: 'none', fontSize: '10px', fontWeight: 'bold',
+                            background: item.rarity === 'common' ? '#334155' : affordable ? '#7c3aed' : '#475569',
+                            color: item.rarity === 'common' || !affordable ? '#94a3b8' : '#fff',
+                            cursor: item.rarity === 'common' || !affordable ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {item.rarity === 'common' ? '无词缀' : `洗练 ${cost.gold}G · ${cost.stones}石`}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              {inventory.length > 0 && (
+                <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px' }}>
+                  <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}>背包军械</div>
+                  {inventory.map(item => {
+                    const cost = rerollCost(item, smithDiscount);
+                    const affordable = townEngine.logistics.gold >= cost.gold && townEngine.logistics.forgeStones >= cost.stones;
+                    return (
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '3px 0', borderTop: '1px solid #1e293b' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '11px', color: '#cbd5e1' }}>{item.name}</div>
+                          <div style={{ fontSize: '9px', color: '#64748b' }}>{item.affixText ?? '无词缀'}</div>
+                        </div>
+                        <button
+                          onClick={() => handleReroll(item)}
+                          disabled={item.rarity === 'common' || !affordable}
+                          style={{
+                            padding: '4px 10px', borderRadius: '5px', border: 'none', fontSize: '10px', fontWeight: 'bold',
+                            background: item.rarity === 'common' ? '#334155' : affordable ? '#7c3aed' : '#475569',
+                            color: item.rarity === 'common' || !affordable ? '#94a3b8' : '#fff',
+                            cursor: item.rarity === 'common' || !affordable ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {item.rarity === 'common' ? '无词缀' : `洗练 ${cost.gold}G · ${cost.stones}石`}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 分解 */}
+          {smithTab === 'salvage' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '10px', color: '#94a3b8' }}>只分解背包中的淘汰军械，已装备的需先卸下。</div>
+              {inventory.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', fontSize: '11px', color: '#64748b' }}>背包里没有可分解的军械。</div>
+              ) : inventory.map(item => {
+                const gain = salvageYield(item);
+                return (
+                  <div key={item.id} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '6px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1' }}>{item.name}</div>
+                      <div style={{ fontSize: '9px', color: '#64748b' }}>
+                        {RARITY_LABEL[item.rarity]} · 装等 {item.tier} · {qualityLabel(item.quality)} · {item.affixText ?? '无词缀'}
+                      </div>
+                      <div style={{ fontSize: '9px', color: '#fbbf24', marginTop: '2px' }}>
+                        回收 {gain.gold}G · {gain.stones} 晶石{gain.ore > 0 ? ` · ${gain.ore} 玄铁` : ''}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSalvage(item)}
+                      style={{
+                        padding: '5px 12px', borderRadius: '5px', border: '1px solid #10b981', background: 'transparent',
+                        color: '#34d399', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap'
+                      }}
+                    >
+                      分解
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

@@ -24,7 +24,7 @@ export const TOWNS_CONFIG: Record<TownId, Omit<TownNode, 'reputation' | 'reputat
     name: '麦浪与风车镇',
     subtitle: '平原粮仓 · 烤面包与麦芽酒香',
     description: '金黄麦田与转动木风车掩映的平原小镇，刚出炉的黑麦面包香气四溢，冒险者公会的启程之地。',
-    buildings: ['tavern', 'guild', 'market', 'infirmary'],
+    buildings: ['tavern', 'guild', 'market', 'infirmary', 'blacksmith'],
     distanceFromCapital: 0
   },
   verdant_spring: {
@@ -40,7 +40,7 @@ export const TOWNS_CONFIG: Record<TownId, Omit<TownNode, 'reputation' | 'reputat
     name: '黑铁与汽锤堡',
     subtitle: '矮人锻炉 · 蒸汽钻机与精钢打造',
     description: '依玄铁矿山而建的坚实山城,高耸的红砖烟囱与水压蒸汽锻锤轰鸣不息，冒险武具锻造之都。',
-    buildings: ['tavern', 'guild', 'market'],
+    buildings: ['tavern', 'guild', 'market', 'blacksmith'],
     distanceFromCapital: 2
   },
   tidesong_haven: {
@@ -159,6 +159,8 @@ export class TownEngine {
       rations: 35,
       soulCrystals: 2,
       medicines: 3,
+      forgeStones: 12,
+      ironOre: 6,
       dailyFoodCost: 4,
       weeklyWageCost: 80
     };

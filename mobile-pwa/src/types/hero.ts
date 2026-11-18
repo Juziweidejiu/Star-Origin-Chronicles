@@ -92,7 +92,9 @@ export interface Equipment {
   name: string;
   slot: 'weapon' | 'armor' | 'trinket';
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  tier: number;       // 装等（跟随契约星级）
+  tier: number;       // 装等（跟随契约星级 / 打造目标等级）
+  quality: number;    // 品质系数 0.82-1.18，已折算进 base/affixes
+  reforged?: boolean; // 是否已重铸（每件仅一次，+18%）
   base: Partial<Record<CoreStatKey, number>>;
   affixes: Affix[];
   affixText?: string;

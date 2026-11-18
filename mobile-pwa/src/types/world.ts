@@ -12,7 +12,7 @@ export type TownId = 'ambermill_town' | 'verdant_spring' | 'hammerdeep_hold' | '
 export type ReputationLevel = 'hostile' | 'neutral' | 'friendly' | 'revered';
 
 // 建筑类型
-export type BuildingType = 'tavern' | 'guild' | 'market' | 'sanctuary' | 'infirmary';
+export type BuildingType = 'tavern' | 'guild' | 'market' | 'sanctuary' | 'infirmary' | 'blacksmith';
 
 // 据点实体
 export interface TownNode {
@@ -93,6 +93,8 @@ export interface CompanyLogistics {
   rations: number;        // 口粮 (每日每人消耗 1)
   soulCrystals: number;   // 稀有魂晶 (用于圣所复活)
   medicines: number;      // 药剂 (用于治愈重伤)
+  forgeStones: number;    // 锻造晶石：分解与洗练的基础材料
+  ironOre: number;        // 玄铁锭：打造与高阶强化的稀有材料
   dailyFoodCost: number;  // 每日口粮消耗
   weeklyWageCost: number; // 每周薪资总额
 }

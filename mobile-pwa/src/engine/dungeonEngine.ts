@@ -9,31 +9,40 @@ import type { GuildContract } from '../types/world';
 import { enemyCountForStars } from './enemyFactory';
 import { MOCK_DUNGEON_EVENTS } from '../data/mockNarratives';
 
-const BASE_TEMPLATES = [
+export interface EquipmentBlueprint {
+  name: string;
+  slot: Equipment['slot'];
+  base: Partial<Record<CoreStatKey, number>>;
+}
+
+// 可复用装备图鉴：掉落、铁匠铺打造共用同一套底板
+export const EQUIPMENT_TEMPLATES: EquipmentBlueprint[] = [
   // 武器 (weapon)
-  { name: '精钢长剑', slot: 'weapon' as const, base: { ad: 14, critChance: 0.05 } },
-  { name: '破阵大戟', slot: 'weapon' as const, base: { ad: 20, penetration: 5 } },
-  { name: '青木法杖', slot: 'weapon' as const, base: { ap: 18, healingPower: 10 } },
-  { name: '精铁短弓', slot: 'weapon' as const, base: { ad: 12, attackSpeed: 0.1 } },
+  { name: '精钢长剑', slot: 'weapon', base: { ad: 14, critChance: 0.05 } },
+  { name: '破阵大戟', slot: 'weapon', base: { ad: 20, penetration: 5 } },
+  { name: '青木法杖', slot: 'weapon', base: { ap: 18, healingPower: 10 } },
+  { name: '精铁短弓', slot: 'weapon', base: { ad: 12, attackSpeed: 0.1 } },
   // 防具 (armor)
-  { name: '锁子甲', slot: 'armor' as const, base: { armor: 14, maxHp: 35 } },
-  { name: '坚木重铠', slot: 'armor' as const, base: { armor: 22, maxHp: 60 } },
-  { name: '编织法袍', slot: 'armor' as const, base: { magicResist: 18, maxHp: 25 } },
-  { name: '巡林皮甲', slot: 'armor' as const, base: { armor: 8, magicResist: 8, maxHp: 30 } },
+  { name: '锁子甲', slot: 'armor', base: { armor: 14, maxHp: 35 } },
+  { name: '坚木重铠', slot: 'armor', base: { armor: 22, maxHp: 60 } },
+  { name: '编织法袍', slot: 'armor', base: { magicResist: 18, maxHp: 25 } },
+  { name: '巡林皮甲', slot: 'armor', base: { armor: 8, magicResist: 8, maxHp: 30 } },
   // 饰品 (trinket)
-  { name: '狼牙吊坠', slot: 'trinket' as const, base: { critChance: 0.06, ad: 5 } },
-  { name: '翡翠玉佩', slot: 'trinket' as const, base: { healingPower: 14, maxHp: 20 } },
-  { name: '星辉指环', slot: 'trinket' as const, base: { ap: 10, magicResist: 6 } },
-  { name: '青铜护符', slot: 'trinket' as const, base: { armor: 8, tenacity: 0.08 } },
+  { name: '狼牙吊坠', slot: 'trinket', base: { critChance: 0.06, ad: 5 } },
+  { name: '翡翠玉佩', slot: 'trinket', base: { healingPower: 14, maxHp: 20 } },
+  { name: '星辉指环', slot: 'trinket', base: { ap: 10, magicResist: 6 } },
+  { name: '青铜护符', slot: 'trinket', base: { armor: 8, tenacity: 0.08 } },
 ];
 
-const RARITY_LABEL: Record<Equipment['rarity'], string> = {
+export const RARITY_LABEL: Record<Equipment['rarity'], string> = {
   common: '粗制',
   uncommon: '精良',
   rare: '稀有',
   epic: '史诗',
   legendary: '传奇',
 };
+
+export const RARITY_ORDER: Equipment['rarity'][] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 
 const AFFIX_COUNT: Record<Equipment['rarity'], number> = {
   common: 0,
@@ -75,62 +84,138 @@ const AFFIX_POOL: Record<Equipment['slot'], AffixDef[]> = {
   ],
 };
 
-export function generateRandomLoot(stars: number): Equipment {
-  const template = BASE_TEMPLATES[Math.floor(Math.random() * BASE_TEMPLATES.length)];
-  const roll = Math.random() * 100 + stars * 4;
+/** 按幸运值（星级/锻造水准）抽取品质 */
+export function rollRarity(luck = 0): Equipment['rarity'] {
+  const roll = Math.random() * 100 + luck;
+  if (roll > 105) return 'legendary';
+  if (roll > 86) return 'epic';
+  if (roll > 62) return 'rare';
+  if (roll > 38) return 'uncommon';
+  return 'common';
+}
 
-  let rarity: Equipment['rarity'] = 'common';
-  if (roll > 105) rarity = 'legendary';
-  else if (roll > 86) rarity = 'epic';
-  else if (roll > 62) rarity = 'rare';
-  else if (roll > 38) rarity = 'uncommon';
+export function formatAffixText(a: Affix): string {
+  // 暴击率与暴伤属于加算浮点，展示为百分比
+  if (a.kind === 'percent' || a.stat === 'critChance' || a.stat === 'critDamage' || a.stat === 'tenacity') {
+    return `${a.label} +${Math.round(a.value * 100)}%`;
+  }
+  return `${a.label} +${a.value}`;
+}
 
-  const tier = Math.max(1, Math.min(5, stars));
+/** 按部位、品质与装等生成一组互不重复的词缀 */
+export function buildAffixes(slot: Equipment['slot'], rarity: Equipment['rarity'], tier: number): Affix[] {
   const tierMult = 1 + 0.3 * (tier - 1);
+  const pool = [...AFFIX_POOL[slot]];
+  const affixes: Affix[] = [];
+  for (let i = 0; i < AFFIX_COUNT[rarity] && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    const def = pool.splice(idx, 1)[0];
+    const raw = def.min + Math.random() * (def.max - def.min);
+    const scaled = def.kind === 'percent' ? raw * (1 + 0.15 * (tier - 1)) : raw * tierMult;
+    // 整型属性取整；百分比与暴击暴伤保留两位小数
+    let value = Math.round(scaled * 100) / 100;
+    if (['ad', 'ap', 'armor', 'magicResist', 'maxHp', 'healingPower', 'penetration'].includes(def.stat) && def.kind === 'flat') {
+      value = Math.round(scaled);
+    }
+    affixes.push({ stat: def.stat, kind: def.kind, value, label: def.label });
+  }
+  return affixes;
+}
 
+/** 按装等缩放底板基础属性 */
+export function scaleTemplateBase(template: EquipmentBlueprint, tier: number): Partial<Record<CoreStatKey, number>> {
+  const tierMult = 1 + 0.3 * (tier - 1);
   const base: Partial<Record<CoreStatKey, number>> = {};
   for (const [key, value] of Object.entries(template.base) as [CoreStatKey, number][]) {
-    // 浮点属性（暴击率、攻速、韧性）不应直接 Math.round 导致归零，保留2位小数
     if (key === 'critChance' || key === 'attackSpeed' || key === 'tenacity') {
       base[key] = Math.round(value * tierMult * 100) / 100;
     } else {
       base[key] = Math.round(value * tierMult);
     }
   }
+  return base;
+}
 
-  const pool = [...AFFIX_POOL[template.slot]];
-  const affixes: Affix[] = [];
-  for (let i = 0; i < AFFIX_COUNT[rarity] && pool.length > 0; i++) {
-    const idx = Math.floor(Math.random() * pool.length);
-    const rollDef = pool.splice(idx, 1)[0];
-    const raw = rollDef.min + Math.random() * (rollDef.max - rollDef.min);
-    const scaled = rollDef.kind === 'percent' ? raw * (1 + 0.15 * (tier - 1)) : raw * tierMult;
-    // 整型属性（ad, ap, armor, magicResist, maxHp, healingPower, penetration）取整；百分比与暴击暴伤四舍五入到百分比
-    let value = Math.round(scaled * 100) / 100;
-    if (['ad', 'ap', 'armor', 'magicResist', 'maxHp', 'healingPower', 'penetration'].includes(rollDef.stat) && rollDef.kind === 'flat') {
-      value = Math.round(scaled);
-    }
-    affixes.push({ stat: rollDef.stat, kind: rollDef.kind, value, label: rollDef.label });
+/** 品质系数：0.82（粗劣）~ 1.18（极品），已折算进装备数值 */
+export const QUALITY_MIN = 0.82;
+export const QUALITY_MAX = 1.18;
+/** 重铸一次性加成：全部属性 +18% */
+export const REFORGE_BONUS = 0.18;
+
+export function rollQuality(): number {
+  return Math.round((QUALITY_MIN + Math.random() * (QUALITY_MAX - QUALITY_MIN)) * 100) / 100;
+}
+
+/** 品质分档：破损 / 粗劣 / 普通 / 精良 / 极品 */
+export function qualityLabel(quality: number): string {
+  if (quality < 0.75) return '破损';
+  if (quality < 0.875) return '粗劣';
+  if (quality < 1) return '普通';
+  if (quality < 1.125) return '精良';
+  return '极品';
+}
+
+const PERCENTISH_STATS: CoreStatKey[] = ['critChance', 'critDamage', 'attackSpeed', 'tenacity'];
+
+function scaleStatValue(key: CoreStatKey, value: number, mult: number): number {
+  const scaled = value * mult;
+  return PERCENTISH_STATS.includes(key)
+    ? Math.round(scaled * 1000) / 1000
+    : Math.round(scaled);
+}
+
+function scaleAffixes(affixes: Affix[], mult: number): Affix[] {
+  return affixes.map(a => ({
+    ...a,
+    value: a.kind === 'percent' || PERCENTISH_STATS.includes(a.stat)
+      ? Math.round(a.value * mult * 1000) / 1000
+      : Math.max(1, Math.round(a.value * mult))
+  }));
+}
+
+/** 用指定图鉴/品质/装等铸造一件装备 */
+export function createEquipmentFromTemplate(
+  template: EquipmentBlueprint,
+  rarity: Equipment['rarity'],
+  tier: number,
+  quality = rollQuality()
+): Equipment {
+  const baseRaw = scaleTemplateBase(template, tier);
+  const base: Partial<Record<CoreStatKey, number>> = {};
+  for (const [key, value] of Object.entries(baseRaw) as [CoreStatKey, number][]) {
+    base[key] = scaleStatValue(key, value, quality);
   }
 
-  const formatAffixText = (a: Affix) => {
-    // 暴击率与暴伤属于加算浮点，展示为百分比
-    if (a.kind === 'percent' || a.stat === 'critChance' || a.stat === 'critDamage' || a.stat === 'tenacity') {
-      return `${a.label} +${Math.round(a.value * 100)}%`;
-    }
-    return `${a.label} +${a.value}`;
-  };
-
+  const affixes = scaleAffixes(buildAffixes(template.slot, rarity, tier), quality);
   return {
-    id: `loot_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+    id: `eq_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
     name: `${RARITY_LABEL[rarity]}·${template.name}`,
     slot: template.slot,
     rarity,
     tier,
+    quality,
     base,
     affixes,
     affixText: affixes.length > 0 ? affixes.map(formatAffixText).join(' · ') : undefined,
   };
+}
+
+/** 洗练：保留装备本体与品质，重铸全部词缀 */
+export function rerollEquipmentAffixes(item: Equipment): Equipment {
+  const mult = item.quality * (item.reforged ? 1 + REFORGE_BONUS : 1);
+  const affixes = scaleAffixes(buildAffixes(item.slot, item.rarity, item.tier), mult);
+  return {
+    ...item,
+    affixes,
+    affixText: affixes.length > 0 ? affixes.map(formatAffixText).join(' · ') : undefined,
+  };
+}
+
+export function generateRandomLoot(stars: number): Equipment {
+  const template = EQUIPMENT_TEMPLATES[Math.floor(Math.random() * EQUIPMENT_TEMPLATES.length)];
+  const tier = Math.max(1, Math.min(5, stars));
+  const rarity = rollRarity(stars * 4);
+  return createEquipmentFromTemplate(template, rarity, tier);
 }
 
 function pickEnemyClasses(pool: ClassId[], count: number): ClassId[] {
