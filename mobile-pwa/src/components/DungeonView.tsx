@@ -44,7 +44,7 @@ const ROOM_META: Record<RoomType, { label: string; Icon: typeof Swords }> = {
 };
 
 const MEALS: { id: CampMealType; name: string; effect: string }[] = [
-  { id: 'soup', name: '热汤暖胃', effect: '回血 40% · 减压 30' },
+  { id: 'soup', name: '汤水养胃', effect: '回血 40% · 减压 30' },
   { id: 'meat', name: '炙烤干肉', effect: '回血 50% · 物攻增益' },
   { id: 'tea', name: '松针清茶', effect: '回血 28% · 减压 40' },
 ];
@@ -351,7 +351,7 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
             ) : (
               <>
                 <div className="pz-sub">
-                  生火做顿饭，选一样吃食（消耗全队 {squad.length} 份口粮）。
+                  生火做顿饭，选一样吃食（消耗全队 {squad.length} 份干粮）。
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
                   {MEALS.map(m => {
@@ -485,7 +485,7 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
 
       {/* ============ 队伍状态 ============ */}
       <Card variant="sunken">
-        <SectionHead title="队伍" hint={`${squad.length} 人 · 口粮 ${rations}`} />
+        <SectionHead title="队伍" hint={`${squad.length} 人 · 干粮 ${rations}`} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           {squad.map(h => {
             const ratio = Math.max(0, Math.min(1, h.currentHp / Math.max(1, h.maxHp)));

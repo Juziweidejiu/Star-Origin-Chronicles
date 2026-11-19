@@ -76,7 +76,7 @@ export function baseStats(hero: Hero): ResolvedStats {
   };
 }
 
-/** 把装备的 flat / percent 词条叠加到基础值上 */
+/** 把装备的 flat / percent 开光批注叠加到基础值上 */
 export function resolveStats(hero: Hero): ResolvedStats {
   const base = baseStats(hero);
   const items = [hero.equipment.weapon, hero.equipment.armor, hero.equipment.trinket]
@@ -122,7 +122,7 @@ export function resolveStats(hero: Hero): ResolvedStats {
   };
 }
 
-/** 词条展示文本，如「物攻 +12%」 */
+/** 开光批注展示文本，如「物攻 +12%」 */
 export function describeAffix(affix: Affix): string {
   if (affix.kind === 'percent' || affix.stat === 'critChance' || affix.stat === 'critDamage' || affix.stat === 'tenacity') {
     return `${affix.label} +${Math.round(affix.value * 100)}%`;
@@ -143,7 +143,7 @@ export function describeBase(item: Equipment): string {
     .join(' · ');
 }
 
-/** 校验：百分比词条只应出现在允许的属性上 */
+/** 校验：百分比开光批注只应出现在允许的属性上 */
 export function isValidPercentStat(key: CoreStatKey): boolean {
   return PERCENT_STATS.includes(key) || ['ad', 'ap', 'armor', 'magicResist', 'maxHp', 'healingPower'].includes(key);
 }

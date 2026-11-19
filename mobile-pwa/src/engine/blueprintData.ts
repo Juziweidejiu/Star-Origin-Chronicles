@@ -2,8 +2,8 @@
  * 图纸与材料数据表
  *
  * 设计分工（见 PROJECT_HANDOFF M35）：
- *  - 图纸定「底子」：部位、基础属性、可用词条池
- *  - 材料定「上限」：品质区间、词条数量
+ *  - 图纸定「底子」：部位、基础属性、可用开光批注池
+ *  - 材料定「上限」：品质区间、开光批注数量
  *  - 小游戏定「发挥」：在材料允许的区间里取到多少
  *
  * 这里只放纯数据，不引 React、不碰 DOM，可直接单测。
@@ -29,13 +29,13 @@ export interface MaterialDef {
 }
 
 export const MATERIALS: Record<MaterialId, MaterialDef> = {
-  iron: { id: 'iron', name: '精铁锭', short: '铁', kind: 'base', note: '刀剑与重甲的骨架' },
-  wood: { id: 'wood', name: '老杉木', short: '木', kind: 'base', note: '杖身、弓臂与木甲' },
-  leather: { id: 'leather', name: '硝制兽皮', short: '皮', kind: 'base', note: '轻甲与缠柄' },
-  jade: { id: 'jade', name: '珠玉', short: '玉', kind: 'base', note: '饰品的灵性来源' },
+  iron: { id: 'iron', name: '生铁锭', short: '铁', kind: 'base', note: '刀剑与重甲的骨架' },
+  wood: { id: 'wood', name: '老榆木', short: '木', kind: 'base', note: '杖身、弓臂与木甲' },
+  leather: { id: 'leather', name: '熟牛皮', short: '皮', kind: 'base', note: '轻甲与缠柄' },
+  jade: { id: 'jade', name: '璞玉料', short: '玉', kind: 'base', note: '饰品的灵性来源' },
   coal: { id: 'coal', name: '精煤', short: '煤', kind: 'fuel', note: '每份拓宽火候容错' },
-  oil: { id: 'oil', name: '淬火油', short: '油', kind: 'quench', note: '抬高品质下限至 0.98' },
-  sand: { id: 'sand', name: '星陨砂', short: '砂', kind: 'quench', note: '额外提供一条词条' },
+  oil: { id: 'oil', name: '桐油', short: '油', kind: 'quench', note: '抬高品质下限至 0.98' },
+  sand: { id: 'sand', name: '砺石磨刀砂', short: '砂', kind: 'quench', note: '额外提供一条开光批注' },
 };
 
 export const BASE_MATERIALS: MaterialId[] = ['iron', 'wood', 'leather', 'jade'];
@@ -253,7 +253,7 @@ export const TIER_COLOR: Record<CraftTier, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// 词条池：每部位 8 条，带名字前缀与色阶
+// 开光批注池：每部位 8 条，带名字前缀与色阶
 // ---------------------------------------------------------------------------
 
 export type AffixGrade = 'common' | 'fine' | 'rare' | 'legend';
@@ -284,38 +284,38 @@ export interface AffixDef {
 
 export const CRAFT_AFFIX_POOL: Record<Equipment['slot'], AffixDef[]> = {
   weapon: [
-    { name: '锋锐', stat: 'ad', kind: 'percent', min: 0.08, max: 0.22, label: '物攻', grade: 'common' },
-    { name: '穿云', stat: 'penetration', kind: 'flat', min: 4, max: 12, label: '穿透', grade: 'common' },
-    { name: '疾风', stat: 'attackSpeed', kind: 'percent', min: 0.06, max: 0.16, label: '攻速', grade: 'common' },
-    { name: '狂澜', stat: 'critChance', kind: 'flat', min: 0.03, max: 0.08, label: '暴击', grade: 'fine' },
-    { name: '裂甲', stat: 'critDamage', kind: 'flat', min: 0.12, max: 0.32, label: '暴伤', grade: 'fine' },
-    { name: '守夜', stat: 'tenacity', kind: 'flat', min: 0.05, max: 0.13, label: '韧性', grade: 'fine' },
-    { name: '断岳', stat: 'ad', kind: 'flat', min: 8, max: 20, label: '物攻', grade: 'rare' },
-    { name: '汲魂', stat: 'maxHp', kind: 'percent', min: 0.05, max: 0.12, label: '生命', grade: 'legend' },
+    { name: '百炼锻实', stat: 'ad', kind: 'percent', min: 0.08, max: 0.22, label: '物攻', grade: 'common' },
+    { name: '三棱透甲', stat: 'penetration', kind: 'flat', min: 4, max: 12, label: '穿透', grade: 'common' },
+    { name: '轻柄配重', stat: 'attackSpeed', kind: 'percent', min: 0.06, max: 0.16, label: '攻速', grade: 'common' },
+    { name: '血槽开锋', stat: 'critChance', kind: 'flat', min: 0.03, max: 0.08, label: '暴击', grade: 'fine' },
+    { name: '重脊压锋', stat: 'critDamage', kind: 'flat', min: 0.12, max: 0.32, label: '暴伤', grade: 'fine' },
+    { name: '包铁护手', stat: 'tenacity', kind: 'flat', min: 0.05, max: 0.13, label: '韧性', grade: 'fine' },
+    { name: '熟铁包刃', stat: 'ad', kind: 'flat', min: 8, max: 20, label: '物攻', grade: 'rare' },
+    { name: '加厚柄芯', stat: 'maxHp', kind: 'percent', min: 0.05, max: 0.12, label: '生命', grade: 'legend' },
   ],
   armor: [
-    { name: '磐石', stat: 'armor', kind: 'flat', min: 6, max: 18, label: '物防', grade: 'common' },
-    { name: '静水', stat: 'magicResist', kind: 'flat', min: 6, max: 18, label: '法防', grade: 'common' },
-    { name: '铁壁', stat: 'maxHp', kind: 'percent', min: 0.06, max: 0.18, label: '生命', grade: 'common' },
-    { name: '不移', stat: 'tenacity', kind: 'flat', min: 0.05, max: 0.15, label: '韧性', grade: 'fine' },
-    { name: '龟息', stat: 'maxHp', kind: 'flat', min: 40, max: 110, label: '生命', grade: 'fine' },
-    { name: '定神', stat: 'magicResist', kind: 'percent', min: 0.06, max: 0.14, label: '法防', grade: 'rare' },
-    { name: '灵便', stat: 'attackSpeed', kind: 'percent', min: 0.04, max: 0.10, label: '攻速', grade: 'rare' },
-    { name: '磐岳', stat: 'armor', kind: 'percent', min: 0.08, max: 0.20, label: '物防', grade: 'legend' },
+    { name: '双层夹铁', stat: 'armor', kind: 'flat', min: 6, max: 18, label: '物防', grade: 'common' },
+    { name: '密缝防潮', stat: 'magicResist', kind: 'flat', min: 6, max: 18, label: '法防', grade: 'common' },
+    { name: '厚背护心', stat: 'maxHp', kind: 'percent', min: 0.06, max: 0.18, label: '生命', grade: 'common' },
+    { name: '稳固护肘', stat: 'tenacity', kind: 'flat', min: 0.05, max: 0.15, label: '韧性', grade: 'fine' },
+    { name: '鱼胶粘合', stat: 'maxHp', kind: 'flat', min: 40, max: 110, label: '生命', grade: 'fine' },
+    { name: '夹层衬绢', stat: 'magicResist', kind: 'percent', min: 0.06, max: 0.14, label: '法防', grade: 'rare' },
+    { name: '活扣束腰', stat: 'attackSpeed', kind: 'percent', min: 0.04, max: 0.10, label: '攻速', grade: 'rare' },
+    { name: '熟牛皮垫肩', stat: 'armor', kind: 'percent', min: 0.08, max: 0.20, label: '物防', grade: 'legend' },
   ],
   trinket: [
-    { name: '通灵', stat: 'ap', kind: 'flat', min: 6, max: 16, label: '法攻', grade: 'common' },
-    { name: '灼心', stat: 'critDamage', kind: 'flat', min: 0.12, max: 0.32, label: '暴伤', grade: 'common' },
-    { name: '慈航', stat: 'healingPower', kind: 'flat', min: 8, max: 24, label: '治疗', grade: 'common' },
-    { name: '鹰眼', stat: 'critChance', kind: 'flat', min: 0.03, max: 0.07, label: '暴击', grade: 'fine' },
-    { name: '疾行', stat: 'attackSpeed', kind: 'percent', min: 0.04, max: 0.12, label: '攻速', grade: 'fine' },
-    { name: '长息', stat: 'maxHp', kind: 'percent', min: 0.06, max: 0.14, label: '生命', grade: 'rare' },
-    { name: '洞明', stat: 'penetration', kind: 'flat', min: 4, max: 12, label: '穿透', grade: 'rare' },
-    { name: '净心', stat: 'tenacity', kind: 'flat', min: 0.04, max: 0.12, label: '韧性', grade: 'legend' },
+    { name: '养神玉扣', stat: 'ap', kind: 'flat', min: 6, max: 16, label: '法攻', grade: 'common' },
+    { name: '破甲棱', stat: 'critDamage', kind: 'flat', min: 0.12, max: 0.32, label: '暴伤', grade: 'common' },
+    { name: '定心雕纹', stat: 'healingPower', kind: 'flat', min: 8, max: 24, label: '治疗', grade: 'common' },
+    { name: '薄刃开尖', stat: 'critChance', kind: 'flat', min: 0.03, max: 0.07, label: '暴击', grade: 'fine' },
+    { name: '合手缠绳', stat: 'attackSpeed', kind: 'percent', min: 0.04, max: 0.12, label: '攻速', grade: 'fine' },
+    { name: '固本铜环', stat: 'maxHp', kind: 'percent', min: 0.06, max: 0.14, label: '生命', grade: 'rare' },
+    { name: '井水淬尖', stat: 'penetration', kind: 'flat', min: 4, max: 12, label: '穿透', grade: 'rare' },
+    { name: '缠丝护腕', stat: 'tenacity', kind: 'flat', min: 0.04, max: 0.12, label: '韧性', grade: 'legend' },
   ],
 };
 
-/** 词条等级与品阶的允许关系：低品阶装备抽不到高档词条 */
+/** 开光批注等级与品阶的允许关系：低品阶装备抽不到高档开光批注 */
 export const AFFIX_GRADE_GATE: Record<Equipment['rarity'], AffixGrade[]> = {
   common: [],
   uncommon: ['common'],

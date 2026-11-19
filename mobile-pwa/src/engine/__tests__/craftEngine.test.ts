@@ -22,6 +22,8 @@ import {
   craftGoldCost,
   craftMaterialCost,
   formatAffixValue,
+  formatCraftedWeaponName,
+  getKaiguangLabel,
   judgeBeat,
   payMaterials,
   professionBar,
@@ -142,7 +144,7 @@ describe('熟练度', () => {
 });
 
 describe('锻造状态机', () => {
-  it('淬火油抬高起步品质，熟练度只影响难度不影响起始值', () => {
+  it('桐油抬高起步品质，熟练度只影响难度不影响起始值', () => {
     const plain = startCraft(bp('bp_steel_sword'), settings(), 0, seq(0.5));
     const oiled = startCraft(bp('bp_steel_sword'), settings({ oil: true }), PROF_MAX_XP, seq(0.5));
     expect(plain.quality).toBeCloseTo(0.87, 3);
@@ -206,7 +208,7 @@ describe('成品结算', () => {
     expect(rarityOfQuality(1.26)).toBe('legendary');
   });
 
-  it('普通品质没有词条，史诗最多三条', () => {
+  it('普通品质没有开光批注，史诗最多三条', () => {
     const common = settleCraft(makeSession({ quality: 0.83, finished: true }), bp('bp_steel_sword'), 'c1', seq(0.5));
     expect(common.rarity).toBe('common');
     expect(common.affixes).toHaveLength(0);
@@ -218,7 +220,7 @@ describe('成品结算', () => {
     expect(epic.affixes.length).toBeLessThanOrEqual(3);
   });
 
-  it('词条数量由完美次数与星陨砂决定，但不超过品阶上限', () => {
+  it('开光批注数量由完美次数与砺石磨刀砂决定，但不超过品阶上限', () => {
     const perfect = makeSession({
       quality: 1.26,
       perfectHeat: 5,
@@ -252,13 +254,13 @@ describe('成品结算', () => {
     expect(bossQuality(() => 0.999)).toBeCloseTo(1.06, 2);
   });
 
-  it('词条数值按百分比 / 定值分别格式化', () => {
+  it('开光批注数值按百分比 / 定值分别格式化', () => {
     expect(formatAffixValue({ stat: 'critChance', kind: 'percent', value: 0.045, label: '暴击' })).toBe('+5%');
     expect(formatAffixValue({ stat: 'maxHp', kind: 'flat', value: 35, label: '生命' })).toBe('+35');
     expect(formatAffixValue({ stat: 'ad', kind: 'flat', value: 7, label: '物攻' })).toBe('+7');
   });
 
-  it('词条池的每个属性 statResolver 都认得（否则结算时会被静默忽略）', () => {
+  it('开光批注池的每个属性 statResolver 都认得（否则结算时会被静默忽略）', () => {
     for (const [slot, pool] of Object.entries(CRAFT_AFFIX_POOL)) {
       for (const def of pool) {
         expect(STAT_LABEL, `${slot} · ${def.name}`).toHaveProperty(def.stat);
@@ -267,7 +269,7 @@ describe('成品结算', () => {
   });
 });
 
-describe('洗练', () => {
+describe('重洗开光', () => {
   const sample = () => settleCraft(
     makeSession({
       quality: 1.16,
@@ -281,7 +283,7 @@ describe('洗练', () => {
     seq(0.2, 0.4, 0.6),
   );
 
-  it('不锁定时词条数量不变，数值来自打造池', () => {
+  it('不锁定时开光批注数量不变，数值来自打造池', () => {
     const item = sample();
     expect(item.affixes.length).toBeGreaterThan(0);
     const next = rerollAffixes(item, null, seq(0.9));
@@ -290,7 +292,7 @@ describe('洗练', () => {
     expect(next.id).toBe(item.id);
   });
 
-  it('锁定第 n 条后该词条原样保留在首位', () => {
+  it('锁定第 n 条后该开光批注原样保留在首位', () => {
     const item = sample();
     const locked = item.affixes[1];
     const next = rerollAffixes(item, 1, seq(0.9));
@@ -299,14 +301,14 @@ describe('洗练', () => {
     expect(next.affixText).toContain(locked.name ?? locked.label);
   });
 
-  it('锁定不会产生重复词条', () => {
+  it('锁定不会产生重复开光批注', () => {
     const item = sample();
     const next = rerollAffixes(item, 0, seq(0.1));
     const names = next.affixes.map(a => a.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('无词条的装备洗练后仍是零词条', () => {
+  it('无开光批注的装备重洗开光后仍是零开光批注', () => {
     const plain = settleCraft(makeSession({ quality: 0.83, finished: true }), bp('bp_steel_sword'), 'plain', seq(0.5));
     expect(plain.affixes).toHaveLength(0);
     expect(rerollAffixes(plain, null, seq(0.5)).affixes).toHaveLength(0);
@@ -351,5 +353,22 @@ describe('掉落与解锁', () => {
     const repHigh = unlockByProgress(BLUEPRINTS, [], { reputation: 60, clearedStars: 5 });
     expect(repHigh).toContain('bp_jade_pendant');
     expect(repHigh).toContain('bp_star_ring');
+  });
+});
+
+describe('开光品阶与落款', () => {
+  it('按批注条数给出开光重数', () => {
+    expect(getKaiguangLabel(0)).toBe('凡铁');
+    expect(getKaiguangLabel(1)).toBe('精工·开光一重');
+    expect(getKaiguangLabel(2)).toBe('宝兵·开光二重');
+    expect(getKaiguangLabel(3)).toBe('名器·开光三重');
+    expect(getKaiguangLabel(4)).toBe('神兵·开光四重圆满');
+  });
+
+  it('品质达到 1.10 且自打时才刻落款，精淬前缀只加一次', () => {
+    expect(formatCraftedWeaponName('百炼直剑', 1.09, '陈砚')).toBe('百炼直剑');
+    expect(formatCraftedWeaponName('百炼直剑', 1.10, '陈砚')).toBe('百炼直剑（陈砚·铸）');
+    expect(formatCraftedWeaponName('百炼直剑', 1.15)).toBe('百炼直剑');
+    expect(formatCraftedWeaponName('精淬·百炼直剑', 1.2, '陈砚', true)).toBe('精淬·百炼直剑（陈砚·铸）');
   });
 });

@@ -1,6 +1,6 @@
 /**
  * 城镇运营与后勤模拟引擎 (Town & Logistics Engine)
- * 负责据点体系、酒馆刷新、公会契约生成、时间推进、口粮/薪水消耗与圣所召魂
+ * 负责据点体系、酒馆刷新、公会契约生成、时间推进、干粮/薪水消耗与圣所召魂
  */
 
 import type { ClassId, Hero } from '../types/hero';
@@ -17,37 +17,37 @@ import type {
 } from '../types/world';
 import { generateHero } from './heroFactory';
 
-// 四大核心据点初始配置 (日漫奇幻生活风城镇，充满烟火气与地方特色)
+// 四大核心据点初始配置（保留 TownId 键名以兼容存档，只替换显示名与设定）
 export const TOWNS_CONFIG: Record<TownId, Omit<TownNode, 'reputation' | 'reputationLevel' | 'supplyCostMod' | 'rewardMod'>> = {
   ambermill_town: {
     id: 'ambermill_town',
-    name: '麦浪与风车镇',
-    subtitle: '平原粮仓 · 烤面包与麦芽酒香',
-    description: '金黄麦田与转动木风车掩映的平原小镇，刚出炉的黑麦面包香气四溢，冒险者公会的启程之地。',
+    name: '石桥镇',
+    subtitle: '中州平川 · 六合行会总会',
+    description: '官道与漕河交汇的枢纽大镇，镇口一座三孔老石桥。酒肆、镖局与六合行会总会全聚于此，南来北往的游侠都在这落脚接单。',
     buildings: ['tavern', 'guild', 'market', 'infirmary', 'blacksmith'],
     distanceFromCapital: 0
   },
   verdant_spring: {
     id: 'verdant_spring',
-    name: '翡翠泉与铃兰宿',
-    subtitle: '温泉地热 · 药草采集与伤病疗养',
-    description: '暖雾缭绕的山谷温泉宿坊，木质回廊与满架晒干的洋甘菊，佣兵们身心归宿的疗愈圣地。',
+    name: '汤泉镇',
+    subtitle: '西南药谷 · 百草堂医馆',
+    description: '群山环抱的天然温泉谷地，百草堂大夫在此行医晒药。受了重伤或疲惫过度的游侠来此休养，疗伤与减压花销更省。',
     buildings: ['tavern', 'infirmary', 'sanctuary', 'market'],
     distanceFromCapital: 1
   },
   hammerdeep_hold: {
     id: 'hammerdeep_hold',
-    name: '黑铁与汽锤堡',
-    subtitle: '矮人锻炉 · 蒸汽钻机与精钢打造',
-    description: '依玄铁矿山而建的坚实山城,高耸的红砖烟囱与水压蒸汽锻锤轰鸣不息，冒险武具锻造之都。',
+    name: '铸剑谷',
+    subtitle: '西麓矿山 · 天工匠门',
+    description: '藏在两崖之间的冶铁深谷，山涧水车日夜带动大铁锤。天工匠门老师傅坐镇于此，兵器打造、开光重洗开光与精淬工钱一律减免。',
     buildings: ['tavern', 'guild', 'market', 'blacksmith'],
     distanceFromCapital: 2
   },
   tidesong_haven: {
     id: 'tidesong_haven',
-    name: '潮鸣与灯塔港',
-    subtitle: '咸鱼海风 · 飞空艇码头与远洋海珍',
-    description: '石砌的滨海海堤，空气中弥漫着咸海风、焦糖朗姆酒与烤海鱼气味，猎奇异兽赏金聚集地。',
+    name: '芦洲渡',
+    subtitle: '东南江海口 · 漕帮总舵',
+    description: '大江入海前的千亩芦苇渡口，盐船与海商楼船云集。码头茶肆消息最灵，能买到海外兵器图谱残页、桐油与砺石磨刀砂。',
     buildings: ['tavern', 'guild', 'market', 'sanctuary'],
     distanceFromCapital: 2
   }
@@ -60,63 +60,78 @@ export function calculateReputationDetails(score: number): {
   rewardMod: number;
 } {
   if (score >= 60) {
-    return { reputationLevel: 'revered', supplyCostMod: 0.8, rewardMod: 1.25 }; // 崇拜：8折买入，25%赏金加成
+    return { reputationLevel: 'revered', supplyCostMod: 0.8, rewardMod: 1.25 }; // 崇拜：8折买入，25%赏钱加成
   } else if (score >= 20) {
-    return { reputationLevel: 'friendly', supplyCostMod: 0.9, rewardMod: 1.1 };  // 友善：9折买入，10%赏金加成
+    return { reputationLevel: 'friendly', supplyCostMod: 0.9, rewardMod: 1.1 };  // 友善：9折买入，10%赏钱加成
   } else if (score >= -20) {
     return { reputationLevel: 'neutral', supplyCostMod: 1.0, rewardMod: 1.0 };   // 中立：原价
   } else {
-    return { reputationLevel: 'hostile', supplyCostMod: 1.3, rewardMod: 0.8 };   // 敌对：涨价30%，降赏金
+    return { reputationLevel: 'hostile', supplyCostMod: 1.3, rewardMod: 0.8 };   // 敌对：涨价30%，降赏钱
   }
 }
 
-// 契约模板配置 (日漫生态丰富：史莱姆、拟态怪、捕鸟蛛、枭熊、食人魔、飞龙、发条守卫)
-const CONTRACT_TITLES: Record<ContractType, { titles: string[]; desc: string; baseEnemy: ClassId[]; monster: string }> = {
+// 悬赏契约模板：行会木板告示口吻，按生态环境分工
+export const CONTRACT_TEMPLATES: Record<
+  ContractType,
+  { locationName: string; titles: string[]; desc: string; baseEnemy: ClassId[]; monster: string; loot: string }
+> = {
   slime_infestation: {
-    titles: ['暖阳果园跳跳史莱姆除害', '旧水车磨坊地窖清理', '镇郊水渠弹力胶质清扫'],
-    desc: '啃咬作物根茎的草莓史莱姆与水渠胶质史莱姆泛滥成灾，农户请求冒险者清剿。',
+    locationName: '塌方老矿 · 渗水巷道',
+    titles: ['[急] 塌方老矿渗水井清障', '矿场集委托：清理井下胶妖', '抢运老矿遗留生铁锭'],
+    desc: '二十年前暴雨封井后，老矿深处积水滋生了成群胶妖，还常顺着通风口爬上地面伤人。矿场集管事贴出悬赏，清完巷道顺便能带出不少生铁与精煤。',
     baseEnemy: ['ranger', 'arcanist', 'blademaster'],
-    monster: '草莓史莱姆群落'
+    monster: '井下胶妖',
+    loot: '生铁锭、精煤、粗铜矿、矿工兵器残页'
   },
   bandit_camp: {
-    titles: ['铜鸣山道截道山贼肃清', '断崖石寨流寇盘踞点拔除', '黑林伏击劫匪追缉'],
-    desc: '封锁商道咽喉的凶悍劫匪团伙，需要经验老道的冒险者将其头目与喽啰尽数肃清。',
+    locationName: '风口岭 · 木栅寨',
+    titles: ['[悬赏] 风口岭山贼截道案', '[官府] 拔除风口岭山贼木寨', '追回被劫的铸剑谷铁料车'],
+    desc: '东西官道咽喉风口岭近来被一伙亡命山贼卡住，寨门外还放养了铁背山猪看门。过往商队不堪其扰，六合行会联合官府出钱清寨。',
     baseEnemy: ['warden', 'blademaster', 'ranger', 'druid'],
-    monster: '山林劫匪团伙'
+    monster: '山贼悍匪',
+    loot: '精钢碎料、熟牛皮、老榆木杆、雁翎刀图谱'
   },
   beast_hunt: {
-    titles: ['黑松针叶林狂躁枭熊制伏', '雷鸣断崖双足飞龙狩猎', '冰川熊洞雪猿群驱逐'],
-    desc: '野性凶兽频繁侵扰官道与近郊农庄，请深入荒原险境斩除兽群或巢穴霸主。',
+    locationName: '百草涧 / 北松岭',
+    titles: ['收购：完整狼筋三十斤', '求购：北松岭山牛角十对', '替百草堂进百草涧采老药'],
+    desc: '近三年北境大雪、南边多雨，山林异兽纷纷往官道边缘挤。百草堂和铸剑谷都在高价收韧兽筋、毒囊与山牛角，用来做弓弦、刀柄和淬刃料。',
     baseEnemy: ['guardian', 'blademaster', 'ranger', 'druid'],
-    monster: '穴居枭熊 / 双足飞龙'
+    monster: '独眼头狼 / 毒斑巨蛙',
+    loot: '韧兽筋、毒囊、山牛角、厚绒兽皮、百炼钢矿'
   },
   goblin_mine: {
-    titles: ['赤耳哥布林矿洞扫荡', '夺回被侵占的铜铁坑道', '拆毁哥布林暗弩陷阱阵'],
-    desc: '狡诈凶暴的赤耳哥布林占据了废弃矿坑，遍设暗箭毒刺机关，急需实战小队深入清剿。',
+    locationName: '塌方老矿 · 北坡矿坑',
+    titles: ['[急] 驱赶北坡老矿山魈群', '收购：山魈抢走的铁镐与矿车轮', '夺回老矿二号采掘坑道'],
+    desc: '一群尖耳山魈霸占了西山北坡的旧矿坑，拿着矿工留下的铁镐和木盾四处劫掠运煤车。铸剑谷铁铺急需这批矿道里的铁料与精煤。',
     baseEnemy: ['warden', 'arcanist', 'blademaster', 'ranger'],
-    monster: '赤耳哥布林小队'
+    monster: '尖耳山魈',
+    loot: '生铁锭、精钢碎料、精煤、手打图谱残页'
   },
   caravan_escort: {
-    titles: ['草药商队峡谷护送', '机巧货船水道保卫', '军备物资山道押运'],
-    desc: '穿越险峻峡谷的商贾车队需要经验老道的高手随行护卫，击退沿途袭扰的盗匪与野兽。',
+    locationName: '三岔口 · 东官道',
+    titles: ['王掌柜的盐车卡在三岔口了', '护送药材车队过旧驿道断桥', '[急] 征调：芦洲渡桐油货车护卫'],
+    desc: '石桥镇通往芦洲渡的东官道草深林密，近来小毛贼与窜出来的野狼、山魈专挑单身货车下手。行会招可靠小队沿途护送，顺手清理路障。',
     baseEnemy: ['guardian', 'blademaster', 'ranger', 'arcanist'],
-    monster: '拦路盗匪与野兽'
+    monster: '截道毛贼',
+    loot: '碎铁片、麻绳、粗牛皮、制式短刀（可拆解）'
   },
   ruins_cleansing: {
-    titles: ['沉陷边关旧武库探查', '青苔古树假宝箱怪讨伐', '食人魔山谷岩穴清剿'],
-    desc: '三十年前沉陷工事或密林深处盘踞着拟态宝箱怪、发条守卫与食人魔，公会悬赏彻底肃清。',
+    locationName: '西关旧垒 · 前朝兵库',
+    titles: ['[密] 探查西关旧垒发条铁卫', '[高危] 清理北坡点将台外围', '寻找前朝武库遗留名匠全本图谱'],
+    desc: '三十年前安平朝北伐撤兵后留下的空边关，里头既有年久失控的发条木甲卫、伪装成军械箱的箱魅，也有占山为王的独眼巨汉。只有老练队伍敢往里闯。',
     baseEnemy: ['arcanist', 'paladin', 'blademaster', 'bard'],
-    monster: '拟态怪 / 发条守卫 / 食人魔'
+    monster: '发条木甲卫 / 箱魅',
+    loot: '精钢锭、机巧齿轮、砺石磨刀砂、天工名匠全本图谱'
   }
 };
 
 const RECRUIT_STORIES = [
-  '麦浪镇民兵队退役的直剑士，剑招沉稳如松，渴望在精锐佣兵团一展胸中韬略。',
-  '翡翠泉走出的游方医者，行囊常备银针与甘草，近身短打拳脚亦不容小觑。',
-  '黑松林出身的矫捷猎手，百步穿杨，深谙山野追踪与机关暗道。',
-  '黑铁工坞的机巧学徒，怀揣自制短铳与飞爪，立志游历天下铸炉名城。',
-  '游历江湖的刀客，豪爽仗义，在多次硬仗中战功卓著，视伙伴为手足。',
-  '潮鸣港船坞的水手剑士，擅长贴身短刃与绳索飞爪，经验丰富。'
+  '石桥镇镖局退下来的直剑手，出刀稳当，话不多，接了单子必定走到底。',
+  '汤泉镇百草堂的游方医者，药箱里常备细针与草药，近身短打也不含糊。',
+  '北松岭猎户家的弓手，眼力极好，山道追踪与辨认兽迹是把好手。',
+  '铸剑谷铁铺的学徒，随身带着自改的手铳与修甲家伙，想去外头见见世面。',
+  '常年跑芦洲渡水路的刀客，性子豪爽，护镖时从不把同伴丢在后头。',
+  '漕帮船上的水手剑士，惯使短刃与飞爪，在苇荡里摸爬打架最有经验。'
 ];
 
 export class TownEngine {
@@ -208,7 +223,7 @@ export class TownEngine {
     for (let i = 0; i < count; i++) {
       const type = contractTypes[Math.floor(Math.random() * contractTypes.length)];
       const stars = (Math.floor(Math.random() * 3) + 1) as ContractDifficulty; // 1-3星初始
-      const cfg = CONTRACT_TITLES[type];
+      const cfg = CONTRACT_TEMPLATES[type];
       const title = cfg.titles[Math.floor(Math.random() * cfg.titles.length)];
       
       const baseGold = stars * 180 + Math.floor(Math.random() * 80);
@@ -222,8 +237,8 @@ export class TownEngine {
         id: `c_${townId}_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
         title,
         rank,
-        targetMonster: cfg.monster,
-        specialLootDesc: this.generateSpecialLoot(type),
+        targetMonster: `${cfg.monster}（${cfg.locationName}）`,
+        specialLootDesc: cfg.loot,
         type,
         townId,
         stars,
@@ -239,20 +254,6 @@ export class TownEngine {
     }
 
     this.contracts[townId] = newContracts;
-  }
-
-  // 生成特色战利品/食材说明
-  private generateSpecialLoot(type: ContractType): string {
-    const lootMap: Record<ContractType, string[]> = {
-      slime_infestation: ['甜味史莱姆凝胶（可食用）', '弹力胶质（炼金原料）'],
-      bandit_camp: ['劫匪藏匿的银币袋', '精钢匕首与皮甲'],
-      beast_hunt: ['雪花野猪五花肉（极佳营地食材）', '枭熊厚绒皮（保暖披风）', '飞龙胸脯肉与龙鳞片'],
-      goblin_mine: ['哥布林藏匿的宝石碎片', '精铜矿石'],
-      caravan_escort: ['商队感谢赠礼', '远洋香料与奇珍'],
-      ruins_cleansing: ['拟态怪坚韧硬壳（盾牌好料）', '发条齿轮（机巧原料）', '食人魔大骨棒']
-    };
-    const pool = lootMap[type];
-    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   // 刷新指定城邦酒馆招募名单
@@ -294,32 +295,32 @@ export class TownEngine {
 
     const neededFood = travelDays * this.logistics.dailyFoodCost;
     if (this.logistics.rations < neededFood) {
-      return { success: false, message: `行军 ${travelDays} 天需要口粮 ${neededFood} 份，当前仅有 ${this.logistics.rations} 份！` };
+      return { success: false, message: `行军 ${travelDays} 天需要干粮 ${neededFood} 份，当前仅有 ${this.logistics.rations} 份！` };
     }
 
-    // 扣除口粮并推进天数
+    // 扣除干粮并推进天数
     this.advanceDays(travelDays, roster);
     this.logistics.currentTownId = targetTownId;
 
     return { 
       success: true, 
-      message: `行军 ${travelDays} 天，安全抵达【${targetTown.name}】！消耗口粮 ${neededFood} 份。` 
+      message: `行军 ${travelDays} 天，安全抵达【${targetTown.name}】！消耗干粮 ${neededFood} 份。` 
     };
   }
 
-  // 购买口粮
+  // 购买干粮
   buyRations(amount: number): { success: boolean; message: string } {
     const currentTown = this.towns[this.logistics.currentTownId];
     const unitPrice = Math.round(6 * currentTown.supplyCostMod);
     const totalCost = unitPrice * amount;
 
     if (this.logistics.gold < totalCost) {
-      return { success: false, message: `金币不足！购买 ${amount} 份口粮需要 ${totalCost} G。` };
+      return { success: false, message: `铜钱不足！购买 ${amount} 份干粮需要 ${totalCost} G。` };
     }
 
     this.logistics.gold -= totalCost;
     this.logistics.rations += amount;
-    return { success: true, message: `成功采购 ${amount} 份行军口粮，花费 ${totalCost} G。` };
+    return { success: true, message: `成功采购 ${amount} 份行军干粮，花费 ${totalCost} G。` };
   }
 
   // 购买疗伤药剂
@@ -329,12 +330,12 @@ export class TownEngine {
     const totalCost = unitPrice * amount;
 
     if (this.logistics.gold < totalCost) {
-      return { success: false, message: `金币不足！购买 ${amount} 瓶金创药需要 ${totalCost} G。` };
+      return { success: false, message: `铜钱不足！购买 ${amount} 瓶伤药需要 ${totalCost} G。` };
     }
 
     this.logistics.gold -= totalCost;
     this.logistics.medicines += amount;
-    return { success: true, message: `成功采购 ${amount} 瓶金创药，花费 ${totalCost} G。` };
+    return { success: true, message: `成功采购 ${amount} 瓶伤药，花费 ${totalCost} G。` };
   }
 
   // 雇佣酒馆伙伴
@@ -349,7 +350,7 @@ export class TownEngine {
 
     const recruit = recruits[recruitIndex];
     if (this.logistics.gold < recruit.hireCost) {
-      return { success: false, message: `雇佣签约金不足！需要 ${recruit.hireCost} G。` };
+      return { success: false, message: `雇佣工钱不足！需要 ${recruit.hireCost} G。` };
     }
 
     if (roster.length >= 8) {
@@ -381,7 +382,7 @@ export class TownEngine {
 
     const cost = Math.round((hpMissing * 0.4 + hero.injuries.length * 35) * town.supplyCostMod);
     if (this.logistics.gold < cost) {
-      return { success: false, message: `医馆诊金不足！需要 ${cost} G。` };
+      return { success: false, message: `医馆诊费不足！需要 ${cost} G。` };
     }
 
     this.logistics.gold -= cost;
@@ -389,14 +390,14 @@ export class TownEngine {
     hero.injuries = [];
     hero.stress = Math.max(0, hero.stress - 20);
 
-    return { success: true, message: `${hero.name} 伤势已彻底愈合，创伤清空，支付诊金 ${cost} G。` };
+    return { success: true, message: `${hero.name} 伤势已彻底愈合，创伤清空，支付诊费 ${cost} G。` };
   }
 
   // 圣所举行灵魂召回仪式 (复活阵亡英雄)
   reviveSoul(fallenIndex: number, roster: Hero[]): { success: boolean; message: string; revivedHero?: Hero } {
     const town = this.towns[this.logistics.currentTownId];
     if (!town.buildings.includes('sanctuary')) {
-      return { success: false, message: '只有在配有圣所的据点（如霜月城、朱雀回廊）才能进行灵魂引渡仪式！' };
+      return { success: false, message: '只有在配有圣所的据点（如汤泉镇、芦洲渡）才能进行灵魂引渡仪式！' };
     }
 
     const soul = this.fallenSouls[fallenIndex];
@@ -405,11 +406,11 @@ export class TownEngine {
     }
 
     if (this.logistics.gold < soul.revivalCostGold) {
-      return { success: false, message: `圣所供奉金币不足！需要 ${soul.revivalCostGold} G。` };
+      return { success: false, message: `圣所供奉铜钱不足！需要 ${soul.revivalCostGold} G。` };
     }
 
     if (this.logistics.soulCrystals < soul.revivalSoulCrystals) {
-      return { success: false, message: `稀有魂晶不足！召回此魂魄需要 ${soul.revivalSoulCrystals} 颗魂晶。` };
+      return { success: false, message: `稀有赏钱不足！召回此魂魄需要 ${soul.revivalSoulCrystals} 颗赏钱。` };
     }
 
     // 扣除代价
@@ -427,7 +428,7 @@ export class TownEngine {
 
     return { 
       success: true, 
-      message: `星辉引渡！【${revived.name}】的英魂循脉归位，重获新生！`,
+      message: `引魂归位！【${revived.name}】的英魂循脉归位，重获新生！`,
       revivedHero: revived
     };
   }
@@ -449,7 +450,7 @@ export class TownEngine {
     contract.status = 'completed';
     const town = this.towns[contract.townId];
 
-    // 奖励金币与魂晶
+    // 奖励铜钱与赏钱
     this.logistics.gold += contract.goldReward;
     if (contract.soulCrystalReward) {
       this.logistics.soulCrystals += contract.soulCrystalReward;
@@ -466,7 +467,7 @@ export class TownEngine {
     this.advanceDays(contract.durationDays, roster);
 
     return {
-      message: `契约【${contract.title}】圆满达成！获得赏金 ${contract.goldReward} G，声望 +${contract.reputationReward}！`
+      message: `契约【${contract.title}】圆满达成！获得赏钱 ${contract.goldReward} G，声望 +${contract.reputationReward}！`
     };
   }
 
@@ -478,13 +479,13 @@ export class TownEngine {
       this.logistics.day += 1;
       this.updateLogisticsCosts(roster);
 
-      // 消耗口粮
+      // 消耗干粮
       if (this.logistics.rations >= this.logistics.dailyFoodCost) {
         this.logistics.rations -= this.logistics.dailyFoodCost;
       } else {
         // 断粮饥饿
         this.logistics.rations = 0;
-        logs.push(`⚠️ 第 ${this.logistics.day} 天：佣兵团口粮告罄！全员饥饿，士气严重下挫！`);
+        logs.push(`⚠️ 第 ${this.logistics.day} 天：佣兵团干粮告罄！全员饥饿，士气严重下挫！`);
         roster.forEach(h => {
           h.morale = Math.max(0, h.morale - 15);
           h.stress = Math.min(100, h.stress + 10);
@@ -499,7 +500,7 @@ export class TownEngine {
         } else {
           // 欠薪
           this.logistics.gold = 0;
-          logs.push(`🚨 第 ${this.logistics.day} 天：金库告急，无法足额支付佣金！队员怨气沸腾！`);
+          logs.push(`🚨 第 ${this.logistics.day} 天：账房告急，无法足额支付工钱！队员怨气沸腾！`);
           roster.forEach(h => {
             if (!h.isLeader) {
               h.morale = Math.max(0, h.morale - 30);

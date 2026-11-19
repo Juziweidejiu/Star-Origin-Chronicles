@@ -1,9 +1,9 @@
 /**
- * 铁匠铺引擎：分解 / 打造 / 重铸 / 洗练
+ * 铁匠铺引擎：拆解回料 / 开炉打造 / 回炉精淬 / 重洗开光
  *
  * 设计取自原版锻造面板：
- *  - 打造按「联赛水准」定装等，并按穿戴者量身定做
- *  - 每件装备只能重铸一次，全部属性 +18%，名称前加「重铸·」
+ *  - 开炉打造按「联赛水准」定装等，并按穿戴者量身定做
+ *  - 每件装备只能回炉精淬一次，全部属性 +18%，名称前加「精淬·」
  *  - 装备自带品质系数（0.82-1.18），已在生成时折算进数值
  */
 
@@ -56,12 +56,12 @@ function scaleValue(key: CoreStatKey, value: number, mult: number, isPercent: bo
   return Math.max(1, Math.round(value * mult));
 }
 
-/** 英雄等级对应的打造装等：越高阶的佣兵，铁匠会按更高标准备料 */
+/** 英雄等级对应的开炉打造装等：越高阶的佣兵，铁匠会按更高标准备料 */
 export function tierForHeroLevel(level: number): number {
   return Math.max(1, Math.min(CRAFT_TIER_MAX, Math.ceil(level / 4)));
 }
 
-/** 打造费用：装等越高，材料与工钱越贵 */
+/** 开炉打造费用：装等越高，材料与工钱越贵 */
 export function craftCost(tier: number, discount = 1): CraftCost {
   const t = Math.max(1, Math.min(CRAFT_TIER_MAX, tier));
   return {
@@ -71,7 +71,7 @@ export function craftCost(tier: number, discount = 1): CraftCost {
   };
 }
 
-/** 分解收益：品质越高、装等越高，回收越多 */
+/** 拆解回料收益：品质越高、装等越高，回收越多 */
 export function salvageYield(item: Equipment): SalvageYield {
   const rank = rarityRank(item);
   return {
@@ -81,12 +81,12 @@ export function salvageYield(item: Equipment): SalvageYield {
   };
 }
 
-/** 重铸费用：每件装备只能重铸一次 */
+/** 回炉精淬费用：每件装备只能回炉精淬一次 */
 export function reforgeCost(item: Equipment, discount = 1): number {
   return discountGold(50 + 35 * item.tier, discount);
 }
 
-/** 洗练费用 */
+/** 重洗开光费用 */
 export function rerollCost(item: Equipment, discount = 1): CraftCost {
   return {
     gold: discountGold(40 * item.tier, discount),
@@ -109,13 +109,13 @@ export function craftEquipment(
   const t = Math.max(1, Math.min(CRAFT_TIER_MAX, tier));
   const cost = craftCost(t, discount);
   if (logistics.gold < cost.gold) {
-    return { success: false, message: `金币不足，打造需要 ${cost.gold}G。` };
+    return { success: false, message: `铜钱不足，开炉打造需要 ${cost.gold}G。` };
   }
   if (logistics.forgeStones < cost.stones) {
-    return { success: false, message: `锻造晶石不足，打造需要 ${cost.stones} 枚。` };
+    return { success: false, message: `锻石不足，开炉打造需要 ${cost.stones} 枚。` };
   }
   if (logistics.ironOre < cost.ore) {
-    return { success: false, message: `玄铁锭不足，打造需要 ${cost.ore} 块。` };
+    return { success: false, message: `精钢锭不足，开炉打造需要 ${cost.ore} 块。` };
   }
 
   logistics.gold -= cost.gold;
@@ -127,7 +127,7 @@ export function craftEquipment(
 
   return {
     success: true,
-    message: `锻造完成：${item.name}（品质 ${item.quality.toFixed(2)}）。`,
+    message: `开炉打造完成：${item.name}（品质 ${item.quality.toFixed(2)}）。`,
     item
   };
 }
@@ -138,26 +138,26 @@ export function salvageEquipment(item: Equipment, logistics: CompanyLogistics): 
   logistics.forgeStones += gain.stones;
   logistics.ironOre += gain.ore;
 
-  const oreText = gain.ore > 0 ? `、玄铁锭 +${gain.ore}` : '';
+  const oreText = gain.ore > 0 ? `、精钢锭 +${gain.ore}` : '';
   return {
     success: true,
-    message: `分解 ${item.name}：金币 +${gain.gold}、锻造晶石 +${gain.stones}${oreText}。`
+    message: `拆解回料 ${item.name}：铜钱 +${gain.gold}、锻石 +${gain.stones}${oreText}。`
   };
 }
 
-/** 重铸：一次性提升全部基础与词缀数值，并重命名 */
+/** 回炉精淬：一次性提升全部基础与开光批注数值，并重命名 */
 export function reforgeEquipment(
   item: Equipment,
   logistics: CompanyLogistics,
   discount = 1
 ): BlacksmithResult {
   if (item.reforged) {
-    return { success: false, message: `${item.name} 已经重铸过，每件装备只能重铸一次。` };
+    return { success: false, message: `${item.name} 已经回炉精淬过，每件装备只能回炉精淬一次。` };
   }
 
   const cost = reforgeCost(item, discount);
   if (logistics.gold < cost) {
-    return { success: false, message: `金币不足，重铸需要 ${cost}G。` };
+    return { success: false, message: `铜钱不足，回炉精淬需要 ${cost}G。` };
   }
 
   logistics.gold -= cost;
@@ -176,26 +176,26 @@ export function reforgeEquipment(
   item.affixes = affixes;
   item.affixText = affixes.length > 0 ? affixes.map(formatAffixText).join(' · ') : undefined;
   item.reforged = true;
-  if (!item.name.startsWith('重铸·')) item.name = `重铸·${item.name}`;
+  if (!item.name.startsWith('精淬·')) item.name = `精淬·${item.name}`;
 
   return {
     success: true,
-    message: `${item.name} 重铸完成，全部属性提升 18%。`,
+    message: `${item.name} 回炉精淬完成，全部属性提升 18%。`,
     item
   };
 }
 
 export function rerollEquipment(item: Equipment, logistics: CompanyLogistics, discount = 1): BlacksmithResult {
   if (item.rarity === 'common') {
-    return { success: false, message: '粗制装备没有词缀，洗练无法产出词条。' };
+    return { success: false, message: '凡铁兵器没有开光批注，重洗开光无从下手。' };
   }
 
   const cost = rerollCost(item, discount);
   if (logistics.gold < cost.gold) {
-    return { success: false, message: `金币不足，洗练需要 ${cost.gold}G。` };
+    return { success: false, message: `铜钱不足，重洗开光需要 ${cost.gold}G。` };
   }
   if (logistics.forgeStones < cost.stones) {
-    return { success: false, message: `锻造晶石不足，洗练需要 ${cost.stones} 枚。` };
+    return { success: false, message: `锻石不足，重洗开光需要 ${cost.stones} 枚。` };
   }
 
   logistics.gold -= cost.gold;
@@ -207,7 +207,7 @@ export function rerollEquipment(item: Equipment, logistics: CompanyLogistics, di
 
   return {
     success: true,
-    message: `${item.name} 洗练完成：${item.affixText ?? '无词缀'}。`,
+    message: `${item.name} 重洗开光完成：${item.affixText ?? '无开光批注'}。`,
     item
   };
 }

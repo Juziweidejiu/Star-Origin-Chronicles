@@ -76,9 +76,9 @@ const SLOT_ICON: Record<Equipment['slot'], React.ReactNode> = {
 const GRADE_LABEL: Record<1 | 2 | 3, string> = { 1: '省料', 2: '足料', 3: '豪掷' };
 const PHASE_ACTION: Record<CraftSession['phase'], string> = { heat: '鼓 风', hammer: '落 锤', quench: '入 水' };
 const PHASE_HINT: Record<CraftSession['phase'], string> = {
-  heat: '指针落进黄铜区再鼓风，火候越准品质越高',
+  heat: '指针落进铜色区再鼓风，火候越准品质越高',
   hammer: '锤头扫过砧面，贴着砧心落锤',
-  quench: '指针压到正中的红线时入水',
+  quench: '指针压到正中的刻线时入水',
 };
 const PHASE_TITLE: Record<CraftSession['phase'], string> = { heat: '火候', hammer: '锻打', quench: '淬火' };
 
@@ -215,7 +215,7 @@ const CraftBench: React.FC<BenchProps> = ({ bp, craft, gold, discount, onBack, o
         <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>底板属性</div>
         <StatChips base={blueprintBase(bp)} />
         <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginTop: 2, lineHeight: 1.5 }}>
-          词条池 {CRAFT_AFFIX_POOL[bp.slot].length} 条：{CRAFT_AFFIX_POOL[bp.slot].slice(0, 4).map((d) => d.name).join(' / ')}
+          开光批注池 {CRAFT_AFFIX_POOL[bp.slot].length} 条：{CRAFT_AFFIX_POOL[bp.slot].slice(0, 4).map((d) => d.name).join(' / ')}
           {CRAFT_AFFIX_POOL[bp.slot].length > 4 ? ' …' : ''}
         </div>
       </div>
@@ -286,7 +286,7 @@ const CraftBench: React.FC<BenchProps> = ({ bp, craft, gold, discount, onBack, o
               background: settings.oil ? 'var(--pz-raised)' : 'transparent',
             }}
           >
-            <Flame size={12} /> 淬火油 {craft.materials.oil ?? 0}
+            <Flame size={12} /> 桐油 {craft.materials.oil ?? 0}
           </button>
           <button
             onClick={() => setSettings((s) => ({ ...s, sand: !s.sand }))}
@@ -303,11 +303,11 @@ const CraftBench: React.FC<BenchProps> = ({ bp, craft, gold, discount, onBack, o
               background: settings.sand ? 'var(--pz-raised)' : 'transparent',
             }}
           >
-            <Sparkles size={12} /> 星陨砂 {craft.materials.sand ?? 0}
+            <Sparkles size={12} /> 砺石磨刀砂 {craft.materials.sand ?? 0}
           </button>
         </div>
         <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-          淬火油把品质下限抬到 0.98；星陨砂额外一条词条
+          桐油把品质下限抬到 0.98；砺石磨刀砂额外一条开光批注
         </div>
 
         <div
@@ -315,7 +315,7 @@ const CraftBench: React.FC<BenchProps> = ({ bp, craft, gold, discount, onBack, o
           style={{ borderTop: '1px dashed var(--pz-line)', paddingTop: 6, justifyContent: 'space-between', fontSize: 12 }}
         >
           <span style={{ color: 'var(--pz-ink-2)' }}>{costText(mats)}</span>
-          <span style={{ color: 'var(--pz-ink-3)' }}>工钱 {goldCost} 金</span>
+          <span style={{ color: 'var(--pz-ink-3)' }}>工钱 {goldCost} 铜钱</span>
         </div>
       </div>
 
@@ -324,11 +324,11 @@ const CraftBench: React.FC<BenchProps> = ({ bp, craft, gold, discount, onBack, o
           自己打造
         </Btn>
         <Btn variant="brass" block onClick={() => onBoss(settings, bossGold)} disabled={!owned || !bossAffordable}>
-          交给老板 · {bossGold} 金
+          交给老板 · {bossGold} 铜钱
         </Btn>
       </div>
       <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-        老板出品：品质 1.00–1.06 保底 · 词条随机 · 不涨熟练度 · 工钱{' '}
+        老板出品：品质 1.00–1.06 保底 · 开光批注随机 · 不涨熟练度 · 工钱{' '}
         {Math.round((BOSS_MARKUP - 1) * 100)}% 加价
       </div>
 
@@ -617,11 +617,11 @@ const ResultSheet: React.FC<{
 
         <div style={{ borderTop: '1px dashed var(--pz-line)', paddingTop: 6 }} className="pz-col">
           <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginBottom: 4 }}>
-            词条 {item.affixes.length > 0 ? `${lit}/${item.affixes.length}` : '· 无'}
+            开光批注 {item.affixes.length > 0 ? `${lit}/${item.affixes.length}` : '· 无'}
           </div>
           {item.affixes.length === 0 && (
             <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-              这件的火候只够做个素件，没有多余词条。
+              这件的火候只够做个素件，没有多余开光批注。
             </div>
           )}
           {item.affixes.map((affix, i) => (
@@ -731,7 +731,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
       return false;
     }
     if (logistics.gold < goldCost) {
-      setNotice(`金币不足，还差 ${goldCost - logistics.gold}。`);
+      setNotice(`铜钱不足，还差 ${goldCost - logistics.gold}。`);
       return false;
     }
     logistics.gold -= goldCost;
@@ -781,7 +781,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
     onCraftChange(next);
     setSession(null);
     setResult({ item, bp, source, xpGain });
-    onLogMessage(`出炉：${item.name}（品质 ${cents(item.quality)}，${item.affixes.length} 条词条）`);
+    onLogMessage(`出炉：${item.name}（品质 ${cents(item.quality)}，${item.affixes.length} 条开光批注）`);
   };
 
   const handleBeat = (pos: number) => {
@@ -826,11 +826,11 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
     const cost = rerollCost(item, discount);
     const lockSand = lockIndex !== null ? 1 : 0;
     if (logistics.gold < cost.gold || logistics.forgeStones < cost.stones) {
-      onLogMessage('金币或锻造晶石不足，无法洗练。');
+      onLogMessage('铜钱或锻石不足，无法重洗开光。');
       return;
     }
     if (lockSand > 0 && (craft.materials.sand ?? 0) < lockSand) {
-      onLogMessage('星陨砂不足，锁定词条需要 1 份。');
+      onLogMessage('砺石磨刀砂不足，锁定开光批注需要 1 份。');
       return;
     }
     logistics.gold -= cost.gold;
@@ -847,8 +847,8 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
     onRosterChange(nextRoster);
     onLogMessage(
       lockIndex !== null
-        ? `洗练 ${item.name}：锁定 1 条词条，其余重掷（星陨砂 -1）。`
-        : `洗练 ${item.name}：词条已重掷。`,
+        ? `重洗开光 ${item.name}：锁定 1 条开光批注，其余重掷（砺石磨刀砂 -1）。`
+        : `重洗开光 ${item.name}：开光批注已重掷。`,
     );
     setLockPick(prev => ({ ...prev, [item.id]: null }));
     triggerUpdate();
@@ -863,15 +863,15 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
     onInventoryChange(inventory.filter((i) => i.id !== item.id));
     onCraftChange({ ...craft, materials: addMaterials(craft.materials, mats) });
     triggerUpdate();
-    onLogMessage(`分解 ${item.name}：${costText(mats)}，金币 +${yieldGold.gold}`);
+    onLogMessage(`分解 ${item.name}：${costText(mats)}，铜钱 +${yieldGold.gold}`);
   };
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'book', label: '图纸册', icon: <BookOpen size={12} /> },
-    { key: 'craft', label: '打造台', icon: <Hammer size={12} /> },
-    { key: 'reforge', label: '重铸', icon: <RefreshCw size={12} /> },
-    { key: 'reroll', label: '洗练', icon: <Sparkles size={12} /> },
-    { key: 'salvage', label: '分解', icon: <Recycle size={12} /> },
+    { key: 'craft', label: '开炉打造', icon: <Hammer size={12} /> },
+    { key: 'reforge', label: '回炉精淬', icon: <RefreshCw size={12} /> },
+    { key: 'reroll', label: '重洗开光', icon: <Sparkles size={12} /> },
+    { key: 'salvage', label: '拆解回料', icon: <Recycle size={12} /> },
   ];
 
   return (
@@ -1025,10 +1025,10 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                     </span>
                   </div>
                   <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-                    {RARITY_LABEL[item.rarity]} · 品质 {cents(item.quality)} · {done ? '已重铸' : `重铸 +18% · ${cost} 金`}
+                    {RARITY_LABEL[item.rarity]} · 品质 {cents(item.quality)} · {done ? '已精淬' : `回炉精淬 +18% · ${cost} 铜钱`}
                   </div>
                   <Btn variant="ghost" size="sm" onClick={() => handleReforge(hero, item)} disabled={done || logistics.gold < cost}>
-                    {done ? '每件仅一次' : '重铸'}
+                    {done ? '每件仅一次' : '回炉精淬'}
                   </Btn>
                 </div>
               );
@@ -1038,7 +1038,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
 
         {tab === 'reroll' && (
           <div className="pz-col" style={{ gap: 8 }}>
-            {equipped.length === 0 && <EmptyLine text="没有可洗练的装备。" />}
+            {equipped.length === 0 && <EmptyLine text="没有可重洗开光的装备。" />}
             {equipped.map(({ hero, item }) => {
               const cost = rerollCost(item, discount);
               const locked = lockPick[item.id] ?? null;
@@ -1084,10 +1084,10 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                       })}
                     </div>
                   ) : (
-                    <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>无词条可洗。</span>
+                    <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>无开光批注可洗。</span>
                   )}
                   <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-                    {cost.gold} 金 · {cost.stones} 锻石 · {locked !== null ? '锁 1 条：星陨砂 1' : `点词条可锁定（现有星陨砂 ${sand}）`}
+                    {cost.gold} 铜钱 · {cost.stones} 锻石 · {locked !== null ? '锁 1 条：砺石磨刀砂 1' : `点开光批注可锁定（现有砺石磨刀砂 ${sand}）`}
                   </div>
                   <Btn
                     variant="ghost"
@@ -1095,7 +1095,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                     onClick={() => handleReroll(hero, item, locked)}
                     disabled={short || item.affixes.length === 0}
                   >
-                    {locked !== null ? '洗练（锁定 1 条）' : '洗练词条'}
+                    {locked !== null ? '重洗开光（锁定 1 条）' : '重洗开光批注'}
                   </Btn>
                 </div>
               );
@@ -1121,7 +1121,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                     </span>
                   </div>
                   <div className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-                    回收 {costText(gain)} · {gold.gold} 金
+                    回收 {costText(gain)} · {gold.gold} 铜钱
                   </div>
                   <Btn variant="ghost" size="sm" onClick={() => handleSalvage(item)}>
                     分解

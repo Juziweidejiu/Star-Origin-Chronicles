@@ -322,7 +322,7 @@ export const DungeonEventModal: React.FC<DungeonEventModalProps> = ({
                   )}
                   {!!c?.goldChange && (
                     <Badge tone={c.goldChange > 0 ? 'good' : 'bad'}>
-                      金币 {c.goldChange > 0 ? `+${c.goldChange}` : c.goldChange}
+                      铜钱 {c.goldChange > 0 ? `+${c.goldChange}` : c.goldChange}
                     </Badge>
                   )}
                   {!!c?.hpPercentChange && (
@@ -332,7 +332,7 @@ export const DungeonEventModal: React.FC<DungeonEventModalProps> = ({
                   )}
                   {!!c?.rationChange && (
                     <Badge tone={c.rationChange > 0 ? 'good' : 'plain'}>
-                      口粮 {c.rationChange > 0 ? `+${c.rationChange}` : c.rationChange}
+                      干粮 {c.rationChange > 0 ? `+${c.rationChange}` : c.rationChange}
                     </Badge>
                   )}
                 </div>

@@ -167,7 +167,7 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
         </span>
       </div>
 
-      {/* 装备名与基础词条展示 */}
+      {/* 装备名与基础开光批注展示 */}
       <div
         style={{
           background: 'var(--pz-sunken)',
@@ -195,7 +195,7 @@ export const LootDropModal: React.FC<LootDropModalProps> = ({
           ))}
         </div>
 
-        {/* 附加词条 */}
+        {/* 附加开光批注 */}
         {loot.affixes.length > 0 && (
           <div style={{ borderTop: '1px dashed var(--pz-line-2)', marginTop: '6px', paddingTop: '5px', fontSize: '10px', color: '#6B4E9E' }}>
             {loot.affixes.map((af, i) => (

@@ -23,9 +23,9 @@ export interface TownNode {
   buildings: BuildingType[];
   reputation: number; // -100 ~ 100
   reputationLevel: ReputationLevel;
-  distanceFromCapital: number; // 距离霜月城的天数距离
+  distanceFromCapital: number; // 距离石桥镇的天数距离
   supplyCostMod: number;       // 物价倍率 (如 0.9 = 9折)
-  rewardMod: number;           // 任务赏金加成
+  rewardMod: number;           // 任务赏钱加成
 }
 
 // 契约任务难级 (1-5星，对应 D/C/B/A/S 阶)
@@ -48,9 +48,9 @@ export interface GuildContract {
   townId: TownId;
   stars: ContractDifficulty;
   durationDays: number;     // 耗费天数
-  goldReward: number;       // 金币报酬
+  goldReward: number;       // 铜钱报酬
   reputationReward: number; // 声望提升
-  soulCrystalReward?: number;// 魂晶奖励
+  soulCrystalReward?: number;// 赏钱奖励
   description: string;
   enemyClasses: ClassId[];  // 敌对编制
   enemyLevel: number;
@@ -61,7 +61,7 @@ export interface GuildContract {
 export interface TavernRecruit {
   id: string;
   hero: Hero;
-  hireCost: number;       // 雇佣签约金
+  hireCost: number;       // 雇佣工钱
   backgroundStory: string;
   starRatingRange: string;// 评级迷雾显示 (如 "★★★☆☆")
 }
@@ -81,20 +81,20 @@ export interface FallenSoul {
   hero: Hero;
   deathDate: number;      // 阵亡于第几天
   deathLocation: string;  // 阵亡地点
-  revivalCostGold: number;// 复活金币
-  revivalSoulCrystals: number; // 复活魂晶
+  revivalCostGold: number;// 复活铜钱
+  revivalSoulCrystals: number; // 复活赏钱
 }
 
 // 佣兵团团队整体后勤运营资产
 export interface CompanyLogistics {
   day: number;            // 当前天数
   currentTownId: TownId;  // 当前所在据点
-  gold: number;           // 金币
-  rations: number;        // 口粮 (每日每人消耗 1)
-  soulCrystals: number;   // 稀有魂晶 (用于圣所复活)
+  gold: number;           // 铜钱
+  rations: number;        // 干粮 (每日每人消耗 1)
+  soulCrystals: number;   // 稀有赏钱 (用于圣所复活)
   medicines: number;      // 药剂 (用于治愈重伤)
-  forgeStones: number;    // 锻造晶石：分解与洗练的基础材料
-  ironOre: number;        // 玄铁锭：打造与高阶强化的稀有材料
-  dailyFoodCost: number;  // 每日口粮消耗
+  forgeStones: number;    // 锻石：分解与重洗开光的基础材料
+  ironOre: number;        // 精钢锭：打造与高阶强化的稀有材料
+  dailyFoodCost: number;  // 每日干粮消耗
   weeklyWageCost: number; // 每周薪资总额
 }

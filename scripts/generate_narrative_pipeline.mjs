@@ -2,7 +2,7 @@
 
 /**
  * ==============================================================================
- * 《星原战纪》东方二次元奇幻探险叙事生成与质检流水线
+ * 《三岔口》东方二次元奇幻探险叙事生成与质检流水线
  * 
  * 核心基调：
  * 1. 探险 (Exploration)、生存 (Survival)、浪漫羁绊 (Camaraderie)、对抗危机 (Crisis)
@@ -62,7 +62,7 @@ const PURPLE_PROSE_BLACKLIST = [
 
 // 系统设定与生成Prompt
 const NARRATIVE_DESIGNER_SYSTEM_PROMPT = `
-你是一名资深东亚二次元奇幻探险战记（如《星原战纪》）的首席叙事文案设计师。
+你是一名资深东亚二次元奇幻探险战记（如《三岔口》）的首席叙事文案设计师。
 你的任务是为移动端角色扮演游戏生成【探索奇遇事件】与【营地伙伴短对话】。
 
 【四大核心基调】：
@@ -303,7 +303,7 @@ function generateSyntheticDialogues() {
  */
 async function main() {
   console.log('='.repeat(70));
-  console.log('🛡️  《星原战纪》东方二次元奇幻探险叙事生成与质检流水线');
+  console.log('🛡️  《三岔口》东方二次元奇幻探险叙事生成与质检流水线');
   console.log('='.repeat(70));
 
   const apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY;
@@ -316,7 +316,7 @@ async function main() {
     console.log(`📡 检测到 API 密钥，开始通过远程 LLM (${baseUrl}) 批量生成...`);
     const prompt = `请生成 2 个探索奇遇事件和 3 条营地台词。
 【严格约束】：
-1. 游戏为东方二次元奇幻探险战记《星原战纪》，基调为探险、生存、浪漫羁绊与对抗危机。
+1. 游戏为东方二次元奇幻探险战记《三岔口》，基调为探险、生存、浪漫羁绊与对抗危机。
 2. 绝对严禁“远古、古文明、超古代、失落科技、青铜守卫”等词汇！历史严格线性发展！
 3. 事件生态可选：哥布林矿洞(goblin_cave)、飞龙巢穴(dragon_roost)、猛兽雪猿窟(beast_den)、晶石溶洞迷宫(labyrinth)、前朝关隘(frontier_fort)。
 4. 角色采用东亚二次元姓名（男：沈云舒、陆曜、裴少陵、秦渊、顾平川；女：楚清弦、季秋水、温竹君、白苏、墨微凉），男女参半，英姿飒爽，实力强劲。

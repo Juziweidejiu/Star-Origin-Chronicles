@@ -1,7 +1,7 @@
-# 《星原战纪》路线蓝图
+# 《三岔口》路线蓝图
 
-> 最后更新：2026-11-18
-> 当前版本：Milestone 35（铁匠铺打造进工程）
+> 最后更新：2026-11-19
+> 当前版本：Milestone 41（《三岔口》世界观重构与命名门禁）
 > 新会话从这里开始读：本文件 → `AGENTS.md` → `PROJECT_HANDOFF.md`
 
 ---
@@ -11,10 +11,10 @@
 | 阶段 | 内容 |
 |---|---|
 | M1–19 | 叙事 DSL + 反套话管线 + Ink 运行器；东方化重制；战斗引擎（暴击/穿透/减伤）；平衡模拟；3×3 阵型；纵向自走棋战场；地牢分支；营地暖汤；MVP/榜单结算 |
-| M20 | 词条对齐九维属性；结算弹窗仅 Boss 房 |
+| M20 | 开光批注对齐九维属性；结算弹窗仅 Boss 房 |
 | M21 | S/A/B/C/D 公会任务板 + 胜率演算 + 战术建议；4 座生活化城镇；魔物生态扩充 |
 | M22 | 英雄经验/等级/CA 成长系统 + 等级压制 |
-| M23 | 铁匠铺：打造 / 重铸 / 洗练 / 分解（品质 0.82–1.18，一次性重铸 +18%） |
+| M23 | 铁匠铺：打造 / 回炉精淬 / 重洗开光 / 拆解回料（品质 0.82–1.18，一次性回炉精淬 +18%） |
 | M24 | 羊皮纸设计 token + 公共组件；全界面换皮；隐形格 3×3 窟室战场；战斗性能优化（rAF 弹道 → CSS transition、跳字样式外提、布局指纹、日志增量）；暴击中文化；伤害数字错行 |
 | M25 | 存档持久化（`starfall.save.v1`，800ms 防抖 + pagehide 落盘 + 重开新档） |
 | M26 | DevEx：固定 dev 端口、`check`/`verify`/`test` 脚本、pre-commit 钩子、vitest + 30 个引擎单测、`AGENTS.md` |
@@ -25,8 +25,14 @@
 | M31 | 存档迁移层（P1-1）：链式 `SAVE_MIGRATIONS` + 原档备份 + 自愈回写 + 结构归一；`readSave` 可注入测试缝；单测 30 → 44 |
 | M32 | 应用壳重构：页眉/底栏钉死，只有中栏滚动；`visualViewport` 动态视口；切 tab 回顶 |
 | M33 | 页内「上不动、下滚动」：城镇瘦身横幅 + 镇志浮层；名册编队固定 + 队员/背包互斥折叠 + 状态/职业/排序筛选 |
-| M34 | 铁匠铺打造原型（`design/crafting-demo.html`）：图纸册 / 备料 / 三段式小游戏 / 词条点亮 / 老板代打 / 按品阶熟练度 / 资产槽 |
+| M34 | 铁匠铺打造原型（`design/crafting-demo.html`）：图纸册 / 备料 / 三段式小游戏 / 开光批注点亮 / 老板代打 / 按品阶熟练度 / 资产槽 |
 | M35 | 铁匠铺进工程：`blueprintData` + `craftEngine`（纯函数状态机）+ 存档 `craft` 段 + `BlacksmithView` 拆分 + 战斗掉落图纸材料 + 声望解锁 + 12 张图纸卡面 |
+| M36 | 重洗开光锁定（耗砺石磨刀砂保留一条开光批注） |
+| M37 | 修复铁匠铺滚动卡死（嵌套滚动容器） |
+| M38 | 首批美术接入（12 张图纸卡面 WebP） |
+| M39 | 手账贴纸视觉 + 人物提示词改二次元 |
+| M40 | 批次 B 英雄二次元立绘接入（9 职业 × 男女，共 18 张） |
+| M41 | 《三岔口》世界观重构：姓名池/五城地名/契约文案/敌人名/兵器术语/资源词/Ink 剧本全量换新；新增命名红线门禁并接入 `npm run check`；旧档不迁移、数值只换名（对照见 `docs/RENAME_STAT_REFERENCE.md`） |
 
 ---
 
@@ -72,16 +78,23 @@
 
 ### 6. 铁匠铺打造（图纸 / 材料 / 小游戏，✅ 已进工程）
 - [x] 原型：`design/crafting-demo.html`（单文件，复用 pz token，不接入构建）；示例插画 `design/assets/items/sword.svg`。
-- 已定分工：图纸定底子（部位/基础属性/词条池）、材料定上限（品质区间/词条数）、小游戏定实际发挥。
+- 已定分工：图纸定底子（部位/基础属性/开光批注池）、材料定上限（品质区间/开光批注数）、小游戏定实际发挥。
 - 已定交互：三段式（火候 5 → 锻打 4 → 淬火 1）；老板代打 1.6 倍工钱、品质保底 1.00–1.06、不涨熟练度；熟练度按品阶 T1–T5 各 5 级，只由自打获得。
-- [x] `engine/blueprintData.ts`（12 张图纸 / 7 种材料 / 每部位 8 条词条）+ `engine/craftEngine.ts`（`startCraft / craftBeat / settleCraft` 纯函数状态机、熟练度、代打、回收、掉落、声望解锁）。
+- [x] `engine/blueprintData.ts`（12 张图纸 / 7 种材料 / 每部位 8 条开光批注）+ `engine/craftEngine.ts`（`startCraft / craftBeat / settleCraft` 纯函数状态机、熟练度、代打、回收、掉落、声望解锁）。
 - [x] 存档新增 `craft`（材料 / 已解锁图纸 / 分品阶熟练度 / 打造件数），`SAVE_VERSION` 仍为 1，旧档自动补默认。
-- [x] `components/BlacksmithView.tsx` 从 `TownView.tsx` 拆出：图纸册 / 打造台 / 重铸 / 洗练 / 分解五个页签 + 全屏锻造层 + 成品对比弹层。
+- [x] `components/BlacksmithView.tsx` 从 `TownView.tsx` 拆出：图纸册 / 打造台 / 回炉精淬 / 重洗开光 / 拆解回料五个页签 + 全屏锻造层 + 成品对比弹层。
 - [x] 战斗胜利掉落材料与图纸（首领必掉未拥有），声望 60 / 五星首通解锁头像图纸。
 - [x] 图纸卡面：`mobile-pwa/public/art/items/{blueprintId}.svg`（12 张，`scripts/gen_item_art.mjs` 生成）。
-- [x] 洗练锁定：点词条选中，洗练时保留该条（耗星陨砂 1），其余重掷。
-- [ ] 后续：词条真实战斗效果（v2）、图纸残页合成、委托队列。
+- [x] 重洗开光锁定：点开光批注选中，重洗开光时保留该条（耗砺石磨刀砂 1），其余重掷。
+- [ ] 后续：开光批注真实战斗效果（v2）、图纸残页合成、委托队列。
 - 资产约定：`public/art/{icons|items|heroes|npc}/{id}.webp`，缺图回落线性图标；v1 不改 `combatEngine`。
+
+### 7. 世界观重构二期（只记录，不开发；详见 `docs/BACKLOG_WORLDVIEW_V2.md`）
+- [ ] 营地整备改「磨刀拭甲」：开锋磨刃 / 桐油拭甲 / 校弦缠柄，耗材料而非干粮，新增 `stressDelta` 与暴击/攻速 Buff。
+- [ ] 第五城望山堡：扩 `TownId`、四张字典、行军距离与存档迁移登记。
+- [ ] 九职业显示名武侠化（等世界观那边定稿；`TITLES_BY_CLASS` 接口已就绪）。
+- [ ] 契约区域化：按 `WORLD_MAP_V3.md` 把 6 类契约绑到对应区域，并重跑 `sim_balance.mjs`。
+- [ ] 旧档不迁移（用户决定可忽略/可删），`SAVE_VERSION` 保持 1。
 
 ---
 
@@ -107,9 +120,10 @@
 
 ## 工程约定
 
-- 提交前必须 `npm run check`（pre-commit 钩子拦截）；完整门禁 `npm run verify`。
+- 提交前必须 `npm run check`（类型 + lint + 命名红线门禁，pre-commit 钩子拦截）；完整门禁 `npm run verify`。
 - 引擎层 `src/engine/` 不得 import React 或操作 DOM（单测跑不起来）。
 - 改数值前先跑 `node scripts/sim_balance.mjs`。
+- **改任何对外文案/专名前先读 `docs/LEXICON_AND_GATES.md`，改完同步该文档 + `PROJECT_HANDOFF.md` + `HANDOFF.md`。** 命名门禁零豁免，撞字就改名。
 - 每个里程碑：更新 `PROJECT_HANDOFF.md` → `npm run check` → 提交 → 推送两个远程：
   ```bash
   git push origin main    # Gitee（主仓）

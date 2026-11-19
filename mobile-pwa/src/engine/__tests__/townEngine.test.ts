@@ -61,14 +61,14 @@ describe('TownEngine 契约刷新', () => {
 });
 
 describe('TownEngine 声望派生', () => {
-  it('声望变化会带动折扣与赏金系数', () => {
+  it('声望变化会带动折扣与赏钱系数', () => {
     const engine = new TownEngine();
     const low = engine.towns.ambermill_town;
     const lowReward = low.rewardMod;
 
     engine.towns.ambermill_town.reputation = 90;
     const fresh = new TownEngine();
-    // 直接用同一套派生逻辑重建，确认高声望的赏金系数不低于低声望
+    // 直接用同一套派生逻辑重建，确认高声望的赏钱系数不低于低声望
     expect(fresh.towns.tidesong_haven.rewardMod).toBeGreaterThanOrEqual(1);
     expect(lowReward).toBeGreaterThan(0);
   });

@@ -34,84 +34,82 @@ export function enemyCountForStars(stars: number, isBoss = false): number {
   return ENEMY_TUNING.countByStars[i] + (isBoss ? ENEMY_TUNING.bossExtraByStars[i] : 0);
 }
 
-/** 按职业与生态生成的兵种名库，克制、洗练、无冗余形容词 */
-const ENEMY_ROLE_NAMES: Record<string, Record<ClassId, string[]>> = {
+type EnemyNamePool = Record<ClassId, string[]> & { bossNames: string[] };
+
+/** 按生态与战斗职能生成的兵种名库：2-5 字俗称，不带 MMO 职业后缀 */
+const ENEMY_NAME_POOL: Record<ContractType, EnemyNamePool> = {
   slime_infestation: {
-    guardian: ['石盾史莱姆', '岩壳胶质'],
-    blademaster: ['利刃黏液怪', '酸液跳跳'],
-    ranger: ['毒刺射胶怪', '弹射史莱姆'],
-    arcanist: ['电浆史莱姆王', '炽焰胶质'],
-    cleric: ['再生黏液核心', '治愈胶质'],
-    paladin: ['铁壳巨型史莱姆'],
-    warden: ['重锤岩浆怪'],
-    druid: ['孢子史莱姆', '寄生胶质'],
-    bard: ['共鸣水母胶'],
+    guardian: ['石壳胶妖', '硬泥胶妖'],
+    paladin: ['厚膜大胶妖', '裹铁胶妖'],
+    warden: ['岩块胶妖', '重压胶妖'],
+    blademaster: ['酸液胶妖', '滑行胶妖'],
+    ranger: ['喷液胶妖', '弹射胶妖'],
+    arcanist: ['瘴气胶妖', '浮游胶妖'],
+    cleric: ['共生小胶妖', '愈合胶核'],
+    druid: ['缠蔓胶妖', '水苔胶妖'],
+    bard: ['震鸣胶妖', '鼓泡胶妖'],
+    bossNames: ['矿井大胶王', '裹矿巨胶怪'],
   },
   goblin_mine: {
-    guardian: ['赤耳盾手', '矿坑大盾哥布林', '岩盔哥布林'],
-    blademaster: ['赤耳劈砍者', '矿坑刺客', '双刃哥布林'],
-    ranger: ['赤耳掷弹手', '毒弩哥布林', '岩隙伏击者'],
-    arcanist: ['赤耳萨满', '地脉咒术师', '灰烬控火者'],
-    cleric: ['赤耳巫医', '草药萨满', '图腾祭祀'],
-    paladin: ['赤耳精锐铁卫', '重装哥布林'],
-    warden: ['赤耳矿道先锋', '持棒蛮兵'],
-    druid: ['穴居唤蛇者', '岩苔异术士'],
-    bard: ['赤耳鼓手', '战吼哥布林'],
+    guardian: ['举盾山魈', '木盾山魈'],
+    paladin: ['铁盔山魈', '重甲山魈'],
+    warden: ['持镐山魈', '大锤山魈'],
+    blademaster: ['尖耳山魈', '短刃山魈'],
+    ranger: ['投石山魈', '吹箭山魈'],
+    arcanist: ['掷弹山魈', '火油山魈'],
+    cleric: ['涂药山魈', '裹伤山魈'],
+    druid: ['驯鼠山魈', '引兽山魈'],
+    bard: ['敲锣山魈', '号角山魈'],
+    bossNames: ['独眼山魈王', '矿坑大头领'],
   },
   bandit_camp: {
-    guardian: ['黑煞寨盾手', '寨门大盾兵', '重甲截道匪'],
-    blademaster: ['黑煞寨快刀手', '亡命刀客', '劫道悍匪'],
-    ranger: ['黑煞寨弓手', '暗哨弩手', '飞刀流寇'],
-    arcanist: ['黑煞寨咒师', '落草方士', '引火匪首'],
-    cleric: ['黑煞寨药师', '随军医手', '赤脚巫者'],
-    paladin: ['重甲叛卫', '寨头铁甲兵'],
-    warden: ['黑煞寨巡山客', '劈山哨长'],
-    druid: ['驯鹰流寇', '毒草术人'],
-    bard: ['擂鼓山匪', '喝彩寨卒'],
-  },
-  beast_hunt: {
-    guardian: ['穴居公枭熊', '铁甲山猪', '岩皮厚甲兽'],
-    blademaster: ['雪原白额狼', '撕裂利爪豹', '裂喉赤狐'],
-    ranger: ['双足翼手飞龙', '飞羽角雕', '喷毒飞蜥'],
-    arcanist: ['雷鸣幼龙', '幽焰火狐', '唤霜灵鹿'],
-    cleric: ['林地伴生灵', '生息鹿', '岩髓晶灵'],
-    paladin: ['巨角犀兽', '岩甲巨犀'],
-    warden: ['巡林狂狒', '长臂骨猴'],
-    druid: ['古木盘根兽', '寄生灵蔓'],
-    bard: ['啼鸣怪鸟', '唤兽山雀'],
-  },
-  ruins_cleansing: {
-    guardian: ['拟态宝箱怪', '弹簧发条铁卫', '前朝步卒盾卫'],
-    blademaster: ['食人魔蛮力士', '双头食人魔', '前朝折冲刀手'],
-    ranger: ['巨型洞穴捕鸟蛛', '结网毒蛛', '前朝强弩手'],
-    arcanist: ['失控发条术士', '前朝钦天术官', '残阵阵法师'],
-    cleric: ['拟态圣遗物箱', '前朝军中医官', '祝祷司祝'],
-    paladin: ['发条重装步兵', '前朝镇关铁卫', '中军宿卫'],
-    warden: ['单眼食人魔', '前朝先锋锐卒', '陷阵甲士'],
-    druid: ['蛛网守护灵', '前朝御兽吏', '驯禽守卒'],
-    bard: ['拟态音乐盒', '前朝号角手', '行军金鼓手'],
+    guardian: ['寨门盾手', '重甲悍匪'],
+    paladin: ['长枪寨兵', '铁甲头目'],
+    warden: ['大斧山贼', '铁背山猪'],
+    blademaster: ['亡命刀客', '双刀流寇'],
+    ranger: ['暗哨弩手', '山林弓匪'],
+    arcanist: ['火铳悍匪', '掷雷山贼'],
+    cleric: ['随寨伤医', '背箱药匪'],
+    druid: ['放犬恶徒', '驯猪寨匪'],
+    bard: ['敲梆望风匪', '喊阵匪头'],
+    bossNames: ['独臂山贼头目', '风口岭大当家'],
   },
   caravan_escort: {
-    guardian: ['护卫叛卒', '劫道盾手'],
-    blademaster: ['夺货刀客', '亡命剑徒'],
-    ranger: ['伏击弓手', '连弩斥候'],
-    arcanist: ['黑市术客', '诡道法徒'],
-    cleric: ['暗巷行医', '黑市药贩'],
-    paladin: ['叛变游侠骑士', '铁甲武徒'],
-    warden: ['断道斧手', '重锤游匪'],
-    druid: ['引蜂客', '驱兽人'],
-    bard: ['流浪歌者', '散谣乐徒'],
+    guardian: ['截道盾匪', '厚壳泥龟'],
+    paladin: ['持叉水匪', '重甲劫匪'],
+    warden: ['甩尾巨鳄', '铁棒水贼'],
+    blademaster: ['飞刀流寇', '疾行水蜥'],
+    ranger: ['苇丛弩手', '暗箭水匪'],
+    arcanist: ['水雷匪徒', '喷雾毒蛙'],
+    cleric: ['随行水医', '伴生水蛭'],
+    druid: ['放鹰劫匪', '驱鳄水匪'],
+    bard: ['鸣哨水匪', '鸣叫大蟾'],
+    bossNames: ['三岔口匪首', '沉船湾大鳄'],
   },
-};
-
-/** 首领名录，杜绝人名，直奔兵种头目地位 */
-const BOSS_NAMES: Record<string, string[]> = {
-  slime_infestation: ['巨型胶质王', '水井暗渠史莱姆巢主', '电浆核心巨怪'],
-  goblin_mine: ['赤耳巨怪统领', '矿脉大头目', '穴居巨萨满'],
-  bandit_camp: ['黑煞寨大当家', '断龙崖寨主', '血手当家'],
-  beast_hunt: ['狂暴穴居枭熊王', '霜甲巨猿王', '雷霆裂地龙', '苍空翼龙霸主'],
-  ruins_cleansing: ['巨口拟态宝箱王', '暴怒双头食人魔酋长', '发条重装统领', '前朝折冲都尉'],
-  caravan_escort: ['黑市大当家', '截道巨枭'],
+  beast_hunt: {
+    guardian: ['铁背山猪', '厚皮枭熊'],
+    paladin: ['巨角山牛', '重甲山魈'],
+    warden: ['长毛山魈', '独眼大熊'],
+    blademaster: ['疾行水蜥', '独眼头狼'],
+    ranger: ['展翼山雕', '飞羽大鹰'],
+    arcanist: ['毒斑巨蛙', '喷毒山蛛'],
+    cleric: ['药草小妖', '护窝母鹿'],
+    druid: ['林间大鹿', '引群头狼'],
+    bard: ['鸣叫大蟾', '啼鸣山猿'],
+    bossNames: ['断牙山猪王', '巨角山牛王', '北松岭老狼王'],
+  },
+  ruins_cleansing: {
+    guardian: ['发条木甲卫', '重盾铁卫'],
+    paladin: ['长戟木甲卫', '巡哨铁卫'],
+    warden: ['独眼巨汉', '大锤蛮人'],
+    blademaster: ['箱魅', '利刃机关偶'],
+    ranger: ['连弩机关偶', '暗弩铁卫'],
+    arcanist: ['火油机关偶', '失控火铳卫'],
+    cleric: ['修补木匠偶', '传令机关鸟'],
+    druid: ['巢穴石蛛', '铁笼恶犬'],
+    bard: ['警铃机关偶', '战鼓木甲'],
+    bossNames: ['巨口箱魅王', '西关大铁卫', '独眼蛮将'],
+  },
 };
 
 export function createEnemyParty(
@@ -124,9 +122,8 @@ export function createEnemyParty(
   const attrScale = ENEMY_TUNING.attrByStars[i];
   const hpScale = ENEMY_TUNING.hpByStars[i];
 
-  const poolType = ENEMY_ROLE_NAMES[contractType] ? contractType : 'goblin_mine';
-  const rolePool = ENEMY_ROLE_NAMES[poolType];
-  const bossPool = BOSS_NAMES[poolType] || BOSS_NAMES.goblin_mine;
+  const rolePool = ENEMY_NAME_POOL[contractType] ?? ENEMY_NAME_POOL.goblin_mine;
+  const bossPool = rolePool.bossNames;
 
   return classes.map((cId, idx) => {
     const base = generateHero(cId, false);
@@ -146,7 +143,7 @@ export function createEnemyParty(
     const subName = nameList[Math.floor(Math.random() * nameList.length)];
     const bossTitle = bossPool[Math.floor(Math.random() * bossPool.length)];
 
-    const enemyName = isBossUnit ? `👑${bossTitle}` : subName;
+    const enemyName = isBossUnit ? `${bossTitle}·首领` : subName;
 
     const enemy: Hero = {
       ...base,

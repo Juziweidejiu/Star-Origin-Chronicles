@@ -1,4 +1,4 @@
-# 星原战纪 · 开发指南
+# 三岔口 · 开发指南
 
 移动端 PWA 地牢冒险 RPG（React 19 + Vite 8 + TypeScript）。本文件是给**人和 AI 会话**看的上手说明：先读这里，再读 `TODO.md`（待办与优先级）与 `PROJECT_HANDOFF.md`（逐里程碑交付记录）。
 
@@ -28,13 +28,15 @@
 
 ```bash
 npm run dev        # 开发服务器 http://127.0.0.1:5199/game/（端口已在 vite.config.ts 固定）
-npm run check      # 类型检查 + lint（提交前跑这个，约 1s）
+npm run check      # 类型检查 + lint + 命名红线门禁（提交前跑这个，约 2s）
 npm run test       # vitest 单测（引擎层）
 npm run build      # 生产构建
-npm run verify     # 完整门禁：类型 + lint + 构建
+npm run verify     # 完整门禁：类型 + lint + 命名 + 构建
 ```
 
 **提交前必须 `npm run check` 通过。** 仓库已装好 `pre-commit` 钩子（由 `npm run setup:hooks` 或 `npm install` 自动安装），检查不过会直接拦住提交。应急绕过：`git commit --no-verify`。
+
+命名红线门禁（`scripts/check_naming.mjs`）扫 `src` 的字符串字面量与 JSX 文本，命中颜色字/冷热词即失败，零豁免。规则、术语表与改动规约见 **`docs/LEXICON_AND_GATES.md`**——改任何对外文案前后都要读它，并在改完后同步本文档与 `PROJECT_HANDOFF.md`。
 
 ---
 

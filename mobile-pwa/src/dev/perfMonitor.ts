@@ -178,7 +178,7 @@ let suspendCount = 0;
     const nav = navigator as Navigator & { deviceMemory?: number; hardwareConcurrency?: number };
     const heap = mem ? `${(mem.usedJSHeapSize / 1048576).toFixed(1)} / ${(mem.jsHeapSizeLimit / 1048576).toFixed(0)} MB` : 'n/a';
     return [
-      '=== 星原战纪 · 性能采样 ===',
+      '=== 三岔口 · 性能采样 ===',
       `时间: ${new Date().toLocaleString()}`,
       `UA: ${navigator.userAgent}`,
       `屏幕: ${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}x | 视口 ${window.innerWidth}x${window.innerHeight}`,

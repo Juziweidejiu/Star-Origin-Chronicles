@@ -1,7 +1,7 @@
 /**
  * 天灾大事件系统 (Crisis Engine)
- * Milestone 3 核心：第一期天灾【星原异动 · 极夜狂暴兽潮】
- * 遵循严格线性世界观与日式东亚奇幻风格
+ * 第一期天灾【北境大雪 · 异兽外溢】（默认下线，由 features.ts 控制）
+ * 遵循严格线性世界观：险情皆源自近三十年变故与近年的气候反常
  */
 
 import type { TownId, GuildContract } from '../types/world';
@@ -25,14 +25,14 @@ export class CrisisEngine {
 
   constructor() {
     this.crisis = {
-      id: 'stellar_beast_surge',
-      name: '星原异动 · 极夜狂暴兽潮',
-      phase: 'rumor', // 初始阶段为传闻与异动
-      daysRemainingInPhase: 7, // 7 天后第一波狂潮爆发
+      id: 'north_snow_beast_surge',
+      name: '北境大雪 · 异兽外溢',
+      phase: 'rumor', // 初始阶段为行会传回的零星消息
+      daysRemainingInPhase: 7, // 7 天后第一波外溢爆发
       totalDaysActive: 0,
       threatLevel: 15,
       fallenTowns: [],
-      description: '北境天幕划过幽蓝流星雨，群山深处的凶暴兽群与荒原巨猿受地脉异动惊扰，正发狂集结...',
+      description: '北境连降大雪，山兽南迁觅食。老鸦岭哨所连日传来警讯，望山堡与铸剑谷沿线已有兽群踏毁驿道...',
     };
   }
 
@@ -51,17 +51,17 @@ export class CrisisEngine {
         this.crisis.phase = 'outbreak';
         this.crisis.daysRemainingInPhase = 14;
         this.crisis.threatLevel = 50;
-        this.crisis.fallenTowns = ['tidesong_haven']; // 潮鸣港外围灯塔前哨告急
-        message = '🚨【兽潮爆发】狂暴海兽与峭壁飞龙突破海岸防线，前线【潮鸣与灯塔港】陷入重围！各大城邦紧急发布联合救援赏金！';
+        this.crisis.fallenTowns = ['tidesong_haven']; // 芦洲渡外围盐场埠告急
+        message = '【兽群外溢】南迁兽群冲破苇荡防线，前线【芦洲渡】盐场埠陷入重围！六合行会紧急加价收单！';
       } else if (this.crisis.phase === 'outbreak') {
         this.crisis.phase = 'climax';
         this.crisis.daysRemainingInPhase = 10;
         this.crisis.threatLevel = 85;
         this.crisis.fallenTowns = ['tidesong_haven', 'hammerdeep_hold'];
-        message = '⚔️【决战时刻】狂暴首领“霜甲巨猿王”率群兽兵临【黑铁与汽锤堡】！若不能斩断兽王中枢，全境防线将全线崩溃！';
+        message = '【决战时刻】巨角山牛王率兽群踏到【铸剑谷】谷口！若不能截住这头兽王，西麓矿道将全线断绝！';
       } else if (this.crisis.phase === 'climax') {
         this.crisis.threatLevel = 100;
-        message = '💥【危机失控】极夜兽潮冲垮了平原商道，城邦物价飞涨，麦浪与风车镇公会发出最后总动员令！';
+        message = '【危机失控】兽群踏断了中州官道，粮价飞涨，石桥镇六合行会总会发出最后总动员令！';
       }
     } else {
       // 狂潮爆发期的每日恶化
@@ -76,13 +76,13 @@ export class CrisisEngine {
   }
 
   /**
-   * 生成天灾专属战役契约 (汽锤堡要塞阻击战 / 讨伐霜甲巨猿王)
+   * 生成天灾专属战役契约 (铸剑谷守卫战 / 讨伐巨角山牛王)
    */
   public generateCrisisContract(): GuildContract {
     if (this.crisis.phase === 'climax') {
       return {
         id: `crisis_climax_${Date.now()}`,
-        title: '【决战兽王】突入雷鸣崖 · 讨伐霜甲巨猿王',
+        title: '【决战兽王】深入北松岭 · 讨伐巨角山牛王',
         type: 'beast_hunt',
         townId: 'ambermill_town',
         stars: 5,
@@ -90,7 +90,7 @@ export class CrisisEngine {
         goldReward: 2500,
         reputationReward: 50,
         soulCrystalReward: 15,
-        description: '突入暴风雪与雷暴交织的险峻山崖，直取发狂兽群的源头霸主“霜甲巨猿王”，彻底平息兽潮！',
+        description: '顶着风雪摸进北松岭深处，截住踏毁驿道的兽群首领“巨角山牛王”，把这条商道重新打通。',
         enemyClasses: ['paladin', 'arcanist', 'blademaster', 'warden'],
         enemyLevel: 5,
         status: 'available',
@@ -98,7 +98,7 @@ export class CrisisEngine {
     } else {
       return {
         id: `crisis_defense_${Date.now()}`,
-        title: '【要塞阻击】黑铁汽锤堡守卫战 · 遏止兽潮前锋',
+        title: '【谷口阻击】铸剑谷守卫战 · 遏止兽群前锋',
         type: 'beast_hunt',
         townId: 'ambermill_town',
         stars: 4,
@@ -106,7 +106,7 @@ export class CrisisEngine {
         goldReward: 1200,
         reputationReward: 30,
         soulCrystalReward: 8,
-        description: '在要塞关隘坚壁清野，迎击第一波冲击城墙的凶暴赤狼与变异巨蜥，保护物资车队。',
+        description: '在谷口石垒后清空射界，迎击第一波冲阵的断牙山猪与铁背山猪，护住运矿车队。',
         enemyClasses: ['arcanist', 'blademaster', 'guardian'],
         enemyLevel: 3,
         status: 'available',
@@ -122,12 +122,12 @@ export class CrisisEngine {
       this.crisis.phase = 'resolved';
       this.crisis.threatLevel = 0;
       this.crisis.fallenTowns = [];
-      this.crisis.description = '危机魁首已被斩杀，凶潮退去，星原大陆迎来了久违的清晨！探险团名垂青史！';
-      return '🎉【史诗胜利】兽王授首！汹涌兽潮彻底溃散，边境重见安宁，星原探险团成为全境传奇！';
+      this.crisis.description = '兽王首级已挂上铸剑谷门楼，兽群四散，中州官道重又通了车。行会木牌上的名字，被来往客商念了整年。';
+      return '【大捷】巨角山牛王伏诛！外溢兽群溃散，北境驿道重开，你们这趟单子记进了行会总会的大账。';
     } else {
       this.crisis.threatLevel = Math.max(10, this.crisis.threatLevel - 35);
       this.crisis.fallenTowns = [];
-      return '⚔️【战术大捷】兽潮前锋被重创崩溃，据点防御稳固，威胁度大幅降低！';
+      return '【谷口大捷】兽群前锋被打散，石垒守住了，威胁大幅回落。';
     }
   }
 }

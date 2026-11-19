@@ -42,11 +42,11 @@ interface TownViewProps {
 
 
 const BUILDING_META: Record<BuildingType, { label: string; icon: React.ReactNode }> = {
-  guild: { label: '冒险公会', icon: <Scroll size={14} /> },
-  tavern: { label: '佣兵酒馆', icon: <Beer size={14} /> },
-  market: { label: '补给市集', icon: <Scale size={14} /> },
-  infirmary: { label: '随军医馆', icon: <HeartPulse size={14} /> },
-  sanctuary: { label: '英灵圣所', icon: <Sparkles size={14} /> },
+  guild: { label: '六合行会', icon: <Scroll size={14} /> },
+  tavern: { label: '酒肆', icon: <Beer size={14} /> },
+  market: { label: '集市', icon: <Scale size={14} /> },
+  infirmary: { label: '医馆', icon: <HeartPulse size={14} /> },
+  sanctuary: { label: '引魂坛', icon: <Sparkles size={14} /> },
   blacksmith: { label: '铁匠铺', icon: <Hammer size={14} /> },
 };
 
@@ -175,7 +175,7 @@ export const TownView: React.FC<TownViewProps> = ({
   const handleScoutRefresh = () => {
     const cost = 50;
     if (townEngine.logistics.gold < cost) {
-      onLogMessage(`金币不足，打探情报需要 ${cost}G。`);
+      onLogMessage(`铜钱不足，打探情报需要 ${cost}G。`);
       return;
     }
     townEngine.logistics.gold -= cost;
@@ -258,7 +258,7 @@ export const TownView: React.FC<TownViewProps> = ({
           </span>
           <button
             onClick={() => {
-              if (window.confirm('重新开始会清空当前所有进度（名册、金币、装备、地牢）。确定吗？')) {
+              if (window.confirm('重新开始会清空当前所有进度（名册、铜钱、装备、地牢）。确定吗？')) {
                 suspendSave();
                 clearSave();
                 window.location.reload();
@@ -325,7 +325,7 @@ export const TownView: React.FC<TownViewProps> = ({
         <div className="pz-col" style={{ gap: 10 }}>
           <SectionHead
             title="悬赏榜"
-            hint={`赏金加成 +${Math.round((currentTown.rewardMod - 1) * 100)}% · 出战 ${deployedSquad.length}/4 人`}
+            hint={`赏钱加成 +${Math.round((currentTown.rewardMod - 1) * 100)}% · 出战 ${deployedSquad.length}/4 人`}
             right={
               <Btn variant="ghost" size="sm" onClick={handleScoutRefresh} disabled={log.gold < 50}>
                 <RefreshCw size={12} /> 打探 50G
@@ -392,7 +392,7 @@ export const TownView: React.FC<TownViewProps> = ({
                   <div className="pz-between" style={{ marginTop: 10, alignItems: 'center' }}>
                     <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
                       {contract.durationDays} 天 · 声望 +{contract.reputationReward}
-                      {contract.soulCrystalReward ? ` · 魂晶 +${contract.soulCrystalReward}` : ''}
+                      {contract.soulCrystalReward ? ` · 赏钱 +${contract.soulCrystalReward}` : ''}
                     </span>
                     <Btn
                       variant="brass"
@@ -528,7 +528,7 @@ export const TownView: React.FC<TownViewProps> = ({
             <div className="pz-between" style={{ alignItems: 'center', marginBottom: 8 }}>
               <span className="pz-row" style={{ gap: 7 }}>
                 <Flame size={16} color="var(--pz-combat)" />
-                <span style={{ fontWeight: 700, fontSize: 14 }}>金创药剂</span>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>伤药剂</span>
               </span>
               <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>存 {log.medicines}</span>
             </div>
@@ -601,10 +601,10 @@ export const TownView: React.FC<TownViewProps> = ({
         />
       )}
 
-      {/* ===== 英灵圣所 ===== */}
+      {/* ===== 引魂坛 ===== */}
       {activeBuilding === 'sanctuary' && (
         <div className="pz-col" style={{ gap: 10 }}>
-          <SectionHead title="星原引魂坛" hint="耗金币与稀有魂晶，引渡阵亡者之魂" />
+          <SectionHead title="引魂坛" hint="耗铜钱与稀有赏钱，引渡阵亡者之魂" />
           <div
             className="pz-row"
             style={{
@@ -617,7 +617,7 @@ export const TownView: React.FC<TownViewProps> = ({
             }}
           >
             <Sparkles size={14} />
-            现有稀有魂晶 {log.soulCrystals} 颗（高星公会委托可得）
+            现有稀有赏钱 {log.soulCrystals} 颗（高星公会委托可得）
           </div>
 
           {townEngine.fallenSouls.length === 0 ? (
@@ -640,7 +640,7 @@ export const TownView: React.FC<TownViewProps> = ({
                       阵亡于第 {soul.deathDate} 天 · {soul.deathLocation}
                     </div>
                     <div className="pz-micro" style={{ color: 'var(--pz-brass-deep)', marginTop: 2 }}>
-                      需 {soul.revivalSoulCrystals} 魂晶 + {soul.revivalCostGold} G
+                      需 {soul.revivalSoulCrystals} 赏钱 + {soul.revivalCostGold} G
                     </div>
                   </div>
                   <Btn
@@ -690,7 +690,7 @@ export const TownView: React.FC<TownViewProps> = ({
           >
             <div className="pz-h2" style={{ fontFamily: 'var(--pz-serif)', marginBottom: 4 }}>选择行军目的地</div>
             <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginBottom: 12 }}>
-              路程与口粮消耗按各据点间距换算
+              路程与干粮消耗按各据点间距换算
             </div>
 
             <div className="pz-col" style={{ gap: 8 }}>
@@ -707,7 +707,7 @@ export const TownView: React.FC<TownViewProps> = ({
                           {here && <span className="pz-micro" style={{ color: 'var(--pz-brass-deep)' }}>驻扎中</span>}
                         </div>
                         <div className="pz-micro" style={{ color: 'var(--pz-ink-3)', marginTop: 2 }}>
-                          {days} 天 · 口粮 {foodCost} 份
+                          {days} 天 · 干粮 {foodCost} 份
                         </div>
                       </div>
                       {here ? (

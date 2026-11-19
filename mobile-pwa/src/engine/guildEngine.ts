@@ -4,7 +4,7 @@
  */
 
 import type { Hero } from '../types/hero';
-import type { GuildContract } from '../types/world';
+import type { ContractType, GuildContract } from '../types/world';
 import type { ContractOddsEstimate } from '../types/guild';
 import { resolveStats } from './statResolver';
 import { recommendedLevelForStars } from './progressionEngine';
@@ -48,34 +48,44 @@ function calculateEnemyPower(contract: GuildContract): number {
   return Math.round(basePower * bossMult);
 }
 
-/**
- * 根据目标魔物生态生成战术贴士
- */
-function generateTacticTip(contract: GuildContract): string {
-  const monsterType = contract.targetMonster || '';
-  
-  // 根据魔物类型给出针对性战术建议
-  if (monsterType.includes('史莱姆')) {
-    return '史莱姆物理免伤较高，建议优先使用法系远程职业破防！';
-  } else if (monsterType.includes('拟态') || monsterType.includes('宝箱')) {
-    return '拟态怪下颚护甲极硬，建议法系绕后或使用穿透属性武器！';
-  } else if (monsterType.includes('蛛') || monsterType.includes('蜘蛛')) {
-    return '巨型毒蛛会结网减速，建议游侠远程风筝或前排坚守防线！';
-  } else if (monsterType.includes('枭熊')) {
-    return '枭熊皮糙肉厚且狂暴，务必带足治疗并集火单体击破！';
-  } else if (monsterType.includes('食人魔')) {
-    return '食人魔力大无脑，保持阵型距离用远程消耗，切勿被近身！';
-  } else if (monsterType.includes('飞龙') || monsterType.includes('翼')) {
-    return '飞龙机动性极高，必须配置游侠/奥术师远程狙击能力！';
-  } else if (monsterType.includes('发条') || monsterType.includes('守卫')) {
-    return '发条傀儡无痛觉但抗物理，集中法系火力攻击机械关节！';
-  } else if (monsterType.includes('哥布林')) {
-    return '哥布林群体作战狡诈，注意暗箭陷阱，优先清理弓手！';
-  } else if (monsterType.includes('劫匪') || monsterType.includes('盗')) {
-    return '劫匪编制均衡，注意保护后排法师，前排坚守吸收火力！';
-  } else {
-    return '敌人编制未明，建议坦克守前线、治疗居中、远程输出后排！';
-  }
+/** 按契约类型维护的战术贴士，与怪物显示名解耦 */
+export const TACTIC_TIPS: Record<ContractType, string[]> = {
+  slime_infestation: [
+    '井下胶妖软韧抗劈砍，普通刀剑砍上去容易卸力，建议带上阵法或火器手从旁破防。',
+    '老矿积水多、胶妖会缠住前排脚踝，前锋记得在营地抹好桐油，避免护甲吃瘪。',
+  ],
+  goblin_mine: [
+    '矿坑山魈爱举木盾抱团，还带投石手躲在后排砸人，让游侠先点掉后排投石手最稳。',
+    '山魈敲锣会引来矿道深处的帮手，前排尽量快刀压住阵脚，别拖太久。',
+  ],
+  bandit_camp: [
+    '风口岭山贼懂阵型，寨门盾手死扛正面，后排火铳和弩手专点脆皮，阵型别把医官放太靠前。',
+    '山贼放出的铁背山猪冲撞很猛，前锋站稳盾墙抗住第一波，再集火拆掉对面的输出手。',
+  ],
+  caravan_escort: [
+    '官道劫匪和苇丛水匪最爱绕后偷袭，中排最好摆一个能兼顾保护的剑客或长枪手。',
+    '水区泥龟硬壳难啃，别把主力输出全耗在前排龟壳上，找机会用高穿透兵刃开缝。',
+  ],
+  beast_hunt: [
+    '毒斑巨蛙喷的瘴雾会持续掉血，进百草涧务必带上百草堂医官清创止毒。',
+    '北松岭头狼和山牛皮糙肉厚、扑咬狠，出门前多备点磨刀石，把暴击与穿透拉起来再打。',
+  ],
+  ruins_cleansing: [
+    '发条木甲卫和箱魅甲片极厚，建议给主力换上带“三棱透甲”或“重脊压锋”开光的兵器。',
+    '旧垒深处独眼巨汉单下劈砍极疼，千万别带轻伤硬撑，伤重了先去汤泉镇泡汤养好再来。',
+  ],
+};
+
+/** 同一契约类型的提示按任务 id 稳定轮换，避免每次打开面板都变 */
+export function generateTacticTip(contractType: ContractType, seed = 0): string {
+  const pool = TACTIC_TIPS[contractType] ?? TACTIC_TIPS.goblin_mine;
+  return pool[Math.abs(seed) % pool.length];
+}
+
+function tacticSeed(contract: GuildContract): number {
+  let hash = 0;
+  for (const ch of contract.id) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return hash;
 }
 
 /**
@@ -105,23 +115,23 @@ export function estimateContractOdds(
   
   if (winRate >= 90) {
     dangerLevel = 'breeze';
-    dangerLabel = '轻松碾压 🟢';
+    dangerLabel = '轻松碾压';
     dangerColor = '#22c55e';
   } else if (winRate >= 75) {
     dangerLevel = 'balanced';
-    dangerLabel = '势均力敌 🟡';
+    dangerLabel = '势均力敌';
     dangerColor = '#eab308';
   } else if (winRate >= 50) {
     dangerLevel = 'tough';
-    dangerLabel = '苦战险胜 🟠';
+    dangerLabel = '苦战险胜';
     dangerColor = '#f97316';
   } else {
     dangerLevel = 'perilous';
-    dangerLabel = '九死一生 🔴';
+    dangerLabel = '九死一生';
     dangerColor = '#ef4444';
   }
   
-  const tacticTip = generateTacticTip(contract);
+  const tacticTip = generateTacticTip(contract.type, tacticSeed(contract));
   
   return {
     winRate,

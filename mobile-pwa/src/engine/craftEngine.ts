@@ -23,7 +23,7 @@ import {
   blueprintTemplate,
   emptyMaterials,
 } from './blueprintData';
-import { RARITY_LABEL, RARITY_ORDER, rerollEquipmentAffixes, scaleTemplateBase } from './dungeonEngine';
+import { RARITY_ORDER, rerollEquipmentAffixes, scaleTemplateBase } from './dungeonEngine';
 
 // ---------------------------------------------------------------------------
 // 备料与工钱
@@ -34,9 +34,9 @@ export interface CraftSettings {
   grade: 1 | 2 | 3;
   /** 精煤份数 0-3，拓宽火候容错 */
   coal: number;
-  /** 淬火油：抬高品质下限 */
+  /** 桐油：抬高品质下限 */
   oil: boolean;
-  /** 星陨砂：额外一条词条 */
+  /** 砺石磨刀砂：额外一条开光批注 */
   sand: boolean;
 }
 
@@ -383,7 +383,7 @@ function scaleValue(key: CoreStatKey, value: number, mult: number): number {
 }
 
 /**
- * 按品阶/部位/品质掷出词条组。打造与洗练共用同一套池子与缩放规则，
+ * 按品阶/部位/品质掷出开光批注组。打造与重洗开光共用同一套池子与缩放规则，
  * 保证「打出来的」和「洗出来的」数值口径一致。
  */
 export function rollCraftAffixes(
@@ -423,15 +423,36 @@ export function rollCraftAffixes(
   });
 }
 
+/** 开光重数：以开光批注条数决定品阶 */
+export function getKaiguangLabel(affixCount: number): string {
+  if (affixCount <= 0) return '凡铁';
+  if (affixCount === 1) return '精工·开光一重';
+  if (affixCount === 2) return '宝兵·开光二重';
+  if (affixCount === 3) return '名器·开光三重';
+  return '神兵·开光四重圆满';
+}
+
+/** 完整兵器名：精淬前缀 + 本名 + 匠人落款 */
+export function formatCraftedWeaponName(
+  baseName: string,
+  quality: number,
+  crafterName?: string,
+  reforged = false,
+): string {
+  const withReforge = reforged && !baseName.startsWith('精淬·') ? `精淬·${baseName}` : baseName;
+  return quality >= 1.1 && crafterName ? `${withReforge}（${crafterName}·铸）` : withReforge;
+}
+
 /**
- * 生成成品。词条数量由「品阶上限」与「完美次数 + 星陨砂」共同决定，
- * 因此完美通关才可能摸到满词条。
+ * 生成成品。开光批注数量由「品阶上限」与「完美次数 + 砺石磨刀砂」共同决定，
+ * 因此完美通关才可能摸到满批注。
  */
 export function settleCraft(
   session: CraftSession,
   bp: Blueprint,
   id: string,
   rng: () => number = Math.random,
+  crafterName?: string,
 ): Equipment {
   const quality = clamp(session.quality, QUALITY_MIN, QUALITY_MAX);
   const rarity = rarityOfQuality(quality);
@@ -451,9 +472,11 @@ export function settleCraft(
 
   const affixes = rollCraftAffixes(template.slot, rarity, bp.tier, quality, count, rng);
 
+  const baseName = `${getKaiguangLabel(count)}·${bp.name}`;
+
   return {
     id,
-    name: `${RARITY_LABEL[rarity]}·${bp.name}`,
+    name: session.quality >= 1.1 && crafterName ? `${baseName}（${crafterName}·铸）` : baseName,
     slot: template.slot,
     rarity,
     tier: bp.tier,
@@ -481,9 +504,9 @@ export function formatCraftAffix(a: Affix): string {
 }
 
 /**
- * 洗练：保留装备本体与品质，重掷全部词条；可锁定其中一条。
+ * 重洗开光：保留装备本体与品质，重掷全部开光批注；可锁定其中一条。
  * 打造装备走打造池（与出品口径一致），旧装备回落图鉴池。
- * 锁定的词条会排在首位，其余按池子重掷。
+ * 锁定的开光批注会排在首位，其余按池子重掷。
  */
 export function rerollAffixes(
   item: Equipment,
@@ -511,7 +534,7 @@ export function rerollAffixes(
   };
 }
 
-/** 老板代打：品质锁定在 1.00-1.06，词条照常随机，不涨熟练度 */
+/** 老板代打：品质锁定在 1.00-1.06，开光批注照常随机，不涨熟练度 */
 export function bossQuality(rng: () => number = Math.random): number {
   return Math.round((1 + rng() * 0.06) * 100) / 100;
 }

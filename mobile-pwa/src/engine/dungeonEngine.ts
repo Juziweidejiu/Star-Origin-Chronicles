@@ -18,20 +18,20 @@ export interface EquipmentBlueprint {
 // 可复用装备图鉴：掉落、铁匠铺打造共用同一套底板
 export const EQUIPMENT_TEMPLATES: EquipmentBlueprint[] = [
   // 武器 (weapon)
-  { name: '精钢长剑', slot: 'weapon', base: { ad: 14, critChance: 0.05 } },
+  { name: '百炼直剑', slot: 'weapon', base: { ad: 14, critChance: 0.05 } },
   { name: '破阵大戟', slot: 'weapon', base: { ad: 20, penetration: 5 } },
-  { name: '青木法杖', slot: 'weapon', base: { ap: 18, healingPower: 10 } },
-  { name: '精铁短弓', slot: 'weapon', base: { ad: 12, attackSpeed: 0.1 } },
+  { name: '药杵木杖', slot: 'weapon', base: { ap: 18, healingPower: 10 } },
+  { name: '山牛角短弓', slot: 'weapon', base: { ad: 12, attackSpeed: 0.1 } },
   // 防具 (armor)
-  { name: '锁子甲', slot: 'armor', base: { armor: 14, maxHp: 35 } },
-  { name: '坚木重铠', slot: 'armor', base: { armor: 22, maxHp: 60 } },
-  { name: '编织法袍', slot: 'armor', base: { magicResist: 18, maxHp: 25 } },
-  { name: '巡林皮甲', slot: 'armor', base: { armor: 8, magicResist: 8, maxHp: 30 } },
+  { name: '连环锁甲', slot: 'armor', base: { armor: 14, maxHp: 35 } },
+  { name: '水龟甲重铠', slot: 'armor', base: { armor: 22, maxHp: 60 } },
+  { name: '麻布道袍', slot: 'armor', base: { magicResist: 18, maxHp: 25 } },
+  { name: '斥候软皮甲', slot: 'armor', base: { armor: 8, magicResist: 8, maxHp: 30 } },
   // 饰品 (trinket)
-  { name: '狼牙吊坠', slot: 'trinket', base: { critChance: 0.06, ad: 5 } },
-  { name: '翡翠玉佩', slot: 'trinket', base: { healingPower: 14, maxHp: 20 } },
-  { name: '星辉指环', slot: 'trinket', base: { ap: 10, magicResist: 6 } },
-  { name: '青铜护符', slot: 'trinket', base: { armor: 8, tenacity: 0.08 } },
+  { name: '狼牙护腕', slot: 'trinket', base: { critChance: 0.06, ad: 5 } },
+  { name: '雕龙玉佩', slot: 'trinket', base: { healingPower: 14, maxHp: 20 } },
+  { name: '天工扳指', slot: 'trinket', base: { ap: 10, magicResist: 6 } },
+  { name: '六合铜牌', slot: 'trinket', base: { armor: 8, tenacity: 0.08 } },
 ];
 
 export const RARITY_LABEL: Record<Equipment['rarity'], string> = {
@@ -139,7 +139,7 @@ export function scaleTemplateBase(template: EquipmentBlueprint, tier: number): P
 /** 品质系数：0.82（粗劣）~ 1.18（极品），已折算进装备数值 */
 export const QUALITY_MIN = 0.82;
 export const QUALITY_MAX = 1.18;
-/** 重铸一次性加成：全部属性 +18% */
+/** 回炉精淬一次性加成：全部属性 +18% */
 export const REFORGE_BONUS = 0.18;
 
 export function rollQuality(): number {
@@ -200,7 +200,7 @@ export function createEquipmentFromTemplate(
   };
 }
 
-/** 洗练：保留装备本体与品质，重铸全部词缀 */
+/** 重洗开光：保留装备本体与品质，回炉精淬全部词缀 */
 export function rerollEquipmentAffixes(item: Equipment): Equipment {
   const mult = item.quality * (item.reforged ? 1 + REFORGE_BONUS : 1);
   const affixes = scaleAffixes(buildAffixes(item.slot, item.rarity, item.tier), mult);
@@ -400,7 +400,7 @@ export function generateDungeonFromContract(contract: GuildContract): DungeonIns
 
 /** 营地伙伴偶尔说的一句自然闲聊（低频，杜绝全员复读） */
 const CAMP_SNIPPETS = [
-  '这锅肉汤放了雪莲干，手脚都暖和了。',
+  '这锅肉汤放了雪莲干，手脚都活络了。',
   '刚才那一仗刀刃有些钝，刚好磨一磨。',
   '水囊灌满了，接下来的路好走些。',
   '风向转北了，前面几间大家留神。',
@@ -409,7 +409,7 @@ const CAMP_SNIPPETS = [
 
 /**
  * 现代轻量营地：一键全队煮汤休整与生活料理互动
- * 消耗全队口粮，治愈伤势、安抚压力，并提供临时探险料理 Buff
+ * 消耗全队干粮，治愈伤势、安抚压力，并提供临时探险料理 Buff
  */
 export function executeQuickCampMeal(
   squad: import('../types/hero').Hero[],
@@ -420,7 +420,7 @@ export function executeQuickCampMeal(
   if (rationsAvailable < rationsNeeded) {
     return {
       success: false,
-      message: `口粮不足。全队休整需要 ${rationsNeeded} 份口粮（现有 ${rationsAvailable} 份）。`,
+      message: `干粮不足。全队休整需要 ${rationsNeeded} 份干粮（现有 ${rationsAvailable} 份）。`,
     };
   }
 
@@ -438,7 +438,7 @@ export function executeQuickCampMeal(
   if (mealType === 'soup') {
     hpRestoreRate = 0.40;
     stressRestoreAmount = 30;
-    buff = { name: '热汤暖胃', description: '全员体魄充沛，受疗效果微增 10%', healBonusPercent: 0.1 };
+    buff = { name: '汤水养胃', description: '全员体魄充沛，受疗效果微增 10%', healBonusPercent: 0.1 };
   } else if (mealType === 'meat') {
     hpRestoreRate = 0.50;
     stressRestoreAmount = 18;
@@ -467,7 +467,7 @@ export function executeQuickCampMeal(
 
   return {
     success: true,
-    message: `全队休整完毕。消耗 ${rationsNeeded} 份口粮。`,
+    message: `全队休整完毕。消耗 ${rationsNeeded} 份干粮。`,
     result: {
       healedHeroes,
       stressRelievedHeroes,

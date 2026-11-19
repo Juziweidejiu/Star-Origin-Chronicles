@@ -65,7 +65,7 @@ export interface GambitRule {
 
 /**
  * 九项核心属性（LoL 式扁平面板）
- * 人物由 30 维属性推导得出基础值，装备以「基础值 + 词条」叠加在其上。
+ * 人物由 30 维属性推导得出基础值，装备以「基础值 + 开光批注」叠加在其上。
  */
 export type CoreStatKey =
   | 'ad'            // 物理攻击
@@ -85,9 +85,9 @@ export interface Affix {
   kind: 'flat' | 'percent';
   value: number;      // flat: 绝对值；percent: 0.12 表示 +12%
   label: string;      // 展示名，如「物攻」
-  /** 打造词条的名字前缀，如「锋锐」 */
+  /** 打造开光批注的名字前缀，如「锋锐」 */
   name?: string;
-  /** 打造词条的色阶 */
+  /** 打造开光批注的色阶 */
   grade?: 'common' | 'fine' | 'rare' | 'legend';
 }
 
@@ -98,7 +98,7 @@ export interface Equipment {
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   tier: number;       // 装等（跟随契约星级 / 打造目标等级）
   quality: number;    // 品质系数 0.82-1.18，已折算进 base/affixes
-  reforged?: boolean; // 是否已重铸（每件仅一次，+18%）
+  reforged?: boolean; // 是否已精淬（每件仅一次，+18%）
   base: Partial<Record<CoreStatKey, number>>;
   affixes: Affix[];
   affixText?: string;

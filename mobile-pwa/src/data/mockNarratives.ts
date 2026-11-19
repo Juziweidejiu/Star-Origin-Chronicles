@@ -1,11 +1,11 @@
 /**
- * 《星原战纪》高品质探险与营地奇遇样本库
- * 
- * 核心基调：探险、生存、浪漫羁绊、对抗危机
+ * 《三岔口》高品质探险与营地奇遇样本库
+ *
+ * 核心基调：接单、探路、清剿、回营整备
  * 坚守铁律：
- * 1. 严格线性历史，杜绝“远古文明/超古代科技/青铜守卫”。
- * 2. 探索对象聚焦异族据点、猛兽龙巢、地质溶洞与前朝关隘。
- * 3. 角色男女参半，全员英姿飒爽、实力强劲，对话生动富有生活与战术气息。
+ * 1. 严格线性历史，杜绝“远古文明/超古代科技/失传机关术”。
+ * 2. 探索对象聚焦异兽巢穴、近三十年荒置的矿坑与旧垒。
+ * 3. 全员对话带行会游侠的市井与战术气息，不堆砌空泛抒情。
  */
 
 import type { DungeonEvent, CampDialogue } from '../types/narrative';
@@ -13,127 +13,127 @@ import type { DungeonEvent, CampDialogue } from '../types/narrative';
 export const MOCK_DUNGEON_EVENTS: DungeonEvent[] = [
   {
     id: 'event_goblin_cache',
-    title: '赤耳哥布林的积铁坑',
-    theme: 'goblin_cave',
+    title: '塌方老矿的积铁坑',
+    theme: 'subterranean_cavern',
     category: 'encounter',
-    hook: '废弃矿道拐角处挖了个深坑，坑底堆满哥布林从行商马车上抢来的生铁锭与碎银两。上方拉着几根系着羊骨铃铛的极细韧藤。',
+    hook: '渗水巷道拐角处挖了个深坑，坑底堆着尖耳山魈从运煤车上抢来的生铁锭与一袋铜钱。坑口拉着几根系着羊骨铃铛的细韧藤。',
     choices: [
       {
         id: 'c1',
-        label: '由秦渊飞爪隔空起出铁锭',
-        flavor: '利用绳索机关避开骨铃报警，但需沉稳手法。',
+        label: '由冯阿七飞爪隔空起出铁锭',
+        flavor: '绳索手法够稳就能避开骨铃，惊动了就得在窄巷里接战。',
         requirement: { attribute: 'composure', minAttrValue: 12 },
         successRate: 0.8,
         successConsequence: {
           stressChange: -5,
           moraleChange: 10,
           goldChange: 130,
-          resultNarrative: '飞爪无声扣住麻袋。全队利落地将沉甸甸的精铁块拉起，铃铛未发出一丝声响。'
+          resultNarrative: '飞爪无声扣住麻袋。全队把沉甸甸的生铁锭拉了上来，骨铃一声未响。'
         },
         failureConsequence: {
           stressChange: 15,
           moraleChange: -5,
           hpPercentChange: -5,
-          resultNarrative: '骨铃被藤条扯响。黑暗中射来几排淬了草汁的竹箭，擦伤了掩护的前排皮甲。'
+          resultNarrative: '骨铃被藤条扯响。巷道深处射来几排削尖的竹箭，擦伤了掩护的前排皮甲。'
         }
       },
       {
         id: 'c2',
-        label: '楚清弦重戟直接扫碎警铃',
-        flavor: '以强悍武力先发制人，准备正面迎战伏兵。',
+        label: '石铁山举盾直接撞碎骨铃',
+        flavor: '以厚盾先发制人，把伏兵从暗处逼出来正面打。',
         successRate: 1.0,
         successConsequence: {
           stressChange: 5,
           moraleChange: 15,
           goldChange: 70,
-          resultNarrative: '大戟横空砸断支撑木架。几只惊慌失措的哥布林尖叫逃窜，现场留下一箱散落的粗制箭簇。'
+          resultNarrative: '厚盾横撞，支撑木架应声断裂。几只尖耳山魈丢下铁镐逃窜，留下一箱散落的粗制箭簇。'
         }
       },
       {
         id: 'c3',
-        label: '在周围洒下驱兽椒粉离开',
-        flavor: '不为散碎银两耽搁主线探索时间。',
+        label: '在坑口洒下驱兽椒粉离开',
+        flavor: '不为这点矿料耽误主线探索。',
         successRate: 1.0,
         successConsequence: {
           stressChange: 0,
           moraleChange: 0,
-          resultNarrative: '队伍贴着干燥的岩壁快速穿过，没有惊动坑道深处的巡逻异族。'
+          resultNarrative: '队伍贴着干燥的岩壁快速穿过，没有惊动巷道深处的巡逻山魈。'
         }
       }
     ]
   },
   {
     id: 'event_wyvern_cliff_nest',
-    title: '雷鸣飞龙崖的脱落龙鳞',
-    theme: 'dragon_roost',
+    title: '北松岭的头狼窝',
+    theme: 'beast_den',
     category: 'hunt',
-    hook: '狂风呼啸的陡峭岩缝间挂着一层泛着青紫电弧的蜕化龙鳞，足有半面圆盾大小。头顶万仞绝壁上方，隐约传来成体飞龙高亢的破空厉啼。',
+    hook: '背风的岩窝里铺着厚厚一层兽毛，窝边挂着半副被啃净的山牛角。坡上雪线边缘有一串新鲜的爪印，一直延伸到松林深处。',
     choices: [
       {
         id: 'c1',
-        label: '由沈云舒提剑攀岩割取',
-        flavor: '轻身剑术能快速借力，但高空碎石极易脱手。',
+        label: '由唐远张弓守在林缘',
+        flavor: '头狼绕后时先吃一箭，全队不至于被冲散。',
         successRate: 0.75,
         successConsequence: {
           stressChange: -5,
           moraleChange: 15,
           goldChange: 180,
-          resultNarrative: '沈云舒踏岩如飞，长剑精准剔下完整鳞片。这块坚硬的避雷甲片能在工坊打造极品护心镜。'
+          resultNarrative: '独眼头狼刚探出松枝，唐远一箭钉穿它的前腿。剩下两只山猪掉头就跑，窝里留下完整的山牛角。'
         },
         failureConsequence: {
           stressChange: 20,
           moraleChange: -5,
           hpPercentChange: -12,
-          resultNarrative: '陡峭风化岩层突然碎裂。云舒虽以剑刺壁缓住跌势，但滑落时手腕仍被锋利晶体划出一道血口。'
+          resultNarrative: '头狼从侧坡绕了上来。队伍边退边打，唐远的手背被狼牙划开一道口子。'
         }
       },
       {
         id: 'c2',
-        label: '顾平川张重弓戒备崖顶',
-        flavor: '放弃采鳞，全神贯注警戒龙巢动向。',
+        label: '赵英挺长枪堵住窝口',
+        flavor: '放弃皮毛，先把这群畜生赶出松岭。',
         successRate: 1.0,
         successConsequence: {
           stressChange: -10,
           moraleChange: 5,
-          resultNarrative: '重箭在弦，队伍趁飞龙盘旋入云的间隙安全脱离了俯冲攻击范围。'
+          resultNarrative: '长枪在窝口压住来路，头狼试探两次便退了。队伍趁势退出松林，无人带伤。'
         }
       }
     ]
   },
   {
     id: 'event_frontier_armory',
-    title: '前朝关隘沉陷武库',
+    title: '西关旧垒的封存兵库',
     theme: 'frontier_fort',
     category: 'curio',
-    hook: '三十年前边塞城墙塌落形成的空洞里，斜插着几具覆满风干桐油布的防潮木箱。封条已被潮气侵蚀，依稀能辨出昔日戍卫军营的官印。',
+    hook: '三十年前撤防留下的旧值房里，斜插着几具覆满干裂油布的防潮木箱。封条早被潮气蚀穿，箱侧还能辨出当年边军的官印。',
     choices: [
       {
         id: 'c1',
-        label: '陆曜合力撬开油封箱盖',
-        flavor: '官家封箱虽保存完好，但也可能被前人设置了防盗撞针。',
+        label: '许知微拆开箱侧机关',
+        flavor: '官家封箱多半带防盗撞针，硬撬容易引燃箱底火石。',
         successRate: 0.85,
         successConsequence: {
           stressChange: -5,
           moraleChange: 10,
           goldChange: 150,
-          resultNarrative: '桐油布揭开，里面整齐码放着两卷未受潮的精锻锁子甲甲叶和半盒防锈红桐油。'
+          resultNarrative: '算盘珠拨了三下，许知微摸清机簧走向。箱里整齐码着两卷未受潮的锁甲甲叶和半罐防锈桐油。'
         },
         failureConsequence: {
           stressChange: 15,
           moraleChange: -5,
           hpPercentChange: -6,
-          resultNarrative: '箱底的火石撞针被锈水卡死引燃，烟雾呛得前排连声咳嗽，灼焦了一幅皮质护臂。'
+          resultNarrative: '机簧锈死引燃了箱底火石，呛人的烟直往屋里灌，前排一副皮护臂被燎焦。'
         }
       },
       {
         id: 'c2',
-        label: '温竹君检查箱侧药囊',
-        flavor: '边塞驻军通常会在军械库备置防瘴止血药散。',
+        label: '许半夏翻检箱侧药囊',
+        flavor: '边军值房常备防瘴止血的药散。',
         successRate: 0.9,
         successConsequence: {
           stressChange: -15,
           moraleChange: 10,
-          resultNarrative: '竹君从蜡封陶罐中起出数份干燥良好的黄连雄黄散，全队所受轻伤得以迅速敷治。'
+          resultNarrative: '许半夏从蜡封陶罐里起出几包干燥的止血药散，队里几处轻伤当场敷好。'
         }
       }
     ]
@@ -143,52 +143,59 @@ export const MOCK_DUNGEON_EVENTS: DungeonEvent[] = [
 export const MOCK_CAMP_DIALOGUES: CampDialogue[] = [
   {
     id: 'camp_1',
-    speakerName: '陆曜',
+    speakerName: '陈砚',
     personality: 'heroic',
     condition: 'cooking',
-    text: '今晚炖了雪原野猪肉配松子，少陵加了山姜驱寒。吃饱了，明天才能顶住飞龙风压。'
+    text: '锅里煮的是干粮配腌菜，别嫌寡淡。明早要过风口岭，肚子里有点干粮才扛得住山风。'
   },
   {
     id: 'camp_2',
-    speakerName: '楚清弦',
-    personality: 'heroic',
+    speakerName: '石铁山',
+    personality: 'stoic',
     condition: 'repairing',
-    text: '前边矿坑的哥布林机关很多。云舒你带队盯紧脚下，冲阵破门交给我和大戟！'
+    text: '盾面上的凹坑我敲平了。前边矿道窄，山魈的吹箭专挑缝隙钻，都把护颈系紧。'
   },
   {
     id: 'camp_3',
-    speakerName: '季秋水',
-    personality: 'stoic',
+    speakerName: '徐阿秋',
+    personality: 'pragmatic',
     condition: 'after_victory',
-    text: '刀锋没有卷刃。刚才那一刀很顺畅，你的策应时机抓得很好，谢谢。'
+    text: '刀口没卷。刚才你那一下抢得很准，省了我半口气，回头请你喝渡口的茶。'
   },
   {
     id: 'camp_4',
-    speakerName: '沈云舒',
+    speakerName: '林禾',
     personality: 'playful',
     condition: 'idle',
-    text: '听风关的酒馆老板说过，越过这座断崖就是碧落湖。真想尝尝那里的清蒸银鱼。'
+    text: '石桥镇的说书先生讲过，翻过这道岭就是芦洲渡。等这趟单子结了，我想去听一回夜场鼓书。'
   },
   {
     id: 'camp_5',
-    speakerName: '温竹君',
+    speakerName: '许半夏',
     personality: 'gentle',
     condition: 'injured',
-    text: '别乱动，先把金针拔出来。皮外伤敷了金疮药，好好睡一觉明天就结痂了。'
+    text: '别乱动，先把细针起了。皮外伤敷过伤药，睡一觉明天就收口。'
   },
   {
     id: 'camp_6',
-    speakerName: '白苏',
+    speakerName: '丁小锤',
     personality: 'pragmatic',
     condition: 'repairing',
-    text: '火铳的撞针刚刚调校完毕，填装了双倍碎钢砂。再遇到带甲的巨熊，我一枪就能破防！'
+    text: '手铳的机簧刚调好，火药压实了。再碰上披甲的箱魅，一响就能把它的锁舌打崩。'
   },
   {
     id: 'camp_7',
-    speakerName: '裴少陵',
+    speakerName: '唐远',
     personality: 'cynical',
     condition: 'idle',
-    text: '风向往南偏了三刻，今晚没有雨。守夜排班照旧，某些人别又在树杈上偷吃松子糖。'
+    text: '风从北面压下来，后半夜要有雪。守夜排两班，谁也别躲在松树底下打盹。'
+  },
+  {
+    id: 'camp_8',
+    speakerName: '赵英',
+    personality: 'heroic',
+    condition: 'high_stress',
+    text: '都别绷着。这趟接的是行会木牌上的明单，打不过就退，没人会拿命去填。'
   }
 ];
 
@@ -210,4 +217,3 @@ export function getCampDialogueForHero(hero: { name?: string; stress: number; cu
   const idle = MOCK_CAMP_DIALOGUES.filter(d => d.condition === 'idle' || d.condition === 'cooking' || d.condition === 'repairing');
   return idle[Math.floor(Math.random() * idle.length)] || MOCK_CAMP_DIALOGUES[0];
 }
-

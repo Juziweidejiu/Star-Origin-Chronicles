@@ -16,7 +16,7 @@ export const UltCinematicOverlay: React.FC<UltCinematicOverlayProps> = ({ event 
   const isHealer = event.role === 'healer';
 
   const accent = isTank ? '#D9A45B' : isHealer ? '#6FBF8B' : '#C4665A';
-  const kicker = isTank ? '铁壁之下' : isHealer ? '星原垂怜' : '刀锋所向';
+  const kicker = isTank ? '铁壁之下' : isHealer ? '药石有灵' : '刀锋所向';
 
   return (
     <div

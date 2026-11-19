@@ -248,7 +248,7 @@ export function App() {
   const [isAutoUlt, setIsAutoUlt] = useState<boolean>(true);
   const [battleRewardClaimed, setBattleRewardClaimed] = useState<boolean>(false);
   const [focusedTargetId, setFocusedTargetId] = useState<string | null>(null);
-  const [systemNotice, setSystemNotice] = useState<string>('欢迎来到《星原战纪》！请在城镇接取委托、整备队伍，踏上原野与迷宫探险旅程。');
+  const [systemNotice, setSystemNotice] = useState<string>('欢迎来到《三岔口》！请在城镇接取委托、整备队伍，踏上原野与迷宫探险旅程。');
 
   // 战斗视觉动效状态
   const [floatingTexts, setFloatingTexts] = useState<FloatingTextItem[]>([]);
@@ -270,11 +270,11 @@ export function App() {
     let msg = consequence.resultNarrative;
     if (consequence.goldChange) {
       townEngine.logistics.gold = Math.max(0, townEngine.logistics.gold + consequence.goldChange);
-      msg += ` [金币 ${consequence.goldChange > 0 ? '+' : ''}${consequence.goldChange}]`;
+      msg += ` [铜钱 ${consequence.goldChange > 0 ? '+' : ''}${consequence.goldChange}]`;
     }
     if (consequence.rationChange) {
       townEngine.logistics.rations = Math.max(0, townEngine.logistics.rations + consequence.rationChange);
-      msg += ` [口粮 ${consequence.rationChange > 0 ? '+' : ''}${consequence.rationChange}]`;
+      msg += ` [干粮 ${consequence.rationChange > 0 ? '+' : ''}${consequence.rationChange}]`;
     }
     if (consequence.stressChange) {
       roster.forEach(h => {
@@ -541,9 +541,9 @@ export function App() {
     if (room.chestItem) {
       setActiveLootDrop(room.chestItem);
       setLootModalTitle('📦 储物宝箱 · 军械启封');
-      setSystemNotice(`✨ 宝箱启封！缴获金币 ${room.chestGold || 0} G，发现珍稀装备【${room.chestItem.name}】！`);
+      setSystemNotice(`✨ 宝箱启封！缴获铜钱 ${room.chestGold || 0} G，发现珍稀装备【${room.chestItem.name}】！`);
     } else {
-      setSystemNotice(`✨ 储物箱启封！缴获金币 ${room.chestGold || 0} G！`);
+      setSystemNotice(`✨ 储物箱启封！缴获铜钱 ${room.chestGold || 0} G！`);
     }
     triggerUpdate();
   };
@@ -910,7 +910,7 @@ export function App() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', minWidth: 0 }}>
             <span style={{ fontFamily: 'var(--pz-serif)', fontSize: '16px', fontWeight: 700, letterSpacing: '.06em', color: '#F0DFBC' }}>
-              星原战纪
+              三岔口
             </span>
             <span style={{ fontSize: '11px', color: 'rgba(243,233,210,.58)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               第 {townEngine.logistics.day} 天 · {currentTown.name}
@@ -949,8 +949,8 @@ export function App() {
           fontFamily: 'var(--pz-mono)'
         }}>
           <span style={{ color: '#E3BE72' }}>{townEngine.logistics.gold} G</span>
-          <span style={{ color: '#8FC7C4' }}>{townEngine.logistics.rations} 口粮</span>
-          <span style={{ color: '#B49BE0' }}>{townEngine.logistics.soulCrystals} 魂晶</span>
+          <span style={{ color: '#8FC7C4' }}>{townEngine.logistics.rations} 干粮</span>
+          <span style={{ color: '#B49BE0' }}>{townEngine.logistics.soulCrystals} 赏钱</span>
           <span style={{ color: '#86C69A' }}>{townEngine.logistics.medicines} 药剂</span>
         </div>
       </header>
