@@ -82,6 +82,7 @@ npm run verify     # 完整门禁：类型 + lint + 构建
 - 公共组件在 `src/components/ui/`：`Masthead / Card / Btn / Seal / Tag / StatBar / WinRing`。
 - 正文最小 **12px**，需要读懂的长句不低于 **14px**；10–11px 只用于 2–6 字的标签。
 - 图标统一用 `lucide-react`，不要用 emoji 当图标。
+- **页框三件套 `.pz-page / .pz-page-fixed / .pz-page-scroll` 只能出现在页面根节点**（`TownView` / `RosterView` 这类直接挂在 `main` 下的组件）。子组件（如 `BlacksmithView`）一律用 `.pz-col`，**不要再嵌套 `.pz-page-scroll`**：两层滚动容器 + `overscroll-behavior: contain` 会在手机上锁死手势，表现为「滑不动」。
 
 ---
 

@@ -126,8 +126,7 @@ const BlueprintArt: React.FC<{ bp: Blueprint; size: number; muted?: boolean }> =
         width: size,
         height: size,
         objectFit: 'contain',
-        opacity: muted ? 0.45 : 1,
-        filter: muted ? 'grayscale(1)' : undefined,
+        opacity: muted ? 0.4 : 1,
         flex: '0 0 auto',
       }}
     />
@@ -350,10 +349,10 @@ interface MinigameProps {
 }
 
 const CraftMinigame: React.FC<MinigameProps> = ({ session, bp, mods, onBeat, onExit }) => {
-  const [pos, setPos] = useState(50);
   const posRef = useRef(50);
   const dirRef = useRef(1);
   const rafRef = useRef<number>(0);
+  const needleRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     let last = performance.now();
@@ -368,7 +367,8 @@ const CraftMinigame: React.FC<MinigameProps> = ({ session, bp, mods, onBeat, onE
         posRef.current = 2;
         dirRef.current = 1;
       }
-      setPos(posRef.current);
+      // 直接写 DOM，避免每帧触发 React 重渲染
+      if (needleRef.current) needleRef.current.style.left = `${posRef.current}%`;
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -451,11 +451,12 @@ const CraftMinigame: React.FC<MinigameProps> = ({ session, bp, mods, onBeat, onE
               }}
             />
             <span
+              ref={needleRef}
               style={{
                 position: 'absolute',
                 top: -3,
                 bottom: -3,
-                left: `${pos}%`,
+                left: '50%',
                 width: 2,
                 marginLeft: -1,
                 background: '#F3E9D2',
@@ -840,7 +841,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
   ];
 
   return (
-    <div className="pz-page" style={{ gap: 10 }}>
+    <div className="pz-col" style={{ gap: 10 }}>
       <div className="pz-card pz-col" style={{ padding: '10px 12px', gap: 4, flex: '0 0 auto' }}>
         <div className="pz-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 16, fontWeight: 700 }}>军械工坊</span>
@@ -882,7 +883,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
 
       <MaterialBar craft={craft} />
 
-      <div className="pz-page-scroll pz-col" style={{ gap: 10 }}>
+      <div className="pz-col" style={{ gap: 10 }}>
         {tab === 'book' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {BLUEPRINTS.map((bp) => {

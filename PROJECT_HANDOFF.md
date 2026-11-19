@@ -660,3 +660,29 @@
 **验证**
 - `npm run check` 零 error 零 warning；`npm run test` 5 files / 72 tests 全绿；`npm run build` 744ms，主包 468.38 kB（gzip 147.98）。
 - 运行时实测（注入一件三词条史诗长剑）：点「裂甲·暴击 +8%」→ 费用行变「锁 1 条：星陨砂 1」、按钮变「洗练（锁定 1 条）」；执行后金币 1020→940、星陨砂 3→2，词条变「裂甲·暴击 +8%（原样保留）/ 穿云·穿透 +8 / 断岳·物攻 +20」，提示「锁定 1 条词条，其余重掷（星陨砂 -1）」。
+
+---
+
+### Milestone 37: 铁匠铺滚动卡顿修复（缺陷修复 ✅）
+
+**现象**：铁匠铺页面上下滑动明显掉帧，滑到一半会「卡住不动」，必须松手重新起势才能继续。
+
+**根因**：滚动容器嵌套了两层。
+
+- TownView 的页框里有 .pz-page-scroll（城镇所有建筑子页都挂在里面）；
+- BlacksmithView 的根节点又写成了 .pz-page + 内层 .pz-page-scroll。
+- 内层滚动区的高度由外层内容撑开，实际不可滚，却带着 .pz-page-scroll 的 overscroll-behavior: contain —— 手势落进去既不滚自己、也不传给外层，于是「滑不动」；两层容器的尺寸反复计算也带来掉帧。
+
+**修复**（mobile-pwa/src/components/BlacksmithView.tsx）：
+
+1. 根节点 pz-page 改为 pz-col，内层 pz-page-scroll pz-col 改为 pz-col，铁匠铺内容改由城镇页框的单一滚动区承载。
+2. 图纸卡未解锁的 filter: grayscale(1) 去掉，只保留 opacity: .4（滚动时不再逐帧做滤镜合成）。
+3. 锻造小游戏的指针由「每帧 setState 重渲染整个覆盖层」改为 ref 直写 style.left，渲染层一帧不动。
+4. AGENTS.md 样式约定补一条：页框三件套只允许出现在页面根节点，子组件不得再嵌套 .pz-page-scroll。
+
+**验证**：
+
+- 铁匠铺页 .pz-page-scroll 数量由 2 降为 1，main.scrollHeight === main.clientHeight（滚动只发生在页框内层）；
+- 以 6px/帧 在滚动区内往返滚动 1.5s：120 帧、平均 12.7ms/帧、p95 20.9ms、无 >32ms 长帧；
+- 端到端回归：打造 10 下（鼓风×5 → 落锤×4 → 入水×1）全部命中，结果层显示「粗制·精钢长剑 / 品质 0.82 / 物攻 15 ▲15 / 暴击 5.7% ▲5.7%」，词条与经验正常；
+- npm run check 0 error 0 warning；npm run test 5 files / 72 tests 全绿；npm run build 3.45s，主包 468.37 kB（gzip 147.99）。
