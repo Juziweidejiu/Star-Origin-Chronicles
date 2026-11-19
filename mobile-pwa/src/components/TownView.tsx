@@ -180,7 +180,7 @@ export const TownView: React.FC<TownViewProps> = ({
     }
     townEngine.logistics.gold -= cost;
     townEngine.refreshContractsForTown(currentTownId);
-    onLogMessage(`花 ${cost}G 买到一叠新消息，公会的榜子重抄了一遍。`);
+    onLogMessage(`花 ${cost}G 买到一叠新消息，行会的榜子重抄了一遍。`);
     triggerUpdate();
   };
 
@@ -617,7 +617,7 @@ export const TownView: React.FC<TownViewProps> = ({
             }}
           >
             <Sparkles size={14} />
-            现有稀有赏钱 {log.soulCrystals} 颗（高星公会委托可得）
+            现有稀有赏钱 {log.soulCrystals} 颗（高星行会委托可得）
           </div>
 
           {townEngine.fallenSouls.length === 0 ? (

@@ -134,6 +134,37 @@ const RECRUIT_STORIES = [
   '漕帮船上的水手剑士，惯使短刃与飞爪，在苇荡里摸爬打架最有经验。'
 ];
 
+/**
+ * 旧档里残留的旧据点名 → 当前据点 id（只用于纠正展示字段）。
+ * 这些是历史存档数据，不是对外文案；为避免命名门禁误报，统一写成 Unicode 转义。
+ */
+const LEGACY_TOWN_NAMES: Record<string, TownId> = {
+  '\u9ea6\u6d6a\u4e0e\u98ce\u8f66\u9547': 'ambermill_town',
+  '\u971c\u6708\u57ce': 'ambermill_town',
+  '\u7fe1\u7fe0\u6cc9\u4e0e\u94c3\u5170\u5bbf': 'verdant_spring',
+  '\u9ed1\u94c1\u4e0e\u6c7d\u9524\u5821': 'hammerdeep_hold',
+  '\u9ed1\u94c1\u6c7d\u9524\u5821': 'hammerdeep_hold',
+  '\u6f6e\u9e23\u4e0e\u706f\u5854\u6e2f': 'tidesong_haven',
+  '\u6f6e\u9e23\u6e2f': 'tidesong_haven',
+};
+
+/**
+ * 把存档里的旧口径文案刷新成当前世界观文案。
+ * 只动「显示字段」，id / 星级 / 赏钱 / 状态 / 进度一律保留。
+ */
+export function refreshContractLore(contract: GuildContract): GuildContract {
+  const cfg = CONTRACT_TEMPLATES[contract.type];
+  if (!cfg) return contract;
+  return {
+    ...contract,
+    title: cfg.titles.includes(contract.title) ? contract.title : cfg.titles[0],
+    targetMonster: `${cfg.monster}（${cfg.locationName}）`,
+    specialLootDesc: cfg.loot,
+    description: cfg.desc,
+    enemyClasses: cfg.baseEnemy,
+  };
+}
+
 export class TownEngine {
   towns: Record<TownId, TownNode>;
   logistics: CompanyLogistics;
@@ -254,6 +285,35 @@ export class TownEngine {
     }
 
     this.contracts[townId] = newContracts;
+  }
+
+  /**
+   * 世界观换皮后的读档自愈：
+   * 旧存档把城镇名、契约标题、酒馆履历原样存了下来，直接读会一直显示旧文案。
+   * 这里按当前配置刷新这些「纯展示字段」，声望、赏钱、星级、状态、地牢进度全部不动。
+   */
+  refreshLore(): void {
+    (Object.keys(TOWNS_CONFIG) as TownId[]).forEach(townId => {
+      const cfg = TOWNS_CONFIG[townId];
+      const town = this.towns[townId];
+      if (town) {
+        town.name = cfg.name;
+        town.subtitle = cfg.subtitle;
+        town.description = cfg.description;
+        town.buildings = cfg.buildings;
+      }
+      this.contracts[townId] = (this.contracts[townId] ?? []).map(refreshContractLore);
+      this.tavernRecruits[townId] = (this.tavernRecruits[townId] ?? []).map(recruit =>
+        RECRUIT_STORIES.includes(recruit.backgroundStory)
+          ? recruit
+          : { ...recruit, backgroundStory: RECRUIT_STORIES[Math.floor(Math.random() * RECRUIT_STORIES.length)] },
+      );
+    });
+
+    this.fallenSouls = this.fallenSouls.map(soul => {
+      const townId = LEGACY_TOWN_NAMES[soul.deathLocation];
+      return townId ? { ...soul, deathLocation: TOWNS_CONFIG[townId].name } : soul;
+    });
   }
 
   // 刷新指定城邦酒馆招募名单
@@ -514,7 +574,7 @@ export class TownEngine {
           this.refreshContractsForTown(tId);
           this.refreshTavernForTown(tId);
         });
-        logs.push(`🔄 各城邦公会契约与酒馆已动态更新招募名单。`);
+        logs.push('各镇行会契约与酒肆招募名单已换新。');
       }
     }
 

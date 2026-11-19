@@ -295,7 +295,7 @@ export const BattleStatsModal: React.FC<BattleStatsModalProps> = ({ summary, pro
             fontSize: '13px',
           }}
         >
-          {isVictory ? '查看战利品 · 翻牌' : '撤回城邦医馆'}
+          {isVictory ? '查看战利品 · 翻牌' : '撤回据点医馆'}
         </button>
       </div>
     </div>

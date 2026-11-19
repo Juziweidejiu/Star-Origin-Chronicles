@@ -6,8 +6,8 @@
 
 ## 一、当前状态
 
-- 仓库 `D:\reverseGame`，分支 `main`，HEAD `6b3a8ef`（M41），工作区干净（仅剩两个未跟踪的素材 zip，不入库）。
-- 测试基线：`npm run test` = 5 files / **74 tests** 全绿；`npm run check` 0 error / 0 warning（含命名红线门禁）。
+- 仓库 `D:\reverseGame`，分支 `main`，HEAD 见 `git log -1`（M41 补丁），工作区干净（仅剩两个未跟踪的素材 zip，不入库）。
+- 测试基线：`npm run test` = 5 files / **75 tests** 全绿；`npm run check` 0 error / 0 warning（含命名红线门禁）。
 - 本地服务（会话重启后需重开）：
   - `cd mobile-pwa && npm run dev` → http://127.0.0.1:5199/game/
   - `python -m http.server 5200 --bind 127.0.0.1`（根目录 `D:\reverseGame`）→ http://127.0.0.1:5200/
@@ -22,7 +22,7 @@
 | M38 | 首批美术接入（12 张图纸卡面） | `8b9e50c` |
 | M39 | 手账贴纸视觉 + 人物提示词改二次元 | `77040d2` / `11e8325` |
 | M40 | 批次 B 英雄二次元立绘全面接入（18 张） | `f2f02ef` |
-| M41 | 《三岔口》世界观重构（姓名/城镇/契约/敌人/兵器术语/剧本）+ 命名红线门禁 | `6b3a8ef` |
+| M41 | 《三岔口》世界观重构（姓名/城镇/契约/敌人/兵器术语/剧本）+ 命名红线门禁 + 旧档文案自愈（`loreRefresh.ts`） | `6b3a8ef` / 补丁提交见 log |
 
 更早的 M31–M34 见 `PROJECT_HANDOFF.md`。
 

@@ -784,13 +784,21 @@
 - 新增 `scripts/naming_rules.mjs` 与 `scripts/check_naming.mjs`：剥离注释后扫描 `src` 全部字符串字面量、模板字符串与 JSX 文本，命中 25 个颜色/冷热字即失败；零豁免（仅跳过规则定义文件）。已接入 `npm run check` 与 `npm run verify`。
 - 首次运行抓出 33 处，已全部清零（赏银→赏钱、诊金→诊费、金针→细针、金库→账房、热汤暖胃→汤水养胃、黄铜区→铜色区、摸黑→不用火把等）。
 
-**存档**
-- 用户决定旧档可忽略/可删，本轮**不写迁移代码**，`SAVE_VERSION` 保持 1；旧档旧姓名原样加载，新招募走新池。旧 `重铸·` 前缀在显示层统一为 `精淬·`，`reforged` 标记与 +18% 不变。
+**存档与旧档自愈**
+- 用户决定旧档可忽略/可删，本轮**不迁移存档结构**，`SAVE_VERSION` 保持 1；`TownId` / `ContractType` / `classId` 键名未动。
+- 旧档的问题是「显示文案被快照存进了存档」：`TownNode` 的 name/subtitle/description、契约的 title/description/targetMonster/specialLootDesc、英雄姓名与称号、装备名与开光批注名，全都会随存档一起读回来，改常量对旧档无效。
+- 因此新增读档自愈（不改数值、不改结构）：
+  - `TownEngine.refreshLore()`：按 `TOWNS_CONFIG` 刷 4 城文案，按 `CONTRACT_TEMPLATES` 刷悬赏（id / 星级 / 赏钱 / 状态不动），换掉不在当前池子里的酒肆背景故事，纠正引魂坛阵亡地点。
+  - `refreshContractLore(contract)`：地牢实例里带出来的契约副本同样刷新。
+  - `refreshHeroLore(hero)`：旧 10 位预设英雄名与 15 条旧称号，按 hero.id 哈希稳定换新（保留「团长·」前缀），属性与职业不动。
+  - `refreshEquipmentLore(item)`：剥离旧品阶前缀、`重铸·`→`精淬·`、旧装备名换新图纸名、24 条旧批注名重映射，品质/基础属性/数值不动。
+  - 接线在 `App.tsx` 启动读档处（roster / inventory / currentContract / TownEngine）。
+- 历史旧名因含颜色字会触发门禁，在 `loreRefresh.ts` / `townEngine.ts` 内一律写成 Unicode 转义，并注明是历史存档数据。
 
 **验证**
 - `npm run check`：tsc 0 error、oxlint 0 warning、命名门禁通过。
-- `npm run test`：5 files / **74 tests** 全绿（新增 2 条开光品阶 / 落款单测）。
-- `npm run build`：成功，主包 473.18 kB（gzip 148.76），Ink 懒加载 chunk 255.26 kB。
+- `npm run test`：5 files / **75 tests** 全绿（新增开光品阶 / 落款单测与「TownEngine 世界观文案自愈」）。
+- `npm run build`：成功，主包 476.55 kB（gzip 150.33），Ink 懒加载 chunk 255.26 kB。
 - 未改任何数值，故未跑 `sim_balance.mjs`；后续切包内数值时须先跑并回填本文档。
 
 

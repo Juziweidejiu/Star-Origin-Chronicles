@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { BookOpen, Castle, Map, Swords, Users } from 'lucide-react';
 import { generateHero, heroRoleLabel } from './engine/heroFactory';
 import { CombatEngine, type CombatUnit } from './engine/combatEngine';
-import { TownEngine } from './engine/townEngine';
+import { refreshEquipmentLore, refreshHeroLore } from './engine/loreRefresh';
+import { TownEngine, refreshContractLore } from './engine/townEngine';
 import { CrisisEngine } from './engine/crisisEngine';
 import { generateDungeonFromContract } from './engine/dungeonEngine';
 import { createEnemyParty } from './engine/enemyFactory';
@@ -52,7 +53,19 @@ export function App() {
       generateHero('cleric', false, 'female'),     // 战地医官
       generateHero('ranger', false, 'male')        // 远程猎手
     ];
-    const roster = save && save.roster.length > 0 ? save.roster : starterRoster;
+    const roster = save && save.roster.length > 0
+      ? save.roster.map(hero => {
+          const loreHero = refreshHeroLore(hero);
+          return {
+            ...loreHero,
+            equipment: {
+              weapon: loreHero.equipment.weapon ? refreshEquipmentLore(loreHero.equipment.weapon) : loreHero.equipment.weapon,
+              armor: loreHero.equipment.armor ? refreshEquipmentLore(loreHero.equipment.armor) : loreHero.equipment.armor,
+              trinket: loreHero.equipment.trinket ? refreshEquipmentLore(loreHero.equipment.trinket) : loreHero.equipment.trinket,
+            },
+          };
+        })
+      : starterRoster;
     const deployedHeroIds =
       save?.deployedHeroIds?.length ? save.deployedHeroIds : roster.slice(0, 4).map(h => h.id);
     const formationAssignments = save?.formationAssignments?.length
@@ -81,7 +94,11 @@ export function App() {
   // 初始化城镇、后勤与天灾引擎
   const [townEngine] = useState<TownEngine>(() => {
     const engine = new TownEngine();
-    if (boot.save) applyTownSave(engine, boot.save.town);
+    if (boot.save) {
+      applyTownSave(engine, boot.save.town);
+      // 旧存档带着旧世界观文案（城镇名/契约标题/酒馆履历），读档时按当前配置自愈
+      engine.refreshLore();
+    }
     return engine;
   });
   const [crisisEngine] = useState<CrisisEngine>(() => new CrisisEngine());
@@ -139,15 +156,18 @@ export function App() {
   };
 
   // 当前进行中的任务契约与地牢探索实例
-  const [currentContract, setCurrentContract] = useState<GuildContract | null>(
-    boot.save?.dungeon?.contract ?? null
-  );
+  const [currentContract, setCurrentContract] = useState<GuildContract | null>(() => {
+    const saved = boot.save?.dungeon?.contract;
+    return saved ? refreshContractLore(saved) : null;
+  });
   const [currentDungeon, setCurrentDungeon] = useState<DungeonInstance | null>(
     boot.save?.dungeon?.dungeon ?? null
   );
   const [activeDungeonRoom, setActiveDungeonRoom] = useState<DungeonRoom | null>(null);
   // 队伍公共背包（未装备的战利品）
-  const [inventory, setInventory] = useState<Equipment[]>(boot.save?.inventory ?? []);
+  const [inventory, setInventory] = useState<Equipment[]>(
+    () => (boot.save?.inventory ?? []).map(refreshEquipmentLore),
+  );
   const [inventoryTarget, setInventoryTarget] = useState<string>('');
   // 打造进度：材料 / 已解锁图纸 / 熟练度
   const [craft, setCraft] = useState<CraftProgress>(
@@ -1062,7 +1082,7 @@ export function App() {
                 <div style={{ fontSize: '32px', marginBottom: '8px' }}>🗝️</div>
                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8fafc' }}>当前未在任何地牢探险中</div>
                 <div style={{ fontSize: '11px', marginTop: '6px' }}>
-                  请前往【🏰据点】的【冒险者公会】接取契约任务，即可踏入程序化地牢序列！
+                  请前往【据点】的【六合行会】接取契约任务，即可踏入程序化地牢序列！
                 </div>
                 <button
                   onClick={() => setActiveTab('town')}
@@ -1078,7 +1098,7 @@ export function App() {
                     fontSize: '12px'
                   }}
                 >
-                  前往公会接取契约
+                  前往行会接取契约
                 </button>
               </div>
             )}
@@ -1092,14 +1112,14 @@ export function App() {
             <div className="pz-sub" style={{ lineHeight: 1.75, marginBottom: '16px' }}>
               眼下没有正在进行的遭遇战。
               <br />
-              去公会挑一张悬赏，或者回到地牢继续往里走。
+              去行会挑一张悬赏，或者回到地牢继续往里走。
             </div>
             <div className="pz-col" style={{ gap: '8px' }}>
               <button
                 className="pz-btn pz-btn--main pz-btn--block"
                 onClick={() => setActiveTab('town')}
               >
-                去公会看榜
+                去行会看榜
               </button>
               {currentDungeon && (
                 <button
@@ -1265,7 +1285,7 @@ export function App() {
                       {engine.winner === 'player' ? '房间肃清' : '先遣队溃退'}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--pz-ink-2)', marginBottom: '12px', lineHeight: 1.6 }}>
-                      {engine.winner === 'player' ? '阵地已清，可整队推进至下一节点。' : '全队士气动荡，需撤回城邦修整。'}
+                      {engine.winner === 'player' ? '阵地已清，可整队推进至下一节点。' : '全队士气动荡，需撤回据点修整。'}
                     </div>
                     {engine.winner === 'player' ? (
                       <button
@@ -1307,7 +1327,7 @@ export function App() {
                           fontSize: '13px'
                         }}
                       >
-                        撤回城邦医馆
+                        撤回据点医馆
                       </button>
                     )}
                   </div>
