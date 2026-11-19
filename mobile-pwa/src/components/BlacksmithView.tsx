@@ -193,7 +193,7 @@ const CraftBench: React.FC<BenchProps> = ({ bp, craft, gold, discount, onBack, o
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'var(--pz-sunken)',
+            background: 'var(--pz-raised)',
             border: '1px solid var(--pz-line)',
             borderRadius: 8,
           }}
@@ -943,7 +943,7 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      background: 'var(--pz-sunken)',
+                      background: 'var(--pz-raised)',
                       borderBottom: '1px solid var(--pz-line)',
                     }}
                   >
