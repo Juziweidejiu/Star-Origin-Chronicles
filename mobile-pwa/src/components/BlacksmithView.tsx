@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import type { Equipment, Hero } from '../types/hero';
 import type { CompanyLogistics } from '../types/world';
-import { Btn } from './ui';
+import { ArtImage, Btn } from './ui';
+import { itemArtSources } from '../config/artAssets';
 import {
   CRAFT_AFFIX_POOL,
   BLUEPRINTS,
@@ -105,31 +106,34 @@ const MaterialBar: React.FC<{ craft: CraftProgress }> = ({ craft }) => (
 
 const PERCENT_STATS = new Set(['critChance', 'critDamage', 'attackSpeed', 'tenacity']);
 
-/** 图纸卡面：public/art/items/{id}.svg，取不到时回落到部位图标 */
-const BlueprintArt: React.FC<{ bp: Blueprint; size: number; muted?: boolean }> = ({ bp, size, muted }) => {
-  const [broken, setBroken] = useState(false);
-  if (broken) {
-    return (
+/** 图纸卡面：public/art/items/{id}.webp → .svg，都取不到时回落到部位图标 */
+const BlueprintArt: React.FC<{ bp: Blueprint; size: number; muted?: boolean }> = ({ bp, size, muted }) => (
+  <ArtImage
+    sources={itemArtSources(bp.id)}
+    alt=""
+    style={{
+      width: size,
+      height: size,
+      objectFit: 'contain',
+      opacity: muted ? 0.5 : 1,
+      flex: '0 0 auto',
+    }}
+    fallback={
       <span style={{ color: muted ? 'var(--pz-ink-3)' : TIER_COLOR[bp.tier], display: 'flex' }}>
         {SLOT_ICON[bp.slot]}
       </span>
-    );
-  }
+    }
+  />
+);
+
+/** 物品缩略图：打造品用图纸卡面，其余回落到部位图标 */
+const ItemArt: React.FC<{ item: Equipment; size?: number }> = ({ item, size = 34 }) => {
+  const bp = item.blueprintId ? BLUEPRINT_MAP[item.blueprintId] : undefined;
+  if (bp) return <BlueprintArt bp={bp} size={size} />;
   return (
-    <img
-      src={`${import.meta.env.BASE_URL}art/items/${bp.id}.svg`}
-      alt=""
-      width={size}
-      height={size}
-      onError={() => setBroken(true)}
-      style={{
-        width: size,
-        height: size,
-        objectFit: 'contain',
-        opacity: muted ? 0.4 : 1,
-        flex: '0 0 auto',
-      }}
-    />
+    <span style={{ color: 'var(--pz-ink-3)', display: 'flex', width: size, justifyContent: 'center' }}>
+      {SLOT_ICON[item.slot]}
+    </span>
   );
 };
 
@@ -180,8 +184,22 @@ const CraftBench: React.FC<BenchProps> = ({ bp, craft, gold, discount, onBack, o
         <ChevronRight size={13} style={{ transform: 'rotate(180deg)' }} /> 返回图纸册
       </button>
 
-      <div className="pz-card" style={{ padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'center' }}>
-        <BlueprintArt bp={bp} size={46} />
+      <div className="pz-card" style={{ padding: '10px 12px', display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div
+          style={{
+            width: 84,
+            height: 84,
+            flex: '0 0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--pz-sunken)',
+            border: '1px solid var(--pz-line)',
+            borderRadius: 8,
+          }}
+        >
+          <BlueprintArt bp={bp} size={76} />
+        </div>
         <div className="pz-col" style={{ gap: 2, flex: 1, minWidth: 0 }}>
           <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 15, fontWeight: 700 }}>{bp.name}</span>
           <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
@@ -549,6 +567,22 @@ const ResultSheet: React.FC<{
             {TIER_LABEL[bp.tier]} · {SLOT_LABEL[item.slot]}
           </span>
         </div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0' }}>
+          <div
+            style={{
+              width: 124,
+              height: 124,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--pz-sunken)',
+              border: `1px solid ${TIER_COLOR[bp.tier]}`,
+              borderRadius: 10,
+            }}
+          >
+            <BlueprintArt bp={bp} size={112} />
+          </div>
+        </div>
         <div className="pz-row" style={{ gap: 6, alignItems: 'baseline' }}>
           <span style={{ fontSize: 13, color: 'var(--pz-wine)', fontWeight: 600 }}>{RARITY_LABEL[item.rarity]}</span>
           <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
@@ -894,29 +928,52 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                   onClick={() => openBlueprint(bp)}
                   className="pz-card pz-col"
                   style={{
-                    padding: '8px 9px',
-                    gap: 5,
+                    padding: 0,
+                    gap: 0,
                     textAlign: 'left',
                     cursor: 'pointer',
+                    overflow: 'hidden',
                     borderTop: `3px solid ${owned ? TIER_COLOR[bp.tier] : 'var(--pz-line)'}`,
-                    opacity: owned ? 1 : 0.72,
                   }}
                 >
-                  <div className="pz-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                    <BlueprintArt bp={bp} size={48} muted={!owned} />
-                    <span className="pz-tag" style={{ fontSize: 9, padding: '1px 5px', color: TIER_COLOR[bp.tier] }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      height: 104,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'var(--pz-sunken)',
+                      borderBottom: '1px solid var(--pz-line)',
+                    }}
+                  >
+                    <BlueprintArt bp={bp} size={98} muted={!owned} />
+                    <span
+                      className="pz-tag"
+                      style={{
+                        position: 'absolute',
+                        top: 5,
+                        right: 5,
+                        fontSize: 9,
+                        padding: '1px 5px',
+                        color: TIER_COLOR[bp.tier],
+                        background: 'rgba(255,255,255,.5)',
+                      }}
+                    >
                       T{bp.tier}
                     </span>
                   </div>
-                  <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 13, fontWeight: 700, color: owned ? 'var(--pz-ink)' : 'var(--pz-ink-3)' }}>{bp.name}</span>
-                  <span className="pz-micro" style={{ color: 'var(--pz-ink-3)', lineHeight: 1.4 }}>
-                    {owned ? costText(bp.cost) : `${TIER_LABEL[bp.tier]} · ${bp.hint}`}
-                  </span>
-                  {!owned && (
-                    <span className="pz-row" style={{ gap: 3, color: 'var(--pz-ink-3)', fontSize: 10 }}>
-                      <Lock size={10} /> 未解锁
+                  <div className="pz-col" style={{ padding: '7px 9px 9px', gap: 4 }}>
+                    <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 13, fontWeight: 700, color: owned ? 'var(--pz-ink)' : 'var(--pz-ink-3)' }}>{bp.name}</span>
+                    <span className="pz-micro" style={{ color: 'var(--pz-ink-3)', lineHeight: 1.4 }}>
+                      {owned ? costText(bp.cost) : `${TIER_LABEL[bp.tier]} · ${bp.hint}`}
                     </span>
-                  )}
+                    {!owned && (
+                      <span className="pz-row" style={{ gap: 3, color: 'var(--pz-ink-3)', fontSize: 10 }}>
+                        <Lock size={10} /> 未解锁
+                      </span>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -958,8 +1015,11 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
               const done = item.reforged;
               return (
                 <div key={`${hero.id}-${item.id}`} className="pz-card pz-col" style={{ padding: '8px 10px', gap: 4 }}>
-                  <div className="pz-row" style={{ justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</span>
+                  <div className="pz-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div className="pz-row" style={{ alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <ItemArt item={item} />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</span>
+                    </div>
                     <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
                       {hero.name} · {SLOT_LABEL[item.slot]}
                     </span>
@@ -988,8 +1048,11 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
                 || (locked !== null && sand < 1);
               return (
                 <div key={`${hero.id}-${item.id}`} className="pz-card pz-col" style={{ padding: '8px 10px', gap: 4 }}>
-                  <div className="pz-row" style={{ justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</span>
+                  <div className="pz-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div className="pz-row" style={{ alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <ItemArt item={item} />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</span>
+                    </div>
                     <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
                       {hero.name} · {SLOT_LABEL[item.slot]}
                     </span>
@@ -1048,8 +1111,11 @@ const BlacksmithView: React.FC<BlacksmithViewProps> = ({
               const gold = salvageYield(item);
               return (
                 <div key={item.id} className="pz-card pz-col" style={{ padding: '8px 10px', gap: 4 }}>
-                  <div className="pz-row" style={{ justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</span>
+                  <div className="pz-row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div className="pz-row" style={{ alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <ItemArt item={item} />
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{item.name}</span>
+                    </div>
                     <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
                       T{item.tier} · {RARITY_LABEL[item.rarity]}
                     </span>

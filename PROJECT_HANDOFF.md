@@ -686,3 +686,22 @@
 - 以 6px/帧 在滚动区内往返滚动 1.5s：120 帧、平均 12.7ms/帧、p95 20.9ms、无 >32ms 长帧；
 - 端到端回归：打造 10 下（鼓风×5 → 落锤×4 → 入水×1）全部命中，结果层显示「粗制·精钢长剑 / 品质 0.82 / 物攻 15 ▲15 / 暴击 5.7% ▲5.7%」，词条与经验正常；
 - npm run check 0 error 0 warning；npm run test 5 files / 72 tests 全绿；npm run build 3.45s，主包 468.37 kB（gzip 147.99）。
+
+### Milestone 38: 首批美术接入（图纸卡面，已完成交付 ✅）
+
+**输入**：`artResources/art_assets_batch_a.zip`（12 张图纸，512×512 透明 WebP，17.6–51.8 KB）
+**校验**：逐张解析 WebP 头，确认 `VP8X / alpha=true / 512×512`，全部满足 `docs/ART_ASSETS.md` 的 ≤60 KB 要求。
+
+**接入方式**
+- 复制到 `mobile-pwa/public/art/items/{blueprintId}.webp`；旧的 SVG 占位保留为二级回落。
+- `BlueprintArt` 改走公共 `ArtImage` + `itemArtSources(id)`，候选链 `.webp → .svg → 部位图标`，404 结果按路径缓存，不会反复请求。
+- 使用位置四处：图纸册卡片（图区 104 px + T 角标）、打造台头卡（84 px 方框）、成品弹层（124 px 展示台）、重铸 / 洗练 / 分解列表（34 px 缩略图，新增 `ItemArt` 按 `blueprintId` 取图，非打造品回落部位图标）。
+- 未解锁图纸改为 `opacity .5` 的淡出，不再叠加 `grayscale` 滤镜（12 张同屏时省一次合成）。
+
+**素材流程约定**（写入 `docs/ART_ASSETS.md` §0.1）
+仓库根目录 `artResources/` 作为生成图暂存区，按批次放 zip 或目录；接入时校验尺寸 / 透明度 / 体积后再复制进 `public/art/{类别}/`，不直接往 `public/art/` 塞未检查文件。
+
+**验证**
+- `npm run check` 0 error / 0 warning；`npm run test` 5 files / 72 tests；`npm run build` 2.26 s，主包 471.00 kB（gzip 148.61）。
+- 运行时：图纸册 12 张 `<img>` 全部 `naturalWidth=512` 且加载成功，无 404。
+- 截图：图纸册双列卡片图区与 T 角标正常，锁定卡片半透明可辨；打造台头卡方框内构图完整。

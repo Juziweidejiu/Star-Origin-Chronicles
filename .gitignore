@@ -14,6 +14,9 @@ save_decompressed_sample.json
 *.sav
 test_*.js
 
+# 美术素材暂存区（生成的原始图 / zip 放这里，只提交筛选后的 public/art 成品）
+artResources/
+
 # OS / Editor files
 .DS_Store
 Thumbs.db
