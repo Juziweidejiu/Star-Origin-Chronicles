@@ -7,7 +7,8 @@ import { CLASS_CONFIG, heroRoleLabel } from '../engine/heroFactory';
 import { heroXpProgress } from '../engine/progressionEngine';
 import { resolveStats, describeBase, STAT_LABEL } from '../engine/statResolver';
 import { RARITY_LABEL } from '../engine/dungeonEngine';
-import { Btn, Card, Tag } from './ui';
+import { Btn, Card, Tag, ArtImage } from './ui';
+import { heroArtSources } from '../config/artAssets';
 
 interface RosterViewProps {
   roster: Hero[];
@@ -367,7 +368,33 @@ export const RosterView: React.FC<RosterViewProps> = ({
         return (
           <Card key={hero.id} variant={isDeployed ? 'raised' : 'flat'} style={{ opacity: isDeployed ? 1 : 0.94 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ArtImage
+                  sources={heroArtSources(hero)}
+                  alt={hero.name}
+                  style={{
+                    width: 40, height: 40, flexShrink: 0,
+                    borderRadius: 8, objectFit: 'cover',
+                    background: 'var(--pz-sunken)',
+                    border: '1px solid var(--pz-line)',
+                  }}
+                  fallback={
+                    <div
+                      aria-hidden
+                      style={{
+                        width: 40, height: 40, flexShrink: 0,
+                        borderRadius: 8,
+                        background: 'var(--pz-sunken)',
+                        border: '1px solid var(--pz-line)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'var(--pz-serif)', fontSize: 16, color: 'var(--pz-ink-2)',
+                      }}
+                    >
+                      {hero.name.replace(/^(团长·|敌·|👑)/, '').slice(-1)}
+                    </div>
+                  }
+                />
+                <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {hero.isLeader ? <Crown size={13} color="var(--pz-brass-deep)" /> : null}
                   <span className="pz-h2" style={{ fontFamily: 'var(--pz-serif)' }}>{hero.name}</span>
@@ -375,6 +402,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                 </div>
                 <div className="pz-sub" style={{ marginTop: 2 }}>
                   {hero.level} 级 {heroRoleLabel(hero)} · 周薪 {hero.wage} G
+                </div>
                 </div>
               </div>
 

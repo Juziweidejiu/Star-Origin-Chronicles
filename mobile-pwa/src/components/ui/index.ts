@@ -5,3 +5,4 @@ export { Seal } from './Seal';
 export { Tag } from './Tag';
 export { StatBar } from './StatBar';
 export { WinRing } from './WinRing';
+export { ArtImage } from './ArtImage';
