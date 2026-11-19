@@ -38,7 +38,16 @@ artResources/
 
 **纸上手绘的东方奇幻佣兵团手账**：细墨线勾边 + 水彩淡彩晕染 + 黄铜与酒红点缀，米黄纸底，安静、耐看、有年代感。
 
-不是：厚涂写实、3D 渲染、霓虹赛博、暗黑血腥、欧美卡牌高饱和。
+**分轨规则（重要）**：
+
+| 轨道 | 内容 | 画风 |
+| --- | --- | --- |
+| 道具 / 场景 | 图纸卡面、材料、城镇、地牢 | 纸本水彩（本节与 §1.3 的通用后缀） |
+| 人物 | 英雄立绘、敌人、NPC | **二次元日式动画**（赛璐璐上色，见 §5.2 的专用后缀） |
+
+人物一律走二次元，不要用通用后缀，否则会生成出偏真人写实的样子。
+
+不是：厚涂写实、3D 渲染、霓虹赛博、暗黑血腥、欧美卡牌高饱和、真人摄影质感。
 
 ### 1.2 色板（必须遵守，取自 `mobile-pwa/src/index.css`）
 
@@ -200,51 +209,84 @@ public/art/heroes/{classId}_{gender}.webp
 
 任何随机生成的英雄都能落到一张合适的图上。10 位名将的专属立绘（批次 H）作为可选增强。
 
-### 5.2 通用构图
+### 5.2 二次元画风（人物专用，**不要用 §1.3 的通用后缀**）
 
-- 竖构图 768×1024，**半身像（腰以上）**，人物略偏右，视线朝画面左前方。
-- 东亚面孔，20–30 岁，英气、健康、不妖艳、不卖肉。
-- 服装是**实用冒险装**：布、皮、轻甲、绑腿，有磨损与使用痕迹。
-- 手持标志性武器（武器要完整入画，不要被裁掉）。
-- 透明背景，人物外轮廓一圈 2px 暖色描边（避免贴到纸底上发灰）。
+§1.3 那条是给道具和场景的纸本水彩。人物一律换成下面这套，否则会生成出偏真人写实的脸。
 
-**统一后缀追加**：`半身像，人物占画面 78%，视线朝左前方，服装有使用痕迹，透明背景`
+- **赛璐璐上色（cel shading）**：色块分明，一层主光 + 一层软阴影，不画写实皮肤纹理。
+- **干净墨线勾线**：线宽比道具略粗，收笔带一点弹性，不要描边发虚。
+- **眼睛是重点**：大而清晰，有明确的瞳孔层次和高光点，情绪靠眼神传达。
+- **头发成块状**：成组的发束 + 几缕飞扬碎发，不要一丝一丝的写实发丝。
+- **比例约六头身**，视觉年龄 18–26，肩线利落、骨架清晰，但不做夸张肌肉。
+- **表情要有性格**：温和、清冷、狡黠、元气，各不相同，不要统一「礼貌微笑」。
+
+**人物专用后缀（中）**
+
+```
+二次元日式动画风格，赛璐璐上色，干净墨线勾线，大眼高光与瞳色层次，
+块状发型带飞扬碎发，平涂肤色加一层柔光阴影，六头身比例，
+半身像（腰以上），人物占画面 78%，视线朝左前方，透明背景
+```
+
+**人物专用后缀（英）**
+
+```
+anime style, japanese animation key visual, cel shading, clean confident lineart,
+expressive large eyes with crisp highlights, stylized chunky hair with a few flying strands,
+flat skin tone with one soft shadow pass, six-head proportions,
+waist-up half body, character fills 78% of frame, looking toward upper left, transparent background
+```
+
+**人物专用负面词**
+
+```
+写实照片, 真人皮肤毛孔, 3D 渲染, 欧美半写实厚涂, 油画笔触, 塑料蜡像感,
+过度写实的面部比例, 过饱和, 血腥, 文字, 水印, 签名, 边框
+```
+
+> 如果你用的工具支持「参考图」，把上一批那张偏写实的 `bard_female` 当**构图参考**（只借姿势与服装），风格词换成上面这套，能省很多试错。
+
+**构图铁律**：竖构图 768×1024；头部落在画面上 **1/3 处**（后面要裁成 40px 方形头像，脸不能偏）；武器与道具完整入画、不被裁切；女性不卖肉、男性不油腻，服装保持实用冒险装——袖口、飘带、肩甲轮廓可以稍微夸张，那是动画感的一部分。
 
 ### 5.3 逐张提示词
 
 | # | 文件 | 职业 / 定位 | 画面要点 | English prompt |
 | --- | --- | --- | --- | --- |
-| 1 | `guardian_male` | 护卫 · 前锋 | 三十岁沉稳汉子，重札甲+大盾+单手钉锤，胡茬，肩宽体壮 | a steady man in his thirties, heavy lamellar armor, large round shield and a spiked mace, stubble, broad shoulders |
-| 2 | `guardian_female` | 护卫 · 前锋 | 高个女武士，板甲裙+鸢盾，短发束带，表情冷静 | a tall female warrior in plated skirt armor with a kite shield, short tied hair, calm expression |
-| 3 | `warden_male` | 守望 · 前锋 | 山林守望者，皮甲+双手长斧，披狼皮斗篷，脸上有旧疤 | a woodland warden in leather armor with a two-handed axe, wolf-pelt cloak, old scar |
-| 4 | `warden_female` | 守望 · 前锋 | 女猎手装束，长斧斜背，腰间挂号角与绳钩 | a huntress with a long axe slung on her back, horn and grapnel at her belt |
-| 5 | `paladin_male` | 圣武 · 前锋 | 银白半甲+圣徽胸挂+长柄锤，短须，神色平和 | a man in silver half-plate with a holy sigil pendant and a long-hafted hammer, short beard, serene |
-| 6 | `paladin_female` | 圣武 · 前锋 | 白袍外罩胸甲，手持祝福长枪，发髻利落 | a woman in a white robe over a breastplate, holding a blessed spear, neat bun |
-| 7 | `blademaster_male` | 剑圣 · 输出 | 轻装直剑士，交领短打+护腕，剑锋斜指，衣角带风 | a light-armored swordsman in a crossed-collar tunic and bracers, blade angled down, hem in motion |
-| 8 | `blademaster_female` | 剑圣 · 输出 | 黑长直束发女刀客，双手横刀，眼神锐利 | a female swordmaster with long black hair tied back, two-handed saber, sharp gaze |
-| 9 | `arcanist_male` | 奥术 · 输出 | 青灰长袍+铜制浑天仪手炉，指尖有蓝紫微光 | a man in blue-grey robes holding a brass armillary censer, faint violet light at his fingertips |
-| 10 | `arcanist_female` | 奥术 · 输出 | 深蓝学者袍，悬浮符纸环绕，单片铜镜 | a female scholar in deep-blue robes, floating paper talismans circling her, a brass monocle |
-| 11 | `ranger_male` | 游侠 · 输出 | 猎户青年，反曲弓半拉，皮护臂，箭袋在腰后 | a young hunter drawing a recurve bow halfway, leather bracer, quiver at the hip |
-| 12 | `ranger_female` | 游侠 · 输出 | 短发女斥候，短弓+飞爪绳，轻便斗篷 | a short-haired female scout with a short bow, grapnel rope, light cloak |
-| 13 | `cleric_male` | 牧师 · 医官 | 素色长袍+药囊+银针盒，手持经卷 | a man in plain robes with a medicine satchel and silver needle case, holding a scroll |
-| 14 | `cleric_female` | 牧师 · 医官 | 青衫女医，金针囊与缠手布，温而不弱 | a female physician in blue-green robes, gold needle case, wrapped hands |
-| 15 | `druid_male` | 德鲁伊 · 医官 | 藤甲+草药束+木杖，肩头停一只小鸟 | a man in vine-woven armor with herb bundles and a wooden staff, a small bird on his shoulder |
-| 16 | `druid_female` | 德鲁伊 · 医官 | 苔绿斗篷，鹿角木杖，赤足绑腿 | a woman in a moss-green cloak with an antler-topped staff, bare feet with leg wraps |
-| 17 | `bard_male` | 乐师 · 医官 | 便携古琴/短笛，靛青外袍绣云纹，腰间酒壶 | a man with a portable zither and short flute, indigo robe with cloud embroidery, wine flask at his belt |
-| 18 | `bard_female` | 乐师 · 医官 | 怀抱琵琶，红绳束发，笑意明亮 | a woman holding a pipa lute, hair tied with red cord, bright smile |
+| 1 | `guardian_male` | 护卫 · 前锋 | 二十八九的硬朗汉，重札甲 + 大圆盾 + 单手钉锤，短胡茬，宽肩，眼神温和可靠 | a sturdy warrior in his late twenties, heavy lamellar armor, large round shield and a mace, short stubble, broad shoulders, reliable gentle eyes |
+| 2 | `guardian_female` | 护卫 · 前锋 | 高个女骑士，板甲裙 + 鸢盾，短发束带，表情冷静克制 | a tall female knight in plated skirt armor with a kite shield, short hair with a headband, cool composed expression |
+| 3 | `warden_male` | 守望 · 前锋 | 山林守望者，皮甲 + 双手长斧扛肩，狼皮斗篷，颊上一道小疤，自信的笑 | a woodland warden in leather armor, two-handed axe resting on his shoulder, wolf-pelt cloak, small scar on one cheek, confident grin |
+| 4 | `warden_female` | 守望 · 前锋 | 女猎手，长斧斜背，腰挂兽角与绳钩，发丝被风撩起，眼神锐利 | a huntress with a long axe slung across her back, horn and rope hook at her belt, wind-lifted hair, sharp eyes |
+| 5 | `paladin_male` | 圣武 · 前锋 | 银白半甲 + 圣徽胸挂 + 长柄锤，短须，神色平和，眼底有光 | a paladin in silver half-plate with a holy sigil pendant and a long-hafted hammer, short beard, serene expression with a glint in his eyes |
+| 6 | `paladin_female` | 圣武 · 前锋 | 白袍外罩胸甲，手持祝福长枪，盘发利落，端庄 | a female paladin in a white robe over a breastplate, holding a blessed spear, neat coiled bun, dignified air |
+| 7 | `blademaster_male` | 剑圣 · 输出 | 轻装直剑士，交领短打 + 护腕，剑锋斜指地面，衣角翻飞，目光专注 | a young swordsman in a crossed-collar tunic and bracers, jian angled toward the ground, hem fluttering, focused gaze |
+| 8 | `blademaster_female` | 剑圣 · 输出 | 黑长直束发女刀客，双手横刀于身前，眼神锐利，袖口翻卷 | a female swordmaster with long black hair tied back, two-handed saber held before her, piercing gaze, rolled cuffs |
+| 9 | `arcanist_male` | 奥术 · 输出 | 青灰长袍 + 铜制浑天仪手炉，指尖蓝紫微光，神情好奇 | a young mage in blue-grey robes holding a brass armillary censer, violet glow at his fingertips, curious expression |
+| 10 | `arcanist_female` | 奥术 · 输出 | 深蓝学者袍，符纸环绕悬浮，单片铜镜，嘴角一丝浅笑 | a female scholar in deep-blue robes, paper talismans floating around her, a brass monocle, faint knowing smile |
+| 11 | `ranger_male` | 游侠 · 输出 | 猎户少年，反曲弓半拉，皮护臂，腰后箭袋，眼睛亮 | a young hunter drawing a recurve bow halfway, leather bracer, quiver at his hip, bright lively eyes |
+| 12 | `ranger_female` | 游侠 · 输出 | 短发女斥候，短弓 + 飞爪绳，轻便斗篷扬起，神情警觉 | a short-haired female scout with a short bow, grapnel rope, light cloak lifting, alert expression |
+| 13 | `cleric_male` | 牧师 · 医官 | 素色长袍 + 药囊 + 银针盒，手持经卷，温和的笑 | a gentle healer in plain robes with a medicine satchel and silver needle case, holding a scroll, soft smile |
+| 14 | `cleric_female` | 牧师 · 医官 | 青衫女医，金针囊与缠手布，温而不弱，眼神坚定 | a female physician in blue-green robes, gold needle case, wrapped hands, warm but steady gaze |
+| 15 | `druid_male` | 德鲁伊 · 医官 | 藤甲 + 草药束 + 木杖，肩头停一只小鸟，爽朗 | a druid in vine-woven armor with herb bundles and a wooden staff, a small bird perched on his shoulder, cheerful grin |
+| 16 | `druid_female` | 德鲁伊 · 医官 | 苔绿斗篷，鹿角木杖，赤足绑腿，微微歪头，好奇 | a druidess in a moss-green cloak with an antler-topped staff, bare feet and leg wraps, slight head tilt, curious look |
+| 17 | `bard_male` | 乐师 · 医官 | 便携古琴 / 短笛，靛青外袍绣云纹，腰间酒壶，玩世不恭的笑 | a bard with a portable zither and short flute, indigo robe with cloud embroidery, wine flask at his belt, playful smirk |
+| 18 | `bard_female` | 乐师 · 医官 | 怀抱琵琶，红绳束发，笑意明亮 | a female bard holding a pipa lute, hair tied with a red cord, bright cheerful smile |
 
 **提示词模板**
 
 ```
-一位东亚奇幻冒险者的半身像：[画面要点]。
-[通用风格后缀]
+一位东亚奇幻冒险者：[画面要点]。
+[§5.2 人物专用后缀]
 ```
 
 > 18 张建议一次连续生成，保持同一支笔的质感。生成后统一裁成 768×1024，人物底部切在腰线。
+> 拿到图先自查三个点：**是不是二次元的脸**（不是真人）、**脸在不在上 1/3**、**背景是不是干净的**。这三条不过就重出，别急着批量做。
 
 ---
 
 ## 6. 批次 C：敌人立绘（24 张，P1）
+
+> **画风**：人物轨，走二次元（粘 §5.2 的人物专用后缀与负面词），不要用 §1.3 的水彩后缀。
+> 敌人是「动画里的反派」，不是写实怪物：轮廓清晰、表情夸张、色块干净，方便缩到 40–56px 还认得出。
 
 ### 6.1 命名按「生态 × 职能」
 
@@ -328,6 +370,8 @@ role:     tank | dps | healer | boss
 
 ## 8. 批次 F：NPC 头像（6 张，P1）
 
+> **画风**：人物轨，同样走二次元（粘 §5.2 的专用后缀），尺寸改成 512×512 胸像。
+
 `public/art/npc/{npcId}.webp` · 512×512 透明底 · 半身到胸像，正面略侧。
 
 | 文件 | 角色 | 画面要点 |
@@ -359,6 +403,8 @@ role:     tank | dps | healer | boss
 
 ## 10. 批次 H：名将专属立绘（可选，10 张）
 
+> **画风**：人物轨，二次元（§5.2 后缀）。这 10 人是「主角级」，表情与气质要拉开差距，别都画成同一种冷脸。
+
 `public/art/heroes/{姓名}.webp`（中文文件名，如 `沈云舒.webp`）。命中姓名时优先于职业图。
 
 | 姓名 | 称号 | 画面要点 |
@@ -384,6 +430,7 @@ role:     tank | dps | healer | boss
 - [ ] 没有文字、水印、签名、边框
 - [ ] 主体四周留白 ≥ 8%，没被裁切
 - [ ] 线条是深褐墨色，不是纯黑
+- [ ] **人物批次**：脸是二次元的（赛璐璐色块、大眼高光），不是真人皮肤与写实五官；头部在上 1/3
 - [ ] 同一批次放在一起时，像同一个人画的
 - [ ] 文件名与 §2.1 规则**逐字一致**（区分大小写、下划线）
 
