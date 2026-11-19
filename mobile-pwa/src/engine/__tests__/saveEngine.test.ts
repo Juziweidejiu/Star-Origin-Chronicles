@@ -10,6 +10,7 @@ import {
   clearSave,
   loadSave,
   readSave,
+  resetSave,
   writeSave,
   type SavePayload,
   type SavePayloadRaw,
@@ -115,6 +116,7 @@ describe('存档读写', () => {
     clearSave();
     expect(loadSave()).toBeNull();
   });
+
 
   it('字符串字段保持 JSON 往返一致（阵型 / 槽位）', () => {
     clearSave();
@@ -342,6 +344,22 @@ describe('readSave 的迁移落盘行为', () => {
     expect(save!.formationAssignments).toEqual([{ heroId: 'h1', slotId: 'front_center' }]);
     expect(save!.formationPreset).toBe('shield_wall');
     expect(save!.dungeon).toBeNull();
+  });
+});
+
+// 放在最后：resetSave 会永久停写，不能影响同一文件里的其它用例
+describe('清档重开 resetSave', () => {
+  it('连主档与备份一起清掉，并停掉后续自动保存', () => {
+    writeSave(buildPayload());
+    memory.setItem(BACKUP_KEY, '{"stale":true}');
+    expect(loadSave()).not.toBeNull();
+
+    resetSave();
+    expect(memory.getItem(SAVE_KEY)).toBeNull();
+    expect(memory.getItem(BACKUP_KEY)).toBeNull();
+
+    writeSave(buildPayload());
+    expect(memory.getItem(SAVE_KEY)).toBeNull();
   });
 });
 

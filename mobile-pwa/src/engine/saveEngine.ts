@@ -407,6 +407,22 @@ export function clearSave(): void {
   }
 }
 
+/**
+ * 清档重开：先停掉自动保存，再连主档与备份一起删。
+ * 顺序不能反过来，否则 800ms 防抖或 pagehide 回调会把旧档写回去。
+ */
+export function resetSave(): void {
+  suspendSave();
+  const s = storage();
+  if (!s) return;
+  try {
+    s.removeItem(SAVE_KEY);
+    s.removeItem(BACKUP_KEY);
+  } catch {
+    /* 忽略 */
+  }
+}
+
 /** 把存档里的城镇数据回填到引擎实例（引擎字段本身就是普通数据） */
 export function applyTownSave(engine: TownEngine, town: TownSaveData): void {
   if (town.towns) engine.towns = town.towns;

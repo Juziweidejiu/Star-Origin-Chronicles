@@ -24,7 +24,7 @@ import { Btn, Card, Seal, ArtImage } from './ui';
 import { heroArtSources } from '../config/artAssets';
 import BlacksmithView from './BlacksmithView';
 import type { CraftProgress } from '../engine/craftEngine';
-import { clearSave, suspendSave } from '../engine/saveEngine';
+import { resetSave } from '../engine/saveEngine';
 
 interface TownViewProps {
   townEngine: TownEngine;
@@ -109,6 +109,7 @@ export const TownView: React.FC<TownViewProps> = ({
   });
   const [isTravelModalOpen, setIsTravelModalOpen] = useState(false);
   const [isTownLoreOpen, setIsTownLoreOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
   const [smithTab] = useState<string | null>(() => new URLSearchParams(window.location.search).get('smith'));
   const [smithBlueprint] = useState<string | null>(() => new URLSearchParams(window.location.search).get('bp'));
 
@@ -256,28 +257,49 @@ export const TownView: React.FC<TownViewProps> = ({
           <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
             自动保存 · 第 {townEngine.logistics.day} 天
           </span>
-          <button
-            onClick={() => {
-              if (window.confirm('重新开始会清空当前所有进度（名册、铜钱、装备、地牢）。确定吗？')) {
-                suspendSave();
-                clearSave();
-                window.location.reload();
-              }
-            }}
+          <Btn
+            variant="quiet"
+            size="sm"
+            onClick={() => setIsResetOpen(open => !open)}
+            title="删除本地存档并从第一天重新开始"
+          >
+            <RefreshCw size={11} style={{ marginRight: 4, verticalAlign: -1 }} />
+            清档重开
+          </Btn>
+        </div>
+        {isResetOpen && (
+          <div
+            className="pz-col"
             style={{
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              fontSize: '10px',
-              color: 'var(--pz-ink-3)',
-              textDecoration: 'underline dotted',
-              fontFamily: 'var(--pz-sans)',
+              marginTop: 8,
+              padding: '10px 12px',
+              gap: 8,
+              border: '1px solid var(--pz-line)',
+              borderRadius: 8,
+              background: 'var(--pz-sunken)',
             }}
           >
-            重新开始
-          </button>
-        </div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--pz-ink-2)' }}>
+              清档会删除本地存档：名册、首发与阵型、装备背包、铜钱与赏钱、地牢进度与本趟悬赏。
+              <b style={{ color: 'var(--pz-wine)' }}>删除后无法恢复</b>，也不会保留备份。
+            </div>
+            <div className="pz-row" style={{ gap: 8 }}>
+              <Btn variant="quiet" size="sm" onClick={() => setIsResetOpen(false)}>
+                取消
+              </Btn>
+              <Btn
+                variant="main"
+                size="sm"
+                onClick={() => {
+                  resetSave();
+                  window.location.reload();
+                }}
+              >
+                确认清档并重开
+              </Btn>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* ===== 建筑切换 ===== */}

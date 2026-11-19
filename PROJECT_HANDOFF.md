@@ -793,6 +793,7 @@
   - `refreshHeroLore(hero)`：旧 10 位预设英雄名与 15 条旧称号，按 hero.id 哈希稳定换新（保留「团长·」前缀），属性与职业不动。
   - `refreshEquipmentLore(item)`：剥离旧品阶前缀、`重铸·`→`精淬·`、旧装备名换新图纸名、24 条旧批注名重映射，品质/基础属性/数值不动。
   - 接线在 `App.tsx` 启动读档处（roster / inventory / currentContract / TownEngine）。
+- 另提供「清档重开」入口（城镇页「自动保存」右侧）：`resetSave()` 先 `suspendSave()` 停掉自动保存，再删除主档与备份，二次确认后 reload，从第一天的初始队伍重新开始。旧存档不写迁移，想彻底清零走这个入口。
 - 历史旧名因含颜色字会触发门禁，在 `loreRefresh.ts` / `townEngine.ts` 内一律写成 Unicode 转义，并注明是历史存档数据。
 
 **验证**
