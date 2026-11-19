@@ -373,8 +373,9 @@ export const RosterView: React.FC<RosterViewProps> = ({
                   sources={heroArtSources(hero)}
                   alt={hero.name}
                   style={{
-                    width: 40, height: 40, flexShrink: 0,
+                    width: 44, height: 44, flexShrink: 0,
                     borderRadius: 8, objectFit: 'cover',
+                    objectPosition: '50% 12%',
                     background: 'var(--pz-sunken)',
                     border: '1px solid var(--pz-line)',
                   }}
@@ -382,7 +383,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                     <div
                       aria-hidden
                       style={{
-                        width: 40, height: 40, flexShrink: 0,
+                        width: 44, height: 44, flexShrink: 0,
                         borderRadius: 8,
                         background: 'var(--pz-sunken)',
                         border: '1px solid var(--pz-line)',

@@ -7,6 +7,8 @@ import React, { useState } from 'react';
 import type { BattleSettlementSummary } from '../types/combatSettlement';
 import type { HeroProgressionResult } from '../types/progression';
 import { heroRoleLabel } from '../engine/heroFactory';
+import { ArtImage } from './ui';
+import { heroArtSources } from '../config/artAssets';
 
 interface BattleStatsModalProps {
   summary: BattleSettlementSummary;
@@ -99,21 +101,37 @@ export const BattleStatsModal: React.FC<BattleStatsModalProps> = ({ summary, pro
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
-              <span
+              <ArtImage
+                sources={heroArtSources(mvp.hero)}
+                alt={mvp.hero.name}
                 style={{
-                  width: '30px',
-                  height: '30px',
+                  width: 38,
+                  height: 38,
                   borderRadius: '50%',
-                  background: 'var(--pz-brass)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
+                  objectFit: 'cover',
+                  objectPosition: '50% 12%',
+                  border: '1.5px solid var(--pz-brass)',
+                  background: 'var(--pz-sunken)',
                   flexShrink: 0,
                 }}
-              >
-                ★
-              </span>
+                fallback={
+                  <span
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      background: 'var(--pz-brass)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    ★
+                  </span>
+                }
+              />
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap' }}>{mvp.hero.name}</span>

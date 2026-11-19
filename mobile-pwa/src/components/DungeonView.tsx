@@ -6,7 +6,8 @@ import type { DungeonEvent, ChoiceConsequence } from '../types/narrative';
 import { executeQuickCampMeal } from '../engine/dungeonEngine';
 import { DungeonEventModal } from './DungeonEventModal';
 import { CLASS_CONFIG } from '../engine/heroFactory';
-import { Card, Btn, Tag } from './ui';
+import { Card, Btn, Tag, ArtImage } from './ui';
+import { heroArtSources } from '../config/artAssets';
 import {
   Bomb,
   Check,
@@ -491,7 +492,22 @@ export const DungeonView: React.FC<DungeonViewProps> = ({
             const low = ratio < 0.4;
             return (
               <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 74, flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--pz-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <ArtImage
+                  sources={heroArtSources(h)}
+                  alt={h.name}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    objectPosition: '50% 12%',
+                    border: '1px solid var(--pz-line)',
+                    background: 'var(--pz-page)',
+                    flexShrink: 0,
+                  }}
+                  fallback={null}
+                />
+                <span style={{ width: 68, flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--pz-ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {h.name}
                 </span>
                 <span

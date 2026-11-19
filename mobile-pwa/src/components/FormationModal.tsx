@@ -5,6 +5,8 @@ import type { GridSlotId, FormationPresetId, FormationSlotAssignment } from '../
 import { GRID_SLOTS } from '../types/formation';
 import { FORMATION_PRESETS, validateFormationHealth } from '../engine/formationEngine';
 import { heroRoleLabel } from '../engine/heroFactory';
+import { ArtImage } from './ui';
+import { heroArtSources } from '../config/artAssets';
 
 interface FormationModalProps {
   party: Hero[];                   // 当前出战的 4 人先遣队
@@ -179,22 +181,40 @@ export const FormationModal: React.FC<FormationModalProps> = ({
       >
         {occupant ? (
           <>
-            <div
+            <ArtImage
+              sources={heroArtSources(occupant)}
+              alt={occupant.name}
               style={{
-                width: '30px',
-                height: '30px',
+                width: 32,
+                height: 32,
                 borderRadius: '50%',
+                objectFit: 'cover',
+                objectPosition: '50% 12%',
+                border: `1.5px solid ${rs.color}`,
                 background: rs.tint,
-                border: `1px solid ${rs.color}`,
-                color: rs.color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 marginBottom: '3px',
+                flexShrink: 0,
               }}
-            >
-              <RoleIcon role={role} />
-            </div>
+              fallback={
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: rs.tint,
+                    border: `1px solid ${rs.color}`,
+                    color: rs.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '3px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <RoleIcon role={role} />
+                </div>
+              }
+            />
             <div
               style={{
                 fontSize: '11px',

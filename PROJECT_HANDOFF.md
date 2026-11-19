@@ -726,3 +726,32 @@
 - 截图确认图纸册 12 张图在纸白底上正常显示，锁定卡半透明、T 角标可辨。
 
 **提交**：`77040d2`（界面）、`11e8325`（文档），已推 origin / github。
+
+### Milestone 40: 批次 B 英雄二次元立绘全面接入（已完成交付 ✅）
+
+**目标**：将 `docs/art_assets_batch_b.zip` 中的 18 张二次元英雄立绘检验并接入系统，打通名册、酒馆、阵型及战后结算面板。
+
+**资产检验与入库 (`scripts/import_batch_b.mjs`)**：
+- 解压暂存至 `artResources/batch_b/`，通过 RIFF/VP8X 头部二进制解析校验：
+  - 全部 18 张 WebP（9 大职业 × 男女各 1 张）：`arcanist`、`bard`、`blademaster`、`cleric`、`druid`、`guardian`、`paladin`、`ranger`、`warden`。
+  - 规格统一：严格 768×1024 像素、均具备透明通道（Alpha=true）、平均体积 109 KB（全包仅约 1.9 MB）。
+- 按规范复制落盘至 `mobile-pwa/public/art/heroes/`。
+
+**界面组件接入与取景优化**：
+- **名册页 (`RosterView.tsx`)**：
+  - 英雄卡片头像尺寸优化为 44×44，配置 `objectFit: 'cover'` + `objectPosition: '50% 12%'` 黄金头面取景，二次元神态尽收眼底。
+- **佣兵酒馆 (`TownView.tsx`)**：
+  - 引入 `ArtImage` 与 `heroArtSources`，候选佣兵卡片左侧展示精致二次元头像，签约前即可直观预览佣兵相貌。
+- **战术阵型弹窗 (`FormationModal.tsx`)**：
+  - 3×3 棋盘中出战英雄与替补席英雄格子接入 32×32 圆形立绘头像（保留职能色环边框，带优雅回落）。
+- **战斗战绩面板 (`BattleStatsModal.tsx`)**：
+  - MVP 结算卡片将原先纯文字/五角星升级为 38×38 圆形黄铜描边英雄二次元立绘头像。
+- **地牢探险沙盘 (`DungeonView.tsx`)**：
+  - 探险底部队伍血条左侧增加 22×22 紧凑圆形头像，随时掌握队员状态。
+
+**验证**：
+- `npm run check` 0 error / 0 warning。
+- `npm run test` 5 files / 72 tests 全绿通过。
+- `npm run build` 成功，主包体积 472.38 kB。
+- Headless Chrome 实机截图验证名册列表、佣兵酒馆候聘列表，立绘加载迅速且无裁切走形。
+

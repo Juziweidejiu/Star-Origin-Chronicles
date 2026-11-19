@@ -20,7 +20,8 @@ import type { Hero, Equipment } from '../types/hero';
 import { heroRoleLabel } from '../engine/heroFactory';
 import { estimateContractOdds } from '../engine/guildEngine';
 import { starsToRank } from '../types/guild';
-import { Btn, Card, Seal } from './ui';
+import { Btn, Card, Seal, ArtImage } from './ui';
+import { heroArtSources } from '../config/artAssets';
 import BlacksmithView from './BlacksmithView';
 import type { CraftProgress } from '../engine/craftEngine';
 import { clearSave, suspendSave } from '../engine/saveEngine';
@@ -419,15 +420,52 @@ export const TownView: React.FC<TownViewProps> = ({
             recruits.map(rec => (
               <Card key={rec.id} style={{ padding: '12px' }}>
                 <div className="pz-between" style={{ alignItems: 'flex-start', gap: 10 }}>
-                  <div className="pz-grow">
-                    <div className="pz-row" style={{ gap: 8 }}>
-                      <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 15, fontWeight: 700 }}>{rec.hero.name}</span>
-                      <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
-                        Lv.{rec.hero.level} {heroRoleLabel(rec.hero)}
-                      </span>
-                    </div>
-                    <div className="pz-micro" style={{ marginTop: 3, letterSpacing: 1, color: 'var(--pz-brass-deep)' }}>
-                      {rec.starRatingRange}
+                  <div style={{ display: 'flex', gap: 10, minWidth: 0, flex: 1 }}>
+                    <ArtImage
+                      sources={heroArtSources(rec.hero)}
+                      alt={rec.hero.name}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        flexShrink: 0,
+                        borderRadius: 8,
+                        objectFit: 'cover',
+                        objectPosition: '50% 12%',
+                        background: 'var(--pz-sunken)',
+                        border: '1px solid var(--pz-line)',
+                      }}
+                      fallback={
+                        <div
+                          aria-hidden
+                          style={{
+                            width: 44,
+                            height: 44,
+                            flexShrink: 0,
+                            borderRadius: 8,
+                            background: 'var(--pz-sunken)',
+                            border: '1px solid var(--pz-line)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontFamily: 'var(--pz-serif)',
+                            fontSize: 16,
+                            color: 'var(--pz-ink-2)',
+                          }}
+                        >
+                          {rec.hero.name.replace(/^(团长·|敌·|👑)/, '').slice(-1)}
+                        </div>
+                      }
+                    />
+                    <div className="pz-grow" style={{ minWidth: 0 }}>
+                      <div className="pz-row" style={{ gap: 8 }}>
+                        <span style={{ fontFamily: 'var(--pz-serif)', fontSize: 15, fontWeight: 700 }}>{rec.hero.name}</span>
+                        <span className="pz-micro" style={{ color: 'var(--pz-ink-3)' }}>
+                          Lv.{rec.hero.level} {heroRoleLabel(rec.hero)}
+                        </span>
+                      </div>
+                      <div className="pz-micro" style={{ marginTop: 3, letterSpacing: 1, color: 'var(--pz-brass-deep)' }}>
+                        {rec.starRatingRange}
+                      </div>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
